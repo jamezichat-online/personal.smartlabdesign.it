@@ -1,1 +1,305 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smartlab Design — Personal Sites</title><meta name="description" content="Personal creative sites by Smartlab Design."><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b0b;color:#fff;font-family:Arial,sans-serif}main{max-width:760px;padding:40px;text-align:center}h1{font-size:clamp(42px,8vw,88px);line-height:.95;margin:0 0 24px}p{color:#bbb;line-height:1.6}.card{display:block;margin-top:32px;padding:24px;border:1px solid #2a2a2a;border-radius:20px;color:#fff;text-decoration:none;background:#131313}.card:hover{background:#191919}</style></head><body><main><p>SMARTLAB DESIGN · PERSONAL SITES</p><h1>Creative projects,<br>stories and experiments.</h1><a class="card" href="/the-right-one-landing/"><strong>The Right One</strong><br><span>A cinematic short story about JACK.</span></a></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090909">
+  <title>Smartlab Design — Personal Projects</title>
+  <meta name="description" content="Independent creative projects, stories and visual experiments by Smartlab Design.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090909;
+      --surface: #111;
+      --text: #f5f2eb;
+      --muted: #a6a19a;
+      --line: rgba(255,255,255,.13);
+      --accent: #ff3b24;
+      --max: 1440px;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 84% 5%, rgba(255,59,36,.11), transparent 27rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Manrope, system-ui, sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .045;
+      z-index: 20;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+    }
+
+    a { color: inherit; }
+    .shell { width: min(calc(100% - 64px), var(--max)); margin: auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 31px;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.8);
+      border-radius: 50%;
+      font: 500 11px DM Mono, monospace;
+    }
+
+    .header-label,
+    .eyebrow,
+    .project-number,
+    .tag,
+    footer {
+      font-family: DM Mono, monospace;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+    }
+
+    .header-label { color: var(--muted); font-size: 10px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.35fr .65fr;
+      gap: 80px;
+      align-items: end;
+      padding: clamp(80px, 12vw, 170px) 0 72px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 25px;
+      color: #d7d2ca;
+      font-size: 10px;
+    }
+
+    .eyebrow::before { content: ""; width: 36px; height: 1px; background: var(--accent); }
+
+    h1 {
+      max-width: 1000px;
+      margin: 0;
+      font-size: clamp(58px, 8.2vw, 132px);
+      line-height: .87;
+      letter-spacing: -.075em;
+    }
+
+    h1 span {
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(245,242,235,.65);
+    }
+
+    .hero-copy {
+      max-width: 390px;
+      margin: 0;
+      padding-bottom: 8px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .projects-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .projects-head h2 { margin: 0; font-size: 14px; letter-spacing: -.01em; }
+    .projects-head span { color: var(--muted); font: 10px DM Mono, monospace; letter-spacing: .12em; text-transform: uppercase; }
+
+    .project-grid { display: grid; gap: 22px; padding-bottom: 110px; }
+
+    .project-card {
+      position: relative;
+      min-height: min(72vh, 760px);
+      overflow: hidden;
+      display: grid;
+      align-items: end;
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background: var(--surface);
+      text-decoration: none;
+      isolation: isolate;
+    }
+
+    .project-image,
+    .project-overlay { position: absolute; inset: 0; }
+
+    .project-image {
+      z-index: -2;
+      background: url("https://d2ol7oe51mr4n9.cloudfront.net/user_37u4BdIWLdxIKRnNlGRqjLjMgTw/46aa4109-9f74-4251-8837-866468284918.png") center 43% / cover no-repeat;
+      transform: scale(1.02);
+      transition: transform .9s cubic-bezier(.2,.7,.2,1), filter .9s ease;
+    }
+
+    .project-overlay {
+      z-index: -1;
+      background:
+        linear-gradient(90deg, rgba(4,4,4,.95) 0%, rgba(4,4,4,.72) 38%, rgba(4,4,4,.08) 75%),
+        linear-gradient(0deg, rgba(4,4,4,.94) 0%, transparent 53%);
+    }
+
+    .project-card:hover .project-image { transform: scale(1.065); filter: saturate(1.12); }
+
+    .project-content {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: end;
+      padding: clamp(28px, 5vw, 68px);
+    }
+
+    .project-number { margin-bottom: 18px; color: #d7d2ca; font-size: 10px; }
+
+    .project-title {
+      margin: 0;
+      font-size: clamp(54px, 8vw, 118px);
+      line-height: .88;
+      letter-spacing: -.07em;
+    }
+
+    .project-description {
+      max-width: 510px;
+      margin: 24px 0 0;
+      color: #d1ccc4;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+    .tag { padding: 9px 12px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; font-size: 8px; background: rgba(0,0,0,.22); backdrop-filter: blur(10px); }
+
+    .open-project {
+      width: 68px;
+      height: 68px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border-radius: 50%;
+      background: var(--accent);
+      font-size: 25px;
+      transition: transform .35s ease, background .35s ease;
+    }
+
+    .project-card:hover .open-project { transform: translate(4px,-4px); background: #fff; color: #111; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      padding: 30px 0 38px;
+      border-top: 1px solid var(--line);
+      color: #77736d;
+      font-size: 9px;
+    }
+
+    @media (max-width: 860px) {
+      .shell { width: min(calc(100% - 36px), var(--max)); }
+      .hero { grid-template-columns: 1fr; gap: 35px; padding-top: 100px; }
+      .hero-copy { max-width: 560px; }
+      .project-card { min-height: 680px; }
+      .project-content { grid-template-columns: 1fr; }
+      .open-project { justify-self: end; }
+      .project-overlay { background: linear-gradient(0deg, rgba(4,4,4,.97) 0%, rgba(4,4,4,.48) 58%, rgba(4,4,4,.2) 100%); }
+    }
+
+    @media (max-width: 540px) {
+      .header-label { display: none; }
+      h1 { font-size: 55px; }
+      .hero { padding: 82px 0 55px; }
+      .project-card { min-height: 610px; border-radius: 22px; }
+      .project-image { background-position: 57% center; }
+      .project-title { font-size: 53px; }
+      .project-content { padding: 25px; gap: 28px; }
+      .project-description { font-size: 14px; }
+      .open-project { width: 58px; height: 58px; }
+      footer { display: block; line-height: 1.8; }
+      footer span { display: block; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark">SL</span> SMARTLAB DESIGN</div>
+      <div class="header-label">Personal projects · Selected work</div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <div class="eyebrow">Independent creative practice</div>
+          <h1 id="page-title">IDEAS, STORIES<br><span>& EXPERIMENTS.</span></h1>
+        </div>
+        <p class="hero-copy">A curated collection of personal projects where visual design, storytelling and emerging creative technologies meet.</p>
+      </section>
+
+      <section aria-labelledby="projects-title">
+        <div class="projects-head">
+          <h2 id="projects-title">Selected projects</h2>
+          <span>01 project online</span>
+        </div>
+
+        <div class="project-grid">
+          <a class="project-card" href="/the-right-one/" aria-label="Open The Right One project">
+            <div class="project-image" role="img" aria-label="JACK in his cinematic fantasy world"></div>
+            <div class="project-overlay"></div>
+            <div class="project-content">
+              <div>
+                <div class="project-number">01 · Cinematic story · 2026</div>
+                <h3 class="project-title">THE RIGHT<br>ONE.</h3>
+                <p class="project-description">A small disaster, a worried child and JACK — the tiny multi-tool brave enough to become the hero.</p>
+                <div class="tags" aria-label="Project categories">
+                  <span class="tag">Art direction</span>
+                  <span class="tag">AI filmmaking</span>
+                  <span class="tag">Storytelling</span>
+                </div>
+              </div>
+              <span class="open-project" aria-hidden="true">↗</span>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Smartlab Design · Personal projects</span>
+      <span>Concept & art direction — Alessio Talluto</span>
+      <span>© 2026</span>
+    </footer>
+  </div>
+</body>
+</html>
