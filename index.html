@@ -31,8 +31,15 @@
     img { display: block; max-width: 100%; }
     .shell { width: min(calc(100% - 64px), var(--max)); margin-inline: auto; }
 
+    .hero-scroll { position: relative; }
     .hero { min-height: 100svh; position: relative; isolation: isolate; display: flex; flex-direction: column; color: var(--cream); background: var(--ink); overflow: hidden; }
-    .hero-bg { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: center; transform: scale(1.01); animation: arrive 1.4s cubic-bezier(.2,.8,.2,1) both; }
+    .hero-bg, .hero-video { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .hero-bg { transform: scale(1.01); animation: arrive 1.4s cubic-bezier(.2,.8,.2,1) both; transition: opacity .45s ease; }
+    .hero-video { opacity: 0; object-position: var(--video-x, 42%) center; transform: translateZ(0); transition: opacity .45s ease; will-change: contents; }
+    html.scroll-video-ready .hero-scroll { height: 420svh; }
+    html.scroll-video-ready .hero { position: sticky; top: 0; height: 100svh; min-height: 100svh; }
+    html.scroll-video-ready .hero-video { opacity: 1; }
+    html.scroll-video-ready .hero-bg { opacity: 0; }
     .hero::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, rgba(0,27,31,.76) 0%, transparent 28%, transparent 53%, rgba(0,25,29,.9) 100%), linear-gradient(90deg, rgba(0,24,29,.55), transparent 55%); }
     .hero::after { content: ""; position: absolute; inset: auto -12% -22% 42%; height: 62%; z-index: -1; background: radial-gradient(ellipse, rgba(255,45,135,.3), transparent 65%); filter: blur(18px); }
 
@@ -44,7 +51,7 @@
     nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
     nav a:hover::after { right: 0; }
 
-    .hero-copy { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(290px, .65fr); gap: 60px; align-items: end; padding: 70px 0 48px; }
+    .hero-copy { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(290px, .65fr); gap: 60px; align-items: end; padding: 70px 0 48px; opacity: var(--hero-copy-opacity, 1); transform: translate3d(0, calc(var(--hero-progress, 0) * -34px), 0); transition: opacity .08s linear; will-change: opacity, transform; }
     .kicker { display: flex; gap: 12px; align-items: center; margin: 0 0 15px; font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; }
     .kicker::before { content: ""; width: 40px; height: 3px; background: var(--coral); box-shadow: 0 0 10px var(--pink); }
     h1 { margin: 0; max-width: 900px; font: 400 clamp(58px, 9.5vw, 148px)/.77 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; text-shadow: 5px 6px 0 rgba(6,45,49,.72); }
@@ -113,6 +120,7 @@
       .patch-wrap { width: min(610px, 90%); margin: auto; }
     }
     @media (max-width: 560px) {
+      html.scroll-video-ready .hero-scroll { height: 340svh; }
       .shell { width: calc(100% - 28px); }
       header { gap: 12px; padding: 18px 0; }
       .wordmark { gap: 8px; font-size: 16px; white-space: nowrap; }
@@ -177,27 +185,39 @@
       .project-title { font-size: clamp(45px, 15vw, 52px); }
       .discipline strong { font-size: 17px; }
     }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+    @media (prefers-reduced-motion: reduce) {
+      html.scroll-video-ready .hero-scroll { height: auto; }
+      html.scroll-video-ready .hero { position: relative; height: auto; min-height: 100svh; }
+      .hero-video { display: none; }
+      html.scroll-video-ready .hero-bg { opacity: 1; }
+      .hero-copy { opacity: 1 !important; transform: none !important; }
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
   </style>
 </head>
 <body>
-  <section class="hero" aria-labelledby="page-title">
+  <section class="hero-scroll" id="top" aria-label="Scroll-controlled SmartLabDesign logo animation">
+    <div class="hero" aria-labelledby="page-title">
     <img class="hero-bg" src="assets/smartlab-miami.webp" alt="SmartLabDesign neon identity on a palm-lined promenade at sunset">
+    <video class="hero-video" muted playsinline preload="auto" poster="assets/smartlab-miami.webp" aria-hidden="true">
+      <source src="assets/smartlab-logo-scroll.mp4" type="video/mp4">
+    </video>
     <div class="shell">
       <header>
         <a class="wordmark" href="#top" aria-label="SmartLabDesign home"><span class="mini-mark">SL</span> SmartLabDesign</a>
         <nav aria-label="Main navigation"><a href="#projects">Projects</a><a href="#studio">Studio</a><a href="#projects">Explore ↓</a></nav>
       </header>
     </div>
-    <div class="shell hero-copy" id="top">
+    <div class="shell hero-copy">
       <div>
         <p class="kicker">Independent creative studio</p>
         <h1 id="page-title">Create.<em>Without limits.</em></h1>
       </div>
       <div class="hero-side">
         <p>Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.</p>
-        <a class="scroll-link" href="#projects"><span>↓</span> Discover selected projects</a>
+        <div class="scroll-link scroll-hint" aria-hidden="true"><span>↓</span> Scroll to animate the logo</div>
       </div>
+    </div>
     </div>
   </section>
 
@@ -249,5 +269,76 @@
   </main>
 
   <footer><div class="shell footer-row"><span>SmartLabDesign / Creative Force</span><span>Concept & art direction — Alessio Talluto</span><span>© 2026</span></div></footer>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const track = document.querySelector('.hero-scroll');
+      const hero = document.querySelector('.hero');
+      const video = document.querySelector('.hero-video');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      if (!track || !hero || !video || reduceMotion.matches) return;
+
+      let duration = 10;
+      let targetProgress = 0;
+      let renderedProgress = 0;
+      let frame = 0;
+      let ready = false;
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      const measure = () => {
+        const rect = track.getBoundingClientRect();
+        const range = Math.max(track.offsetHeight - window.innerHeight, 1);
+        targetProgress = clamp(-rect.top / range, 0, 1);
+
+        hero.style.setProperty('--hero-progress', targetProgress.toFixed(4));
+        hero.style.setProperty('--hero-copy-opacity', clamp(1 - targetProgress * 4.4, 0, 1).toFixed(3));
+
+        const startX = window.innerWidth <= 560 ? 30 : 42;
+        const panProgress = clamp(targetProgress / 0.24, 0, 1);
+        hero.style.setProperty('--video-x', (startX + (50 - startX) * panProgress).toFixed(2) + '%');
+
+        if (!frame) frame = requestAnimationFrame(render);
+      };
+
+      const render = () => {
+        frame = 0;
+        if (!ready) return;
+
+        renderedProgress += (targetProgress - renderedProgress) * 0.16;
+        const targetTime = renderedProgress * Math.max(duration - 0.04, 0);
+        if (Math.abs(video.currentTime - targetTime) > 0.012) video.currentTime = targetTime;
+
+        if (Math.abs(targetProgress - renderedProgress) > 0.00035) {
+          frame = requestAnimationFrame(render);
+        }
+      };
+
+      const activate = () => {
+        duration = Number.isFinite(video.duration) ? video.duration : 10;
+        video.pause();
+        video.currentTime = 0.001;
+        ready = true;
+        root.classList.add('scroll-video-ready');
+        measure();
+      };
+
+      video.addEventListener('loadedmetadata', activate, { once: true });
+      window.addEventListener('scroll', measure, { passive: true });
+      window.addEventListener('resize', measure, { passive: true });
+
+      const primeVideo = () => {
+        video.play().then(() => {
+          video.pause();
+          measure();
+        }).catch(() => {});
+      };
+
+      window.addEventListener('pointerdown', primeVideo, { once: true, passive: true });
+      window.addEventListener('touchstart', primeVideo, { once: true, passive: true });
+      video.load();
+    })();
+  </script>
 </body>
 </html>
