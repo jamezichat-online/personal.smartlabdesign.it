@@ -45,7 +45,8 @@
 
     header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 25px 0; border-bottom: 1px solid rgba(255,240,206,.38); text-transform: uppercase; }
     .wordmark { display: flex; align-items: center; gap: 12px; font: 700 18px/1 "Barlow Condensed"; letter-spacing: .045em; text-decoration: none; }
-    .mini-mark { width: 38px; aspect-ratio: 1; border: 2px solid var(--cream); border-radius: 50%; display: grid; place-items: center; font: 500 10px "DM Mono"; box-shadow: 0 0 18px rgba(255,45,135,.5); }
+    .mini-mark { width: 38px; aspect-ratio: 1; flex: 0 0 auto; display: block; filter: drop-shadow(0 0 8px rgba(255,240,206,.22)); }
+    .mini-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
     nav { display: flex; gap: clamp(20px, 4vw, 54px); font: 500 11px "DM Mono"; letter-spacing: .12em; }
     nav a { text-decoration: none; position: relative; }
     nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
@@ -204,7 +205,7 @@
     </video>
     <div class="shell">
       <header>
-        <a class="wordmark" href="#top" aria-label="SmartLabDesign home"><span class="mini-mark">SL</span> SmartLabDesign</a>
+        <a class="wordmark" href="#top" aria-label="SmartLabDesign home"><span class="mini-mark" aria-hidden="true"><img src="assets/smartlab-symbol.png" alt=""></span> SmartLabDesign</a>
         <nav aria-label="Main navigation"><a href="#projects">Projects</a><a href="#studio">Studio</a><a href="#projects">Explore ↓</a></nav>
       </header>
     </div>
