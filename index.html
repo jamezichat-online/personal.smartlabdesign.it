@@ -44,9 +44,7 @@
     .hero::after { content: ""; position: absolute; inset: auto -12% -22% 42%; height: 62%; z-index: -1; background: radial-gradient(ellipse, rgba(255,45,135,.3), transparent 65%); filter: blur(18px); }
 
     header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 25px 0; border-bottom: 1px solid rgba(255,240,206,.38); text-transform: uppercase; }
-    .wordmark { display: flex; align-items: center; gap: 12px; font: 700 18px/1 "Barlow Condensed"; letter-spacing: .045em; text-decoration: none; }
-    .mini-mark { width: 38px; aspect-ratio: 1; flex: 0 0 auto; display: block; filter: drop-shadow(0 0 8px rgba(255,240,206,.22)); }
-    .mini-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .wordmark { display: flex; align-items: center; font: 700 21px/1 "Barlow Condensed"; letter-spacing: .045em; text-decoration: none; }
     nav { display: flex; gap: clamp(20px, 4vw, 54px); font: 500 11px "DM Mono"; letter-spacing: .12em; }
     nav a { text-decoration: none; position: relative; }
     nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
@@ -124,8 +122,7 @@
       html.scroll-video-ready .hero-scroll { height: 340svh; }
       .shell { width: calc(100% - 28px); }
       header { gap: 12px; padding: 18px 0; }
-      .wordmark { gap: 8px; font-size: 16px; white-space: nowrap; }
-      .mini-mark { width: 32px; }
+      .wordmark { font-size: 18px; white-space: nowrap; }
       nav { gap: 14px; font-size: 9px; }
       nav a:last-child { display: none; }
 
@@ -177,7 +174,7 @@
     @media (max-width: 380px) {
       .shell { width: calc(100% - 24px); }
       header { gap: 8px; }
-      .wordmark { font-size: 15px; }
+      .wordmark { font-size: 17px; }
       nav { gap: 10px; }
       nav a:nth-child(2) { display: none; }
       h1 { font-size: clamp(43px, 14.5vw, 51px); }
@@ -205,7 +202,7 @@
     </video>
     <div class="shell">
       <header>
-        <a class="wordmark" href="#top" aria-label="SmartLabDesign home"><span class="mini-mark" aria-hidden="true"><img src="assets/smartlab-symbol.png" alt=""></span> SmartLabDesign</a>
+        <a class="wordmark" href="#top" aria-label="SmartLabDesign home">SmartLabDesign</a>
         <nav aria-label="Main navigation"><a href="#projects">Projects</a><a href="#studio">Studio</a><a href="#projects">Explore ↓</a></nav>
       </header>
     </div>
