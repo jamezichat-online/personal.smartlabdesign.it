@@ -6,10 +6,42 @@
   <meta name="theme-color" content="#052d31">
   <title>SmartLabDesign — Creative Force</title>
   <meta name="description" content="SmartLabDesign is an independent creative studio for visual identities, stories and digital experiments.">
+  <link rel="canonical" href="https://sites.smartlabdesign.it/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SmartLabDesign">
+  <meta property="og:url" content="https://sites.smartlabdesign.it/">
+  <meta property="og:title" content="SmartLabDesign — Creative Force">
+  <meta property="og:description" content="Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.">
+  <meta property="og:image" content="https://sites.smartlabdesign.it/assets/og-home.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="SmartLabDesign neon identity on a palm-lined promenade at sunset">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SmartLabDesign — Creative Force">
+  <meta name="twitter:description" content="Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.">
+  <meta name="twitter:image" content="https://sites.smartlabdesign.it/assets/og-home.jpg">
+
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x2='1' y2='1'%3E%3Cstop stop-color='%23ff744d'/%3E%3Cstop offset='.5' stop-color='%23ff2d87'/%3E%3Cstop offset='1' stop-color='%2300bfc4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%23052024' stroke='url(%23g)' stroke-width='5'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-family='Arial' font-weight='900' font-size='27' fill='%23fff1ce'%3ESL%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "SmartLabDesign",
+    "alternateName": "SmartLabDesign — Creative Force",
+    "url": "https://sites.smartlabdesign.it/",
+    "description": "Independent creative studio for visual identities, cinematic stories and digital experiments.",
+    "founder": { "@type": "Person", "name": "Alessio Talluto", "jobTitle": "Art Director" },
+    "email": "Jamez.ichat@gmail.com",
+    "sameAs": ["https://www.linkedin.com/in/alessio-talluto/"]
+  }
+  </script>
+
   <style>
     :root {
       --ink: #062d31;
@@ -31,12 +63,18 @@
     img { display: block; max-width: 100%; }
     .shell { width: min(calc(100% - 64px), var(--max)); margin-inline: auto; }
 
+    /* FOCUS RING — visibile su qualsiasi fondo della palette */
+    :focus-visible { outline: 3px solid var(--sun); outline-offset: 4px; border-radius: 3px; }
+    .skip { position: absolute; left: 12px; top: -100px; z-index: 200; padding: 14px 18px; background: var(--sun); color: var(--ink); font: 500 11px "DM Mono"; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--ink); transition: top .18s; }
+    .skip:focus { top: 12px; }
+
     .hero-scroll { position: relative; }
     .hero { min-height: 100svh; position: relative; isolation: isolate; display: flex; flex-direction: column; color: var(--cream); background: var(--ink); overflow: hidden; }
     .hero-bg, .hero-video { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: center; }
     .hero-bg { transform: scale(1.01); animation: arrive 1.4s cubic-bezier(.2,.8,.2,1) both; transition: opacity .45s ease; }
     .hero-video { opacity: 0; object-position: var(--video-x, 42%) center; transform: translateZ(0); transition: opacity .45s ease; will-change: contents; }
-    html.scroll-video-ready .hero-scroll { height: 420svh; }
+    /* 420svh -> 260svh: quattro schermate di scroll prima del contenuto erano troppe */
+    html.scroll-video-ready .hero-scroll { height: 260svh; }
     html.scroll-video-ready .hero { position: sticky; top: 0; height: 100svh; min-height: 100svh; }
     html.scroll-video-ready .hero-video { opacity: 1; }
     html.scroll-video-ready .hero-bg { opacity: 0; }
@@ -45,7 +83,7 @@
 
     header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 25px 0; border-bottom: 1px solid rgba(255,240,206,.38); text-transform: uppercase; }
     .wordmark { display: flex; align-items: center; font: 700 21px/1 "Barlow Condensed"; letter-spacing: .045em; text-decoration: none; }
-    nav { display: flex; gap: clamp(20px, 4vw, 54px); font: 500 11px "DM Mono"; letter-spacing: .12em; }
+    nav { display: flex; gap: clamp(18px, 3.4vw, 48px); font: 500 11px "DM Mono"; letter-spacing: .12em; }
     nav a { text-decoration: none; position: relative; }
     nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
     nav a:hover::after { right: 0; }
@@ -92,7 +130,7 @@
     .studio-grid { display: grid; grid-template-columns: minmax(300px,.85fr) minmax(0,1.15fr); gap: clamp(55px, 8vw, 125px); align-items: center; }
     .patch-wrap { position: relative; transform: rotate(-4deg); }
     .patch-wrap::after { content: "BRAND DNA / 2026"; position: absolute; right: -25px; bottom: 22px; padding: 10px 13px; background: var(--sun); border: 2px solid var(--ink); font: 500 9px "DM Mono"; letter-spacing: .11em; box-shadow: 5px 5px 0 var(--pink); }
-    .patch-wrap img { width: 100%; border: 3px solid var(--ink); border-radius: 48% 48% 8px 8px; box-shadow: 18px 18px 0 rgba(6,45,49,.22); }
+    .patch-wrap img { width: 100%; height: auto; border: 3px solid var(--ink); border-radius: 48% 48% 8px 8px; box-shadow: 18px 18px 0 rgba(6,45,49,.22); }
     .studio h2 { margin: 18px 0 28px; font: 400 clamp(58px, 8vw, 118px)/.8 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; }
     .studio h2 span { color: var(--cream); text-shadow: 3px 3px 0 var(--pink); }
     .studio-intro { max-width: 660px; margin: 0 0 55px; font-size: 22px; line-height: 1.4; }
@@ -100,16 +138,32 @@
     .discipline { display: grid; grid-template-columns: 52px 1fr auto; gap: 18px; align-items: center; padding: 18px 0; border-bottom: 1px solid rgba(6,45,49,.45); text-transform: uppercase; }
     .discipline b { font: 500 10px "DM Mono"; }
     .discipline strong { font-size: 23px; letter-spacing: .02em; }
-    .discipline span { font-size: 18px; }
+    /* era una freccia ↗ su un elemento non cliccabile: sostituita con un marker decorativo */
+    .discipline span { font-size: 14px; color: var(--ink); opacity: .55; }
+
+    /* CONTACT */
+    .contact { padding: clamp(90px, 11vw, 150px) 0; background: var(--coral); color: var(--ink); border-top: 3px solid var(--ink); }
+    .contact-grid { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(280px,.75fr); gap: clamp(45px, 7vw, 100px); align-items: end; }
+    .contact h2 { margin: 16px 0 0; font: 400 clamp(52px, 7.6vw, 112px)/.8 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; }
+    .contact h2 span { color: var(--cream); text-shadow: 3px 3px 0 var(--ink); }
+    .contact p { max-width: 520px; margin: 30px 0 0; font-size: 21px; line-height: 1.42; }
+    .contact-actions { display: flex; flex-direction: column; gap: 16px; justify-self: end; width: min(360px, 100%); }
+    .btn-hard { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 24px; background: var(--ink); color: var(--cream); border: 2px solid var(--ink); box-shadow: 8px 8px 0 var(--sun); font: 700 20px "Barlow Condensed"; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s; }
+    .btn-hard:hover { transform: translate(-3px,-3px); box-shadow: 11px 11px 0 var(--sun); }
+    .btn-hard span { font-size: 24px; }
+    .btn-hard.alt { background: var(--cream); color: var(--ink); box-shadow: 8px 8px 0 var(--pink); }
+    .btn-hard.alt:hover { box-shadow: 11px 11px 0 var(--pink); }
 
     footer { padding: 30px 0; color: var(--cream); background: var(--ink); }
-    .footer-row { display: flex; justify-content: space-between; gap: 25px; font: 500 9px "DM Mono"; letter-spacing: .11em; text-transform: uppercase; }
+    .footer-row { display: flex; justify-content: space-between; gap: 25px; font: 500 10px "DM Mono"; letter-spacing: .11em; text-transform: uppercase; }
+    .footer-row a { text-decoration: none; border-bottom: 1px solid rgba(255,240,206,.45); }
+    .footer-row a:hover { color: var(--sun); border-color: var(--sun); }
 
     @keyframes arrive { from { opacity: 0; transform: scale(1.07); } to { opacity: 1; transform: scale(1.01); } }
     @keyframes marquee { to { transform: translateX(-50%); } }
     @media (max-width: 900px) {
       .shell { width: min(calc(100% - 38px), var(--max)); }
-      .hero-copy, .manifesto-grid, .studio-grid { grid-template-columns: 1fr; }
+      .hero-copy, .manifesto-grid, .studio-grid, .contact-grid { grid-template-columns: 1fr; }
       .hero-copy { gap: 35px; }
       .hero-side { justify-self: start; }
       .manifesto-grid { gap: 35px; }
@@ -117,13 +171,15 @@
       .project-card { min-height: 720px; }
       .studio-grid { gap: 80px; }
       .patch-wrap { width: min(610px, 90%); margin: auto; }
+      .contact-grid { gap: 48px; }
+      .contact-actions { justify-self: start; width: 100%; max-width: 460px; }
     }
     @media (max-width: 560px) {
-      html.scroll-video-ready .hero-scroll { height: 340svh; }
+      html.scroll-video-ready .hero-scroll { height: 220svh; }
       .shell { width: calc(100% - 28px); }
       header { gap: 12px; padding: 18px 0; }
       .wordmark { font-size: 18px; white-space: nowrap; }
-      nav { gap: 14px; font-size: 9px; }
+      nav { gap: 13px; font-size: 9px; }
       nav a:last-child { display: none; }
 
       .hero { min-height: max(680px, 100svh); }
@@ -165,10 +221,16 @@
       .studio-intro { margin-bottom: 36px; font-size: 20px; }
       .discipline { grid-template-columns: 32px minmax(0, 1fr) 24px; gap: 8px; padding: 16px 0; }
       .discipline strong { min-width: 0; font-size: 18px; line-height: 1.05; }
-      .discipline span { font-size: 16px; text-align: right; }
+      .discipline span { font-size: 13px; text-align: right; }
+
+      .contact { padding: 76px 0; }
+      .contact h2 { font-size: clamp(46px, 13.5vw, 62px); line-height: .84; }
+      .contact p { margin-top: 22px; font-size: 19px; }
+      .btn-hard { padding: 19px 20px; font-size: 18px; box-shadow: 6px 6px 0 var(--sun); }
+      .btn-hard.alt { box-shadow: 6px 6px 0 var(--pink); }
 
       footer { padding: 24px 0; }
-      .footer-row { display: block; line-height: 1.8; }
+      .footer-row { display: block; line-height: 1.9; font-size: 10px; }
       .footer-row span { display: block; }
     }
     @media (max-width: 380px) {
@@ -194,28 +256,37 @@
   </style>
 </head>
 <body>
+  <a class="skip" href="#projects">Skip to projects</a>
+
   <section class="hero-scroll" id="top" aria-label="Scroll-controlled SmartLabDesign logo animation">
-    <div class="hero" aria-labelledby="page-title">
-    <img class="hero-bg" src="assets/smartlab-miami.webp" alt="SmartLabDesign neon identity on a palm-lined promenade at sunset">
-    <video class="hero-video" muted playsinline preload="auto" poster="assets/smartlab-miami.webp" aria-hidden="true">
-      <source src="assets/smartlab-logo-scroll.mp4" type="video/mp4">
-    </video>
-    <div class="shell">
-      <header>
-        <a class="wordmark" href="#top" aria-label="SmartLabDesign home">SmartLabDesign</a>
-        <nav aria-label="Main navigation"><a href="#projects">Projects</a><a href="#studio">Studio</a><a href="#projects">Explore ↓</a></nav>
-      </header>
-    </div>
-    <div class="shell hero-copy">
-      <div>
-        <p class="kicker">Independent creative studio</p>
-        <h1 id="page-title">Create.<em>Without limits.</em></h1>
+    <div class="hero" role="region" aria-labelledby="page-title">
+      <img class="hero-bg" src="assets/smartlab-miami.webp" alt="SmartLabDesign neon identity on a palm-lined promenade at sunset" fetchpriority="high">
+      <!-- preload="auto" -> "metadata": serve solo la duration per attivare lo scrub -->
+      <video class="hero-video" muted playsinline preload="metadata" poster="assets/smartlab-miami.webp" aria-hidden="true">
+        <source src="assets/smartlab-logo-scroll.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
+        <source src="assets/smartlab-logo-scroll.mp4" type="video/mp4">
+      </video>
+      <div class="shell">
+        <header>
+          <a class="wordmark" href="#top" aria-label="SmartLabDesign home">SmartLabDesign</a>
+          <nav aria-label="Main navigation">
+            <a href="#projects">Projects</a>
+            <a href="#studio">Studio</a>
+            <a href="#contact">Contact</a>
+            <a href="#projects">Explore ↓</a>
+          </nav>
+        </header>
       </div>
-      <div class="hero-side">
-        <p>Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.</p>
-        <div class="scroll-link scroll-hint" aria-hidden="true"><span>↓</span> Scroll to animate the logo</div>
+      <div class="shell hero-copy">
+        <div>
+          <p class="kicker">Independent creative studio</p>
+          <h1 id="page-title">Create.<em>Without limits.</em></h1>
+        </div>
+        <div class="hero-side">
+          <p>Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.</p>
+          <div class="scroll-link scroll-hint" aria-hidden="true"><span>↓</span> Scroll to animate the logo</div>
+        </div>
       </div>
-    </div>
     </div>
   </section>
 
@@ -234,7 +305,10 @@
 
     <section class="projects" id="projects" aria-labelledby="projects-title">
       <div class="shell">
-        <div class="section-head"><h2 id="projects-title">Selected projects</h2><div class="count">01 project online</div></div>
+        <div class="section-head">
+          <h2 id="projects-title">Selected projects</h2>
+          <div class="count">Archive in progress / 2026</div>
+        </div>
         <a class="project-card" href="/the-right-one/" aria-label="Open The Right One project">
           <div class="project-content">
             <div>
@@ -250,23 +324,44 @@
 
     <section class="studio" id="studio" aria-labelledby="studio-title">
       <div class="shell studio-grid">
-        <div class="patch-wrap"><img src="assets/smartlab-patch.webp" alt="SmartLabDesign Creative Force embroidered emblem"></div>
+        <div class="patch-wrap"><img src="assets/smartlab-patch.webp" alt="SmartLabDesign Creative Force embroidered emblem" width="900" height="900" loading="lazy" decoding="async"></div>
         <div>
           <div class="section-label">02 / Studio DNA</div>
           <h2 id="studio-title">One studio.<br><span>Many languages.</span></h2>
           <p class="studio-intro">Each project can look and feel completely different. The constant is a hands-on approach that brings concept, visual direction and technology together.</p>
           <div class="disciplines" aria-label="Creative disciplines">
-            <div class="discipline"><b>01</b><strong>Visual Identity</strong><span>↗</span></div>
-            <div class="discipline"><b>02</b><strong>Art Direction</strong><span>↗</span></div>
-            <div class="discipline"><b>03</b><strong>AI Filmmaking</strong><span>↗</span></div>
-            <div class="discipline"><b>04</b><strong>Digital Experiences</strong><span>↗</span></div>
+            <div class="discipline"><b>01</b><strong>Visual Identity</strong><span aria-hidden="true">✦</span></div>
+            <div class="discipline"><b>02</b><strong>Art Direction</strong><span aria-hidden="true">✦</span></div>
+            <div class="discipline"><b>03</b><strong>AI Filmmaking</strong><span aria-hidden="true">✦</span></div>
+            <div class="discipline"><b>04</b><strong>Digital Experiences</strong><span aria-hidden="true">✦</span></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <div class="shell contact-grid">
+        <div>
+          <div class="section-label">03 / Get in touch</div>
+          <h2 id="contact-title">Got an idea?<br><span>Let's build it.</span></h2>
+          <p>The studio is open to collaborations, commissions and experiments. Start the conversation wherever it suits you.</p>
+        </div>
+        <div class="contact-actions">
+          <a class="btn-hard" href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener noreferrer">Connect on LinkedIn <span aria-hidden="true">↗</span></a>
+          <a class="btn-hard alt" href="mailto:Jamez.ichat@gmail.com">Send an email <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>
   </main>
 
-  <footer><div class="shell footer-row"><span>SmartLabDesign / Creative Force</span><span>Concept & art direction — Alessio Talluto</span><span>© 2026</span></div></footer>
+  <footer>
+    <div class="shell footer-row">
+      <span>SmartLabDesign / Creative Force</span>
+      <span>Concept &amp; art direction — <a href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener noreferrer">Alessio Talluto</a></span>
+      <span>© 2026</span>
+    </div>
+  </footer>
+
   <script>
     (() => {
       const root = document.documentElement;
@@ -282,8 +377,17 @@
       let renderedProgress = 0;
       let frame = 0;
       let ready = false;
+      let needsMeasure = true;
 
       const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      // schedule() non legge il layout: si limita a marcare e a chiedere un frame.
+      // La lettura di getBoundingClientRect avviene dentro render(), cioè in rAF,
+      // eliminando il forced synchronous layout a ogni evento di scroll.
+      const schedule = () => {
+        needsMeasure = true;
+        if (!frame) frame = requestAnimationFrame(render);
+      };
 
       const measure = () => {
         const rect = track.getBoundingClientRect();
@@ -296,12 +400,11 @@
         const startX = window.innerWidth <= 560 ? 30 : 42;
         const panProgress = clamp(targetProgress / 0.24, 0, 1);
         hero.style.setProperty('--video-x', (startX + (50 - startX) * panProgress).toFixed(2) + '%');
-
-        if (!frame) frame = requestAnimationFrame(render);
       };
 
       const render = () => {
         frame = 0;
+        if (needsMeasure) { measure(); needsMeasure = false; }
         if (!ready) return;
 
         renderedProgress += (targetProgress - renderedProgress) * 0.16;
@@ -319,22 +422,29 @@
         video.currentTime = 0.001;
         ready = true;
         root.classList.add('scroll-video-ready');
-        measure();
+        schedule();
       };
 
       video.addEventListener('loadedmetadata', activate, { once: true });
-      window.addEventListener('scroll', measure, { passive: true });
-      window.addEventListener('resize', measure, { passive: true });
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule, { passive: true });
 
       const primeVideo = () => {
         video.play().then(() => {
           video.pause();
-          measure();
+          schedule();
         }).catch(() => {});
       };
 
       window.addEventListener('pointerdown', primeVideo, { once: true, passive: true });
       window.addEventListener('touchstart', primeVideo, { once: true, passive: true });
+
+      // cleanup: evita che il loop rAF resti appeso al bfcache
+      window.addEventListener('pagehide', () => {
+        if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+      });
+
       video.load();
     })();
   </script>
