@@ -3,303 +3,209 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090909">
-  <title>Smartlab Design — Personal Projects</title>
-  <meta name="description" content="Independent creative projects, stories and visual experiments by Smartlab Design.">
+  <meta name="theme-color" content="#052d31">
+  <title>SmartLabDesign — Creative Force</title>
+  <meta name="description" content="SmartLabDesign is an independent creative studio for visual identities, stories and digital experiments.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x2='1' y2='1'%3E%3Cstop stop-color='%23ff744d'/%3E%3Cstop offset='.5' stop-color='%23ff2d87'/%3E%3Cstop offset='1' stop-color='%2300bfc4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%23052024' stroke='url(%23g)' stroke-width='5'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-family='Arial' font-weight='900' font-size='27' fill='%23fff1ce'%3ESL%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090909;
-      --surface: #111;
-      --text: #f5f2eb;
-      --muted: #a6a19a;
-      --line: rgba(255,255,255,.13);
-      --accent: #ff3b24;
-      --max: 1440px;
+      --ink: #062d31;
+      --cream: #fff0ce;
+      --coral: #ff6848;
+      --pink: #ff2d87;
+      --aqua: #00bfc4;
+      --sun: #ffbc42;
+      --paper: #f7ddad;
+      --line: rgba(6,45,49,.24);
+      --max: 1480px;
     }
 
     * { box-sizing: border-box; }
-    html { background: var(--bg); scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 84% 5%, rgba(255,59,36,.11), transparent 27rem),
-        var(--bg);
-      color: var(--text);
-      font-family: Manrope, system-ui, sans-serif;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: .045;
-      z-index: 20;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
-    }
-
+    html { scroll-behavior: smooth; background: var(--ink); }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: "Barlow Condensed", sans-serif; overflow-x: hidden; }
+    body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 30; opacity: .055; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
     a { color: inherit; }
-    .shell { width: min(calc(100% - 64px), var(--max)); margin: auto; }
+    img { display: block; max-width: 100%; }
+    .shell { width: min(calc(100% - 64px), var(--max)); margin-inline: auto; }
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 28px 0;
-      border-bottom: 1px solid var(--line);
+    .hero { min-height: 100svh; position: relative; isolation: isolate; display: flex; flex-direction: column; color: var(--cream); background: var(--ink); overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: center; transform: scale(1.01); animation: arrive 1.4s cubic-bezier(.2,.8,.2,1) both; }
+    .hero::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, rgba(0,27,31,.76) 0%, transparent 28%, transparent 53%, rgba(0,25,29,.9) 100%), linear-gradient(90deg, rgba(0,24,29,.55), transparent 55%); }
+    .hero::after { content: ""; position: absolute; inset: auto -12% -22% 42%; height: 62%; z-index: -1; background: radial-gradient(ellipse, rgba(255,45,135,.3), transparent 65%); filter: blur(18px); }
+
+    header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 25px 0; border-bottom: 1px solid rgba(255,240,206,.38); text-transform: uppercase; }
+    .wordmark { display: flex; align-items: center; gap: 12px; font: 700 18px/1 "Barlow Condensed"; letter-spacing: .045em; text-decoration: none; }
+    .mini-mark { width: 38px; aspect-ratio: 1; border: 2px solid var(--cream); border-radius: 50%; display: grid; place-items: center; font: 500 10px "DM Mono"; box-shadow: 0 0 18px rgba(255,45,135,.5); }
+    nav { display: flex; gap: clamp(20px, 4vw, 54px); font: 500 11px "DM Mono"; letter-spacing: .12em; }
+    nav a { text-decoration: none; position: relative; }
+    nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
+    nav a:hover::after { right: 0; }
+
+    .hero-copy { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(290px, .65fr); gap: 60px; align-items: end; padding: 70px 0 48px; }
+    .kicker { display: flex; gap: 12px; align-items: center; margin: 0 0 15px; font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; }
+    .kicker::before { content: ""; width: 40px; height: 3px; background: var(--coral); box-shadow: 0 0 10px var(--pink); }
+    h1 { margin: 0; max-width: 900px; font: 400 clamp(58px, 9.5vw, 148px)/.77 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; text-shadow: 5px 6px 0 rgba(6,45,49,.72); }
+    h1 em { display: block; color: var(--sun); font-family: "Barlow Condensed"; font-weight: 800; letter-spacing: -.045em; text-shadow: 3px 3px 0 var(--pink), 7px 7px 0 rgba(6,45,49,.7); }
+    .hero-side { max-width: 440px; justify-self: end; }
+    .hero-side p { margin: 0 0 28px; font-size: 20px; line-height: 1.35; letter-spacing: .015em; }
+    .scroll-link { display: inline-flex; align-items: center; gap: 14px; font: 500 10px "DM Mono"; letter-spacing: .12em; text-decoration: none; text-transform: uppercase; }
+    .scroll-link span { width: 39px; height: 39px; display: grid; place-items: center; border: 1px solid rgba(255,240,206,.55); border-radius: 50%; background: rgba(6,45,49,.28); backdrop-filter: blur(8px); }
+
+    .ticker { overflow: hidden; background: var(--pink); color: var(--cream); border-block: 3px solid var(--ink); transform: rotate(-1deg) scale(1.02); position: relative; z-index: 4; }
+    .ticker-track { width: max-content; display: flex; gap: 36px; padding: 12px 0; font: 700 18px "Barlow Condensed"; letter-spacing: .08em; text-transform: uppercase; animation: marquee 24s linear infinite; }
+    .ticker-track span::after { content: "✦"; margin-left: 36px; color: var(--sun); }
+
+    .manifesto { padding: clamp(100px, 13vw, 190px) 0 clamp(90px, 11vw, 160px); background: var(--paper); }
+    .manifesto-grid { display: grid; grid-template-columns: .44fr 1.56fr; gap: 70px; }
+    .section-label { font: 500 10px "DM Mono"; letter-spacing: .15em; text-transform: uppercase; }
+    .manifesto h2 { max-width: 1080px; margin: 0; font: 800 clamp(48px, 7.4vw, 110px)/.84 "Barlow Condensed"; letter-spacing: -.048em; text-transform: uppercase; }
+    .manifesto h2 .hot { color: var(--pink); text-shadow: 2px 2px 0 var(--sun); }
+    .manifesto-note { width: min(500px, 100%); margin: 42px 0 0 auto; padding-left: 22px; border-left: 4px solid var(--coral); font-size: 20px; line-height: 1.45; }
+
+    .projects { padding: 34px 0 120px; background: var(--ink); color: var(--cream); border-top: 3px solid var(--ink); }
+    .section-head { display: flex; justify-content: space-between; gap: 25px; align-items: baseline; padding: 20px 0 28px; border-bottom: 1px solid rgba(255,240,206,.27); }
+    .section-head h2 { margin: 0; font: 800 clamp(42px, 6vw, 82px)/1 "Barlow Condensed"; text-transform: uppercase; }
+    .count { color: var(--aqua); font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; }
+
+    .project-card { min-height: min(78vh, 810px); position: relative; display: grid; align-items: end; margin-top: 32px; overflow: hidden; isolation: isolate; text-decoration: none; border: 2px solid rgba(255,240,206,.42); border-radius: 6px 44px 6px 44px; box-shadow: 15px 15px 0 var(--pink); }
+    .project-card::before { content: ""; position: absolute; inset: 0; z-index: -2; background: url("https://d2ol7oe51mr4n9.cloudfront.net/user_37u4BdIWLdxIKRnNlGRqjLjMgTw/46aa4109-9f74-4251-8837-866468284918.png") center 43% / cover no-repeat; transition: transform .9s cubic-bezier(.2,.7,.2,1), filter .7s; }
+    .project-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4,24,28,.95), rgba(4,24,28,.66) 40%, transparent 73%), linear-gradient(0deg, rgba(4,24,28,.9), transparent 58%); }
+    .project-card:hover::before { transform: scale(1.045); filter: saturate(1.12); }
+    .project-content { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; padding: clamp(28px, 5vw, 72px); }
+    .project-meta { margin-bottom: 20px; color: var(--sun); font: 500 10px "DM Mono"; letter-spacing: .13em; text-transform: uppercase; }
+    .project-title { margin: 0; font: 400 clamp(60px, 9vw, 132px)/.78 "Archivo Black"; letter-spacing: -.075em; text-transform: uppercase; }
+    .project-title i { display: block; color: transparent; -webkit-text-stroke: 2px var(--cream); font-family: "Barlow Condensed"; font-weight: 800; }
+    .project-description { max-width: 510px; margin: 26px 0 0; color: rgba(255,240,206,.85); font-size: 18px; line-height: 1.45; }
+    .project-arrow { width: 82px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; color: var(--ink); background: var(--sun); font-size: 32px; box-shadow: 5px 5px 0 var(--pink); transition: transform .3s; }
+    .project-card:hover .project-arrow { transform: translate(5px,-5px) rotate(8deg); }
+
+    .studio { padding: clamp(90px, 11vw, 160px) 0; background: var(--aqua); color: var(--ink); border-top: 3px solid var(--ink); }
+    .studio-grid { display: grid; grid-template-columns: minmax(300px,.85fr) minmax(0,1.15fr); gap: clamp(55px, 8vw, 125px); align-items: center; }
+    .patch-wrap { position: relative; transform: rotate(-4deg); }
+    .patch-wrap::after { content: "BRAND DNA / 2026"; position: absolute; right: -25px; bottom: 22px; padding: 10px 13px; background: var(--sun); border: 2px solid var(--ink); font: 500 9px "DM Mono"; letter-spacing: .11em; box-shadow: 5px 5px 0 var(--pink); }
+    .patch-wrap img { width: 100%; border: 3px solid var(--ink); border-radius: 48% 48% 8px 8px; box-shadow: 18px 18px 0 rgba(6,45,49,.22); }
+    .studio h2 { margin: 18px 0 28px; font: 400 clamp(58px, 8vw, 118px)/.8 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; }
+    .studio h2 span { color: var(--cream); text-shadow: 3px 3px 0 var(--pink); }
+    .studio-intro { max-width: 660px; margin: 0 0 55px; font-size: 22px; line-height: 1.4; }
+    .disciplines { border-top: 2px solid var(--ink); }
+    .discipline { display: grid; grid-template-columns: 52px 1fr auto; gap: 18px; align-items: center; padding: 18px 0; border-bottom: 1px solid rgba(6,45,49,.45); text-transform: uppercase; }
+    .discipline b { font: 500 10px "DM Mono"; }
+    .discipline strong { font-size: 23px; letter-spacing: .02em; }
+    .discipline span { font-size: 18px; }
+
+    footer { padding: 30px 0; color: var(--cream); background: var(--ink); }
+    .footer-row { display: flex; justify-content: space-between; gap: 25px; font: 500 9px "DM Mono"; letter-spacing: .11em; text-transform: uppercase; }
+
+    @keyframes arrive { from { opacity: 0; transform: scale(1.07); } to { opacity: 1; transform: scale(1.01); } }
+    @keyframes marquee { to { transform: translateX(-50%); } }
+    @media (max-width: 900px) {
+      .shell { width: min(calc(100% - 38px), var(--max)); }
+      .hero-copy, .manifesto-grid, .studio-grid { grid-template-columns: 1fr; }
+      .hero-copy { gap: 35px; }
+      .hero-side { justify-self: start; }
+      .manifesto-grid { gap: 35px; }
+      .manifesto-note { margin-left: 0; }
+      .project-card { min-height: 720px; }
+      .studio-grid { gap: 80px; }
+      .patch-wrap { width: min(610px, 90%); margin: auto; }
     }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: -.02em;
+    @media (max-width: 560px) {
+      nav { gap: 19px; }
+      nav a:last-child { display: none; }
+      .hero { min-height: 820px; }
+      .hero-bg { object-position: 57% center; }
+      .hero-copy { padding-bottom: 34px; }
+      h1 { font-size: 57px; }
+      .hero-side p { font-size: 18px; }
+      .manifesto { padding-top: 100px; }
+      .section-head { align-items: flex-end; }
+      .project-card { min-height: 650px; margin-right: 8px; box-shadow: 8px 8px 0 var(--pink); border-radius: 5px 26px 5px 26px; }
+      .project-card::before { background-position: 59% center; }
+      .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.96), rgba(4,24,28,.4) 70%, rgba(4,24,28,.08)); }
+      .project-content { grid-template-columns: 1fr; gap: 28px; }
+      .project-title { font-size: 58px; }
+      .project-description { font-size: 16px; }
+      .project-arrow { width: 64px; justify-self: end; }
+      .patch-wrap { width: 94%; }
+      .discipline { grid-template-columns: 38px 1fr auto; gap: 10px; }
+      .discipline strong { font-size: 19px; }
+      .footer-row { display: block; line-height: 2; }
+      .footer-row span { display: block; }
     }
-
-    .brand-mark {
-      width: 31px;
-      height: 31px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(255,255,255,.8);
-      border-radius: 50%;
-      font: 500 11px DM Mono, monospace;
-    }
-
-    .header-label,
-    .eyebrow,
-    .project-number,
-    .tag,
-    footer {
-      font-family: DM Mono, monospace;
-      text-transform: uppercase;
-      letter-spacing: .15em;
-    }
-
-    .header-label { color: var(--muted); font-size: 10px; }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1.35fr .65fr;
-      gap: 80px;
-      align-items: end;
-      padding: clamp(80px, 12vw, 170px) 0 72px;
-    }
-
-    .eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      margin-bottom: 25px;
-      color: #d7d2ca;
-      font-size: 10px;
-    }
-
-    .eyebrow::before { content: ""; width: 36px; height: 1px; background: var(--accent); }
-
-    h1 {
-      max-width: 1000px;
-      margin: 0;
-      font-size: clamp(58px, 8.2vw, 132px);
-      line-height: .87;
-      letter-spacing: -.075em;
-    }
-
-    h1 span {
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(245,242,235,.65);
-    }
-
-    .hero-copy {
-      max-width: 390px;
-      margin: 0;
-      padding-bottom: 8px;
-      color: var(--muted);
-      font-size: 16px;
-      line-height: 1.7;
-    }
-
-    .projects-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 0;
-      border-top: 1px solid var(--line);
-    }
-
-    .projects-head h2 { margin: 0; font-size: 14px; letter-spacing: -.01em; }
-    .projects-head span { color: var(--muted); font: 10px DM Mono, monospace; letter-spacing: .12em; text-transform: uppercase; }
-
-    .project-grid { display: grid; gap: 22px; padding-bottom: 110px; }
-
-    .project-card {
-      position: relative;
-      min-height: min(72vh, 760px);
-      overflow: hidden;
-      display: grid;
-      align-items: end;
-      border: 1px solid var(--line);
-      border-radius: 30px;
-      background: var(--surface);
-      text-decoration: none;
-      isolation: isolate;
-    }
-
-    .project-image,
-    .project-overlay { position: absolute; inset: 0; }
-
-    .project-image {
-      z-index: -2;
-      background: url("https://d2ol7oe51mr4n9.cloudfront.net/user_37u4BdIWLdxIKRnNlGRqjLjMgTw/46aa4109-9f74-4251-8837-866468284918.png") center 43% / cover no-repeat;
-      transform: scale(1.02);
-      transition: transform .9s cubic-bezier(.2,.7,.2,1), filter .9s ease;
-    }
-
-    .project-overlay {
-      z-index: -1;
-      background:
-        linear-gradient(90deg, rgba(4,4,4,.95) 0%, rgba(4,4,4,.72) 38%, rgba(4,4,4,.08) 75%),
-        linear-gradient(0deg, rgba(4,4,4,.94) 0%, transparent 53%);
-    }
-
-    .project-card:hover .project-image { transform: scale(1.065); filter: saturate(1.12); }
-
-    .project-content {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 40px;
-      align-items: end;
-      padding: clamp(28px, 5vw, 68px);
-    }
-
-    .project-number { margin-bottom: 18px; color: #d7d2ca; font-size: 10px; }
-
-    .project-title {
-      margin: 0;
-      font-size: clamp(54px, 8vw, 118px);
-      line-height: .88;
-      letter-spacing: -.07em;
-    }
-
-    .project-description {
-      max-width: 510px;
-      margin: 24px 0 0;
-      color: #d1ccc4;
-      font-size: 15px;
-      line-height: 1.65;
-    }
-
-    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
-    .tag { padding: 9px 12px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; font-size: 8px; background: rgba(0,0,0,.22); backdrop-filter: blur(10px); }
-
-    .open-project {
-      width: 68px;
-      height: 68px;
-      display: grid;
-      place-items: center;
-      flex: none;
-      border-radius: 50%;
-      background: var(--accent);
-      font-size: 25px;
-      transition: transform .35s ease, background .35s ease;
-    }
-
-    .project-card:hover .open-project { transform: translate(4px,-4px); background: #fff; color: #111; }
-
-    footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 30px;
-      padding: 30px 0 38px;
-      border-top: 1px solid var(--line);
-      color: #77736d;
-      font-size: 9px;
-    }
-
-    @media (max-width: 860px) {
-      .shell { width: min(calc(100% - 36px), var(--max)); }
-      .hero { grid-template-columns: 1fr; gap: 35px; padding-top: 100px; }
-      .hero-copy { max-width: 560px; }
-      .project-card { min-height: 680px; }
-      .project-content { grid-template-columns: 1fr; }
-      .open-project { justify-self: end; }
-      .project-overlay { background: linear-gradient(0deg, rgba(4,4,4,.97) 0%, rgba(4,4,4,.48) 58%, rgba(4,4,4,.2) 100%); }
-    }
-
-    @media (max-width: 540px) {
-      .header-label { display: none; }
-      h1 { font-size: 55px; }
-      .hero { padding: 82px 0 55px; }
-      .project-card { min-height: 610px; border-radius: 22px; }
-      .project-image { background-position: 57% center; }
-      .project-title { font-size: 53px; }
-      .project-content { padding: 25px; gap: 28px; }
-      .project-description { font-size: 14px; }
-      .open-project { width: 58px; height: 58px; }
-      footer { display: block; line-height: 1.8; }
-      footer span { display: block; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      * { scroll-behavior: auto !important; transition: none !important; }
-    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <header>
-      <div class="brand"><span class="brand-mark">SL</span> SMARTLAB DESIGN</div>
-      <div class="header-label">Personal projects · Selected work</div>
-    </header>
+  <section class="hero" aria-labelledby="page-title">
+    <img class="hero-bg" src="assets/smartlab-miami.webp" alt="SmartLabDesign neon identity on a palm-lined promenade at sunset">
+    <div class="shell">
+      <header>
+        <a class="wordmark" href="#top" aria-label="SmartLabDesign home"><span class="mini-mark">SL</span> SmartLabDesign</a>
+        <nav aria-label="Main navigation"><a href="#projects">Projects</a><a href="#studio">Studio</a><a href="#projects">Explore ↓</a></nav>
+      </header>
+    </div>
+    <div class="shell hero-copy" id="top">
+      <div>
+        <p class="kicker">Independent creative studio</p>
+        <h1 id="page-title">Create.<em>Without limits.</em></h1>
+      </div>
+      <div class="hero-side">
+        <p>Visual identities, cinematic stories and digital experiments made with curiosity, instinct and new creative technologies.</p>
+        <a class="scroll-link" href="#projects"><span>↓</span> Discover selected projects</a>
+      </div>
+    </div>
+  </section>
 
-    <main>
-      <section class="hero" aria-labelledby="page-title">
+  <div class="ticker" aria-hidden="true"><div class="ticker-track"><span>SmartLabDesign</span><span>Creative Force</span><span>Ideas into worlds</span><span>Visual stories</span><span>SmartLabDesign</span><span>Creative Force</span><span>Ideas into worlds</span><span>Visual stories</span></div></div>
+
+  <main>
+    <section class="manifesto">
+      <div class="shell manifesto-grid">
+        <div class="section-label">01 / The creative practice</div>
         <div>
-          <div class="eyebrow">Independent creative practice</div>
-          <h1 id="page-title">IDEAS, STORIES<br><span>& EXPERIMENTS.</span></h1>
+          <h2>Not just a portfolio.<br>A place where <span class="hot">ideas become worlds.</span></h2>
+          <p class="manifesto-note">SmartLabDesign is my virtual creative studio — a space for self-initiated work, visual research and stories that deserve to exist.</p>
         </div>
-        <p class="hero-copy">A curated collection of personal projects where visual design, storytelling and emerging creative technologies meet.</p>
-      </section>
+      </div>
+    </section>
 
-      <section aria-labelledby="projects-title">
-        <div class="projects-head">
-          <h2 id="projects-title">Selected projects</h2>
-          <span>01 project online</span>
-        </div>
-
-        <div class="project-grid">
-          <a class="project-card" href="/the-right-one/" aria-label="Open The Right One project">
-            <div class="project-image" role="img" aria-label="JACK in his cinematic fantasy world"></div>
-            <div class="project-overlay"></div>
-            <div class="project-content">
-              <div>
-                <div class="project-number">01 · Cinematic story · 2026</div>
-                <h3 class="project-title">THE RIGHT<br>ONE.</h3>
-                <p class="project-description">A small disaster, a worried child and JACK — the tiny multi-tool brave enough to become the hero.</p>
-                <div class="tags" aria-label="Project categories">
-                  <span class="tag">Art direction</span>
-                  <span class="tag">AI filmmaking</span>
-                  <span class="tag">Storytelling</span>
-                </div>
-              </div>
-              <span class="open-project" aria-hidden="true">↗</span>
+    <section class="projects" id="projects" aria-labelledby="projects-title">
+      <div class="shell">
+        <div class="section-head"><h2 id="projects-title">Selected projects</h2><div class="count">01 project online</div></div>
+        <a class="project-card" href="/the-right-one/" aria-label="Open The Right One project">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">01 / Cinematic story / 2026</div>
+              <h3 class="project-title">The Right<i>One.</i></h3>
+              <p class="project-description">A small disaster, a worried child and JACK — the tiny multi-tool brave enough to become the hero.</p>
             </div>
-          </a>
-        </div>
-      </section>
-    </main>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+      </div>
+    </section>
 
-    <footer>
-      <span>Smartlab Design · Personal projects</span>
-      <span>Concept & art direction — Alessio Talluto</span>
-      <span>© 2026</span>
-    </footer>
-  </div>
+    <section class="studio" id="studio" aria-labelledby="studio-title">
+      <div class="shell studio-grid">
+        <div class="patch-wrap"><img src="assets/smartlab-patch.webp" alt="SmartLabDesign Creative Force embroidered emblem"></div>
+        <div>
+          <div class="section-label">02 / Studio DNA</div>
+          <h2 id="studio-title">One studio.<br><span>Many languages.</span></h2>
+          <p class="studio-intro">Each project can look and feel completely different. The constant is a hands-on approach that brings concept, visual direction and technology together.</p>
+          <div class="disciplines" aria-label="Creative disciplines">
+            <div class="discipline"><b>01</b><strong>Visual Identity</strong><span>↗</span></div>
+            <div class="discipline"><b>02</b><strong>Art Direction</strong><span>↗</span></div>
+            <div class="discipline"><b>03</b><strong>AI Filmmaking</strong><span>↗</span></div>
+            <div class="discipline"><b>04</b><strong>Digital Experiences</strong><span>↗</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell footer-row"><span>SmartLabDesign / Creative Force</span><span>Concept & art direction — Alessio Talluto</span><span>© 2026</span></div></footer>
 </body>
 </html>
