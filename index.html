@@ -113,27 +113,69 @@
       .patch-wrap { width: min(610px, 90%); margin: auto; }
     }
     @media (max-width: 560px) {
-      nav { gap: 19px; }
+      .shell { width: calc(100% - 28px); }
+      header { gap: 12px; padding: 18px 0; }
+      .wordmark { gap: 8px; font-size: 16px; white-space: nowrap; }
+      .mini-mark { width: 32px; }
+      nav { gap: 14px; font-size: 9px; }
       nav a:last-child { display: none; }
-      .hero { min-height: 820px; }
+
+      .hero { min-height: max(680px, 100svh); }
       .hero-bg { object-position: 57% center; }
-      .hero-copy { padding-bottom: 34px; }
-      h1 { font-size: 57px; }
-      .hero-side p { font-size: 18px; }
-      .manifesto { padding-top: 100px; }
-      .section-head { align-items: flex-end; }
-      .project-card { min-height: 650px; margin-right: 8px; box-shadow: 8px 8px 0 var(--pink); border-radius: 5px 26px 5px 26px; }
+      .hero-copy { gap: 24px; padding: 48px 0 28px; }
+      .kicker { margin-bottom: 10px; font-size: 9px; }
+      .kicker::before { width: 28px; }
+      h1 { max-width: 100%; font-size: clamp(46px, 14.5vw, 57px); line-height: .8; letter-spacing: -.06em; }
+      .hero-side { max-width: 34rem; }
+      .hero-side p { max-width: 34ch; margin-bottom: 20px; font-size: 18px; }
+      .scroll-link { min-height: 44px; }
+      .scroll-link span { width: 44px; height: 44px; flex: 0 0 44px; }
+
+      .ticker-track { gap: 28px; padding: 10px 0; font-size: 16px; }
+      .ticker-track span::after { margin-left: 28px; }
+
+      .manifesto { padding: 76px 0 72px; }
+      .manifesto-grid { gap: 24px; }
+      .manifesto h2 { font-size: clamp(42px, 12.6vw, 58px); line-height: .88; overflow-wrap: anywhere; }
+      .manifesto-note { margin-top: 28px; padding-left: 16px; font-size: 18px; }
+
+      .projects { padding: 28px 0 82px; }
+      .section-head { display: grid; gap: 12px; align-items: start; padding-bottom: 22px; }
+      .section-head h2 { font-size: clamp(38px, 11.5vw, 52px); line-height: .94; }
+      .project-card { min-height: min(680px, 82svh); margin-top: 24px; margin-right: 8px; border-radius: 5px 26px 5px 26px; box-shadow: 8px 8px 0 var(--pink); }
       .project-card::before { background-position: 59% center; }
-      .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.96), rgba(4,24,28,.4) 70%, rgba(4,24,28,.08)); }
-      .project-content { grid-template-columns: 1fr; gap: 28px; }
-      .project-title { font-size: 58px; }
-      .project-description { font-size: 16px; }
-      .project-arrow { width: 64px; justify-self: end; }
-      .patch-wrap { width: 94%; }
-      .discipline { grid-template-columns: 38px 1fr auto; gap: 10px; }
-      .discipline strong { font-size: 19px; }
-      .footer-row { display: block; line-height: 2; }
+      .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.48) 68%, rgba(4,24,28,.12)); }
+      .project-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 26px 20px 22px; }
+      .project-meta { margin-bottom: 14px; font-size: 9px; }
+      .project-title { max-width: 100%; font-size: clamp(48px, 15.5vw, 58px); line-height: .8; }
+      .project-description { margin-top: 18px; font-size: 16px; }
+      .project-arrow { width: 56px; min-height: 56px; justify-self: end; font-size: 25px; }
+
+      .studio { padding: 76px 0; }
+      .studio-grid { gap: 56px; }
+      .patch-wrap { width: 88%; }
+      .patch-wrap::after { right: -8px; bottom: -18px; padding: 8px 10px; font-size: 8px; box-shadow: 4px 4px 0 var(--pink); }
+      .studio h2 { margin: 16px 0 24px; font-size: clamp(48px, 14vw, 64px); line-height: .84; }
+      .studio-intro { margin-bottom: 36px; font-size: 20px; }
+      .discipline { grid-template-columns: 32px minmax(0, 1fr) 24px; gap: 8px; padding: 16px 0; }
+      .discipline strong { min-width: 0; font-size: 18px; line-height: 1.05; }
+      .discipline span { font-size: 16px; text-align: right; }
+
+      footer { padding: 24px 0; }
+      .footer-row { display: block; line-height: 1.8; }
       .footer-row span { display: block; }
+    }
+    @media (max-width: 380px) {
+      .shell { width: calc(100% - 24px); }
+      header { gap: 8px; }
+      .wordmark { font-size: 15px; }
+      nav { gap: 10px; }
+      nav a:nth-child(2) { display: none; }
+      h1 { font-size: clamp(43px, 14.5vw, 51px); }
+      .hero-side p { font-size: 17px; }
+      .project-card { min-height: 600px; }
+      .project-title { font-size: clamp(45px, 15vw, 52px); }
+      .discipline strong { font-size: 17px; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   </style>
