@@ -1,0 +1,10 @@
+{
+  "name": "personal-smartlabdesign-it",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
