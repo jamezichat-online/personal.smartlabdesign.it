@@ -245,12 +245,19 @@ const frag=`precision highp float;
  float freeEdge=abs(vLocal.x)/W;
  float side=smoothstep(.38,1.,freeEdge);
  float feather=moving?smoothstep(-.11*grazing-.005,-.001,dist):0.;
- float blurAmount=moving?clamp(grazing*side*1.2+feather*.5+crease*.24,0.,1.):crease*.12;
+ // Keep the entire image veiled until the final opening, including the fixed half.
+ float innerVeil=pow(1.-smoothstep(.18,1.,opening),.55);
+ float innerBlur=pow(1.-smoothstep(.12,1.,opening),.50);
+ // The cover is clear at rest when closed, then becomes camouflaged during the fold.
+ float coverActivity=smoothstep(0.,.18,opening)*pow(1.-smoothstep(.18,1.,opening),.45);
+ float veil=face>1.5?coverActivity:innerVeil;
+ float baseBlur=face>1.5?coverActivity:innerBlur;
+ float edgeVeil=grazing*pow(side,.72)*.55;
+ float blurAmount=clamp(max(baseBlur*.99,grazing*side*1.45+feather*.65)+crease*.18,0.,1.);
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  vec4 soft=texture2D(blurred,clamp(uv,0.,1.));
  vec3 col=mix(sharp.rgb,soft.rgb,blurAmount);
- float shadow=moving?(.97*grazing*pow(side,.72)):0.;
- if(face<.5)shadow=.96*(1.-smoothstep(0.,.5,opening));
+ float shadow=1.-(1.-.975*veil)*(1.-edgeVeil);
  col*=1.-shadow;
  // Optical fold valley: it narrows and disappears continuously at full opening.
  col*=1.-crease*.42;
@@ -269,7 +276,7 @@ const frag=`precision highp float;
  }
  float coverGain=face>1.5?1.45:1.;
  vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
- col+=lightLevel*coverGain*coatingReflection*fresnel*(face>1.5?1.:(.35+.65*(1.-shadow)));
+ col+=lightLevel*coverGain*coatingReflection*fresnel*(.12+.88*(1.-shadow));
  col*=1.+.10*(1.-smoothstep(0.,.35,lightLevel));
  col*=aperture*(1.-feather*.95);
  gl_FragColor=vec4(col,1.);
