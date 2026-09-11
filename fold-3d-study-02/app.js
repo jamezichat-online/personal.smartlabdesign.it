@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const W=314,H=440,PAD=48,w=3.14,h=4.40;
-const studioLight={value:1},cinema={value:0};
+const studioLight={value:1},cinema={value:1};
 const railMaterials=[];
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#loading').textContent='WebGL non disponibile. Abilita l’accelerazione grafica nel browser.';throw e;}
@@ -15,17 +15,32 @@ const root=new THREE.Group(),device=new THREE.Group();scene.add(root);root.add(d
 const studio=new THREE.Scene();studio.background=new THREE.Color('#252b32');
 function softbox(x,y,z,sx,sy,intensity){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(sx,sy),new THREE.MeshBasicMaterial({color:new THREE.Color(intensity,intensity*.98,intensity*.95),side:THREE.DoubleSide}));mesh.position.set(x,y,z);mesh.lookAt(0,0,0);studio.add(mesh);}
 softbox(-5,6,7,4,5,7);softbox(5,0,2,1.3,7,5);softbox(0,6,-2,6,2,8);softbox(0,-4,3,5,1,2);softbox(-3,1,-5,2,6,4);
-const pmrem=new THREE.PMREMGenerator(renderer);const env=pmrem.fromScene(studio,.025,.1,100,{size:1024});scene.environment=env.texture;pmrem.dispose();
+const pmrem=new THREE.PMREMGenerator(renderer);const env=pmrem.fromScene(studio,.025,.1,100,{size:1024});scene.environment=env.texture;
+// A separate photographic reflection rig: broad key, narrow edge strips,
+// negative fill and graded emitters rather than uniformly bright white cards.
+const filmStudio=new THREE.Scene();filmStudio.background=new THREE.Color(.006,.008,.012);
+function filmSoftbox(position,size,energy,tint){
+ const material=new THREE.ShaderMaterial({side:THREE.DoubleSide,toneMapped:false,uniforms:{energy:{value:energy},tint:{value:new THREE.Color(tint)}},
+ vertexShader:'varying vec2 cardUv;void main(){cardUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:`varying vec2 cardUv;uniform float energy;uniform vec3 tint;void main(){vec2 q=abs(cardUv*2.-1.);float edge=(1.-smoothstep(.66,1.,q.x))*(1.-smoothstep(.74,1.,q.y));float falloff=mix(.62,1.,1.-cardUv.y);gl_FragColor=vec4(tint*energy*edge*falloff,1.);}`});
+ const card=new THREE.Mesh(new THREE.PlaneGeometry(...size),material);card.position.set(...position);card.lookAt(0,0,0);filmStudio.add(card);
+}
+filmSoftbox([-5,6,7],[5,6],8.5,0xfff6ea);
+filmSoftbox([4.5,1,3],[.85,7],5.0,0xe9f0ff);
+filmSoftbox([1,5,-5],[5,1.5],10.0,0xeaf1ff);
+filmSoftbox([-4,-2,-4],[1.2,5],3.8,0xffffff);
+filmSoftbox([0,-5,4],[5,2],.65,0xffffff);
+const filmEnv=pmrem.fromScene(filmStudio,.035,.1,100,{size:1024});pmrem.dispose();
 // World-space studio key: the same position as the reflected main softbox.
 const ambient=new THREE.HemisphereLight(0xeaf2ff,0x454039,.55);scene.add(ambient);
 const key=new THREE.SpotLight(0xfff5e8,115,40,Math.PI*.30,.8,2);
 key.position.set(-5,6,7);key.target.position.set(0,-.4,0);scene.add(key,key.target);
 key.castShadow=true;key.shadow.mapSize.set(4096,4096);
 key.shadow.camera.near=.5;key.shadow.camera.far=30;
-key.shadow.bias=-.00008;key.shadow.normalBias=.009;key.shadow.radius=3;
+key.shadow.bias=-.00008;key.shadow.normalBias=.0025;key.shadow.radius=4;
 const fill=new THREE.DirectionalLight(0xd9e7ff,.75);fill.position.set(5,1,3);scene.add(fill);
 const rimLight=new THREE.DirectionalLight(0xffffff,1.6);rimLight.position.set(1,5,-5);scene.add(rimLight);
-const titanium=new THREE.MeshPhysicalMaterial({color:0xaaaead,metalness:1,roughness:.19,clearcoat:.65,clearcoatRoughness:.12,envMapIntensity:1.5});
+const titanium=new THREE.MeshPhysicalMaterial({color:0xaaaead,metalness:1,roughness:.19,clearcoat:.18,clearcoatRoughness:.18,envMapIntensity:1.5});
 const graphite=new THREE.MeshStandardMaterial({color:0x111315,metalness:.35,roughness:.3});
 const black=new THREE.MeshStandardMaterial({color:0x020303,metalness:.1,roughness:.26});
 // Superelliptic corner profile with a wider footprint and tangential transitions.
@@ -234,7 +249,12 @@ const frag=`precision highp float;
  vec3 N=normalize(worldNormal)*(gl_FrontFacing?1.:-1.);
  vec3 V=normalize(cameraPosition-worldPoint),L=normalize(vec3(-5.,6.,7.)-worldPoint);
  vec3 halfway=normalize(V+L);float fresnel=.04+.16*pow(1.-max(dot(N,V),0.),5.);
- float reflection=pow(max(dot(N,halfway),0.),18.)*max(dot(N,L),0.);
+ float reflection=0.;
+ // Integrate a broad softbox lobe over its extent for a diffuse matte reflection.
+ for(int ix=-1;ix<=1;ix++)for(int iy=-1;iy<=1;iy++){
+ vec3 areaL=normalize(vec3(-5.+float(ix)*1.3,6.+float(iy)*1.5,7.)-worldPoint);
+ reflection+=pow(max(dot(N,normalize(V+areaL)),0.),24.)*max(dot(N,areaL),0.)/9.;
+ }
  col+=lightLevel*vec3(1.,.96,.9)*reflection*(.12+fresnel)*(.35+.65*(1.-shadow));
  col*=aperture*(1.-feather*.95);
  gl_FragColor=vec4(col,1.);
@@ -289,13 +309,18 @@ void main(){vec4 base=texture2D(source,uvScreen);
 // every faint halo pixel to white and creates a solid expanded silhouette.
 float vignette=smoothstep(.0,.8,length((uvScreen-.5)*vec2(1.,.8)));
 vec3 background=mix(vec3(.57,.58,.60),vec3(.50,.51,.53),vignette)*(.035+.965*lightLevel);
-background*=mix(1.,.32,cinema);
+vec2 backdropPoint=(uvScreen-vec2(.46,.57))*vec2(1.,.8);
+float halo=exp(-dot(backdropPoint,backdropPoint)*5.5);
+vec3 filmBackground=mix(vec3(.009,.012,.018),vec3(.075,.084,.102),halo)*(.08+.92*lightLevel);
+background=mix(background,filmBackground,cinema);
 vec3 spread=max(texture2D(bloom,uvScreen).rgb,vec3(0.));
-vec3 glow=mix(.22,.60,cinema)*(vec3(1.)-exp(-spread*.65));
+vec3 glow=mix(.22,.32,cinema)*(vec3(1.)-exp(-spread*.65));
 // Continuous, centered horizontal optical diffusion; no displaced ghost copies.
+if(cinema>.5){
 vec3 streak=vec3(0.);float weightSum=0.;
 for(int i=-24;i<=24;i++){float t=float(i)/24.;float weight=exp(-t*t*5.);streak+=texture2D(bloom,uvScreen+vec2(t*.055,0.)).rgb*weight;weightSum+=weight;}
-glow+=cinema*.08*(vec3(1.)-exp(-streak/weightSum*.45));
+glow+=.035*(vec3(1.)-exp(-streak/weightSum*.45));
+}
 gl_FragColor=vec4(base.rgb+background*(1.-base.a)+glow,1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -314,12 +339,17 @@ function composite(){
 function setStudioLight(percent){
  if(!Number.isFinite(percent))return;
  const value=clamp(percent,0,250)/100;studioLight.value=value;
- ambient.intensity=(cinema.value?.23:.55)*value;key.intensity=(cinema.value?175:115)*value;fill.intensity=(cinema.value?.32:.75)*value;rimLight.intensity=(cinema.value?3.8:1.6)*value;
- scene.environmentIntensity=value*(cinema.value?1.45:1);
+ ambient.intensity=(cinema.value?.13:.55)*value;key.intensity=(cinema.value?135:115)*value;fill.intensity=(cinema.value?.24:.75)*value;rimLight.intensity=(cinema.value?2.4:1.6)*value;
+ scene.environment=cinema.value?filmEnv.texture:env.texture;
+ scene.environmentIntensity=value*(cinema.value?1.05:1);
+ renderer.toneMappingExposure=cinema.value?1.05:1.15;
+ key.color.setHex(cinema.value?0xfff3e4:0xfff5e8);rimLight.color.setHex(cinema.value?0xe3edff:0xffffff);
+ document.body.classList.toggle('cinematic',!!cinema.value);
+ $('#cinema').setAttribute('aria-pressed',!!cinema.value);
  $('#light').value=Math.round(value*100);$('#light-value').value=Math.round(value*100)+'%';
  $('#light').setAttribute('aria-valuetext',Math.round(value*100)+' per cento');
 }
-$('#cinema').onclick=e=>{cinema.value=1-cinema.value;e.currentTarget.setAttribute('aria-pressed',!!cinema.value);key.color.setHex(cinema.value?0xffe6cc:0xfff5e8);rimLight.color.setHex(cinema.value?0xc8ddff:0xffffff);setStudioLight(studioLight.value*100);};
+$('#cinema').onclick=()=>{cinema.value=1-cinema.value;setStudioLight(studioLight.value*100);};
 $('#light').oninput=e=>setStudioLight(Number(e.target.value));
 document.querySelectorAll('.finish').forEach(button=>button.addEventListener('click',()=>setFinish(button.dataset.finish)));
 setFinish('titanium');
