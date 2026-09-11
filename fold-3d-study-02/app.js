@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { createGlassCompositor } from './glass.js?v=14';
+import { createGlassCompositor } from './glass.js?v=15';
 import { createDepthOfField } from './depth-of-field.js?v=14';
 const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -10,7 +10,7 @@ const railMaterials=[],antennaTint={value:new THREE.Color(0x92999e)};
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#loading').textContent='WebGL non disponibile. Abilita l’accelerazione grafica nel browser.';throw e;}
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio,1.5),3));renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio,1.5),matchMedia('(pointer: coarse)').matches?2:3));renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,1,.1,100);camera.position.set(0,0,12);
 const root=new THREE.Group(),device=new THREE.Group();scene.add(root);root.add(device);
 // Physical illumination: large softboxes reflected in the polished metal.
@@ -211,20 +211,25 @@ for(const [parent,x] of [[left,-.48],[right,.48],[right,1.40]]){
 // Two predefined compositions; aperture projection compensates the hinge only.
 // Orbit rotation remains a true perspective projection of the complete object.
 const uniforms=[];
-const vert=`varying vec3 vDevice; varying vec2 vLocal; varying vec3 worldPoint; varying vec3 worldNormal; uniform mat4 panel; void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(mat3(modelMatrix)*normal);vLocal=position.xy;vDevice=(panel*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const vert=`varying vec3 vDevice; varying vec2 vLocal; varying vec3 worldPoint; varying vec3 worldNormal; uniform mat4 deviceInverse; void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(mat3(modelMatrix)*normal);vLocal=position.xy;vDevice=(deviceInverse*vec4(worldPoint,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const frag=`precision highp float;
  varying vec3 vDevice;varying vec2 vLocal;varying vec3 worldPoint;varying vec3 worldNormal;
- uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurred;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
+ uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurred;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
  float rounded(vec2 p,vec2 size,float r){vec2 q=abs(p)-size+r;return min(max(q.x,q.y),0.)+length(max(q,0.))-r;}
  void main(){
  if(visibleFace<.5)discard;
  float W=3.14,H=4.40;
- vec2 q=vDevice.xy;
+ // Reproject each surface fragment onto the fixed half's display plane.
+ // Camera and fragment share device coordinates, preserving global orbit perspective.
+ vec3 ray=vDevice-cameraInDevice;
+ float denominator=abs(ray.z)>.0001?ray.z:(ray.z<0.?-.0001:.0001);
+ float planeT=(.045-cameraInDevice.z)/denominator;
+ vec2 q=(cameraInDevice+ray*planeT).xy;
  bool moving=face>.5;
- if(moving)q*=10.65/(10.65-vDevice.z);
- if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.35,.55,opening));
- float leftEdge=face>1.5?0.:(moving?max(-W,bound):-W);
- float rightEdge=face>1.5?mix(min(W,bound),W,smoothstep(.35,.55,opening)):W;
+ // Once folded away, the separate cover display resumes its physical local mapping.
+ if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
+ float leftEdge=face>1.5?0.:-W;
+ float rightEdge=W;
  float rad=.395;
  float center=(leftEdge+rightEdge)*.5;
  // Closed composition has square hinge-side corners, rounded free-edge corners.
@@ -272,7 +277,7 @@ const frag=`precision highp float;
  #include <colorspace_fragment>
  }`;
 function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
- const u={lightLevel:studioLight,picture:{value:null},blurred:{value:null},opening:{value:.7},face:{value:face},bound:{value:-w},panel:{value:new THREE.Matrix4()},visibleFace:{value:1}};uniforms.push(u);
+ const u={lightLevel:studioLight,picture:{value:null},blurred:{value:null},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
  const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
 // Both inner sheets meet beneath the fold line. At 180° the shared texture is
@@ -369,6 +374,7 @@ document.querySelectorAll('.finish').forEach(button=>button.addEventListener('cl
 setFinish('titanium');
 setStudioLight(100);
 const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);dof.resize(size.x,size.y,r.width,r.height);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);glass.resize(size.x,size.y,r.width,r.height);};new ResizeObserver(resize).observe(stage);resize();
+const deviceInverse=new THREE.Matrix4(),cameraInDevice=new THREE.Vector3();
 let previous=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000);previous=now;
  if(tween){const t=clamp((now-tween.start)/tween.duration),ease=t*t*t*(t*(t*6-15)+10);progress(tween.from+(tween.to-tween.from)*ease);if(t===1){target=p;tween=null;}}
@@ -383,13 +389,14 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  left.updateMatrix();right.updateMatrix();hingeGroup.rotation.y=theta*.5;
  // The spine tucks between both shells when closed instead of reading as a third slab.
  const hingeTuck=.62+.38*p;hingeGroup.scale.set(hingeTuck,1,.76+.24*p);hingeGroup.position.z=.025*(1-p);
- const projected=-w*Math.cos(theta)*10.65/(10.65-w*Math.sin(theta));
- for(const u of uniforms){u.opening.value=p;u.bound.value=projected;u.panel.value.copy(u.face.value>.5?left.matrix:right.matrix);u.visibleFace.value=1;}
+ device.updateWorldMatrix(true,true);camera.updateMatrixWorld();
+ deviceInverse.copy(device.matrixWorld).invert();cameraInDevice.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(deviceInverse);
+ for(const u of uniforms){u.opening.value=p;u.deviceInverse.value.copy(deviceInverse);u.cameraInDevice.value.copy(cameraInDevice);u.visibleFace.value=1;}
  if(loaded)composite();
 }requestAnimationFrame(frame);
 const photo=new Image();
 function cover(c,img,x,y,w,h){const s=Math.max(w/img.width,h/img.height);c.drawImage(img,x+(w-img.width*s)/2,y+(h-img.height*s)/2,img.width*s,img.height*s)}
-function makePlate(w){const p=document.createElement('canvas');p.width=w*6;p.height=H*6;const c=p.getContext('2d');c.scale(6,6);cover(c,photo,0,0,w,H);const shade=c.createLinearGradient(0,0,0,H);shade.addColorStop(0,'#07122244');shade.addColorStop(.42,'#07122200');shade.addColorStop(1,'#03091138');c.fillStyle=shade;c.fillRect(0,0,w,H);c.textAlign='center';c.fillStyle='#ffffffdb';c.font='500 9px Arial';c.fillText('Giovedì, 10 settembre',w/2,42);c.save();c.translate(w/2,0);c.scale(.54,1);c.font='200 144px Arial';c.fillText('9:41',0,169);c.restore();c.strokeStyle='#ffffffd9';c.lineWidth=2.6;c.lineCap='round';c.beginPath();c.moveTo(w/2-34,H-11);c.lineTo(w/2+34,H-11);c.stroke();for(let i=0;i<2;i++){const cy=H-40-i*31;c.fillStyle='#10192165';c.beginPath();c.arc(w-24,cy,10,0,Math.PI*2);c.fill();c.strokeStyle='#fff';c.lineWidth=1;if(i===0){c.strokeRect(w-28,cy-3,8,6);c.beginPath();c.arc(w-24,cy,2,0,7);c.stroke()}else{c.beginPath();c.moveTo(w-24,cy-5);c.lineTo(w-26,cy+1);c.lineTo(w-22,cy+1);c.lineTo(w-24,cy+5);c.stroke()}}return p}
+function makePlate(w,img=photo){const scale=matchMedia('(pointer: coarse)').matches?3:6;const p=document.createElement('canvas');p.width=w*scale;p.height=H*scale;const c=p.getContext('2d');c.scale(scale,scale);cover(c,img,0,0,w,H);const shade=c.createLinearGradient(0,0,0,H);shade.addColorStop(0,'#07122244');shade.addColorStop(.42,'#07122200');shade.addColorStop(1,'#03091138');c.fillStyle=shade;c.fillRect(0,0,w,H);c.textAlign='center';c.fillStyle='#ffffffdb';c.font='500 9px Arial';c.fillText('Giovedì, 10 settembre',w/2,42);c.save();c.translate(w/2,0);c.scale(.54,1);c.font='200 144px Arial';c.fillText('9:41',0,169);c.restore();c.strokeStyle='#ffffffd9';c.lineWidth=2.6;c.lineCap='round';c.beginPath();c.moveTo(w/2-34,H-11);c.lineTo(w/2+34,H-11);c.stroke();for(let i=0;i<2;i++){const cy=H-40-i*31;c.fillStyle='#10192165';c.beginPath();c.arc(w-24,cy,10,0,Math.PI*2);c.fill();c.strokeStyle='#fff';c.lineWidth=1;if(i===0){c.strokeRect(w-28,cy-3,8,6);c.beginPath();c.arc(w-24,cy,2,0,7);c.stroke()}else{c.beginPath();c.moveTo(w-24,cy-5);c.lineTo(w-26,cy+1);c.lineTo(w-22,cy+1);c.lineTo(w-24,cy+5);c.stroke()}}return p}
 function blurAtlas(source,w){
  const base=document.createElement('canvas');base.width=w;base.height=H;
  const c=base.getContext('2d');c.drawImage(source,0,0,w,H);
@@ -419,14 +426,37 @@ function blurAtlas(source,w){
 }
 
 function texture(c){const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t;}
-photo.onload=()=>{try{const closed=makePlate(W),opened=makePlate(W*2);
+function applyPhoto(image){
+ const closed=makePlate(W,image),opened=makePlate(W*2,image);
  const cb=blurAtlas(closed,W)[2],ob=blurAtlas(opened,W*2)[2];
  function cropped(c,width){const out=document.createElement('canvas');out.width=width;out.height=H;out.getContext('2d').drawImage(c,PAD,PAD,width,H,0,0,width,H);return texture(out)}
- const ct=texture(closed),ot=texture(opened),cblur=cropped(cb,W),oblur=cropped(ob,W*2);
+ const textures=[];
+ try{
+ const ct=texture(closed);textures.push(ct);const ot=texture(opened);textures.push(ot);const cblur=cropped(cb,W);textures.push(cblur);const oblur=cropped(ob,W*2);textures.push(oblur);
+ const previous=new Set(uniforms.flatMap(u=>[u.picture.value,u.blurred.value]).filter(Boolean));
  for(const u of uniforms){u.picture.value=u.face.value===2?ct:ot;u.blurred.value=u.face.value===2?cblur:oblur;}
- loaded=true;$('#loading').hidden=true;progress(p);
-}catch(error){$('#loading').textContent='Impossibile preparare il display. Ricarica la pagina.';console.error(error)}};
-photo.onerror=()=>{$('#loading').textContent='Impossibile caricare lo sfondo. Ricarica la pagina.'};photo.src='background.png';
+ previous.forEach(t=>t.dispose());loaded=true;$('#loading').hidden=true;progress(p);
+ }catch(error){textures.forEach(t=>t.dispose());throw error;}
+}
+photo.onload=()=>{if(imageRevision>0)return;try{applyPhoto(photo)}catch(error){$('#loading').textContent='Impossibile preparare il display. Ricarica la pagina.';console.error(error)}};
+photo.onerror=()=>{if(!loaded)$('#loading').textContent='Impossibile caricare lo sfondo. Puoi scegliere una tua immagine.'};
+let imageRevision=0;photo.src='background.png';
+$('#upload-image').onclick=()=>$('#image-file').click();
+$('#image-file').onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const status=$('#image-status');
+ if(!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)||file.size>20*1024*1024){status.textContent='Scegli un JPG, PNG, WebP o AVIF fino a 20 MB.';e.target.value='';return;}
+ const revision=++imageRevision;const url=URL.createObjectURL(file);status.textContent='Preparazione immagine…';$('#upload-image').disabled=true;
+ try{const image=new Image();image.src=url;await image.decode();if(revision!==imageRevision)return;
+ await new Promise(resolve=>requestAnimationFrame(resolve));applyPhoto(image);status.textContent='Immagine aggiornata su entrambi i display.';
+ }catch(error){status.textContent='Impossibile leggere questa immagine. Prova un altro file.';if(!loaded)imageRevision=0;if(!loaded&&photo.complete&&photo.naturalWidth)applyPhoto(photo);}
+ finally{URL.revokeObjectURL(url);$('#upload-image').disabled=false;e.target.value='';glass.measure();}
+};
+$('#controls-toggle').onclick=()=>{
+ const panel=$('#control-panel'),collapsed=!panel.hidden;panel.hidden=collapsed;
+ $('#controls-toggle').setAttribute('aria-expanded',!collapsed);$('#controls-toggle').textContent=collapsed?'Mostra controlli ⌃':'Nascondi controlli ⌄';
+ document.body.classList.toggle('controls-collapsed',collapsed);glass.measure();
+};
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loaded=false;$('#loading').hidden=false;$('#loading').textContent='Contesto grafico interrotto. Ricarica la pagina.'});
 // Optional agent access uses exactly the same opening control as the interface.
 if(document.modelContext?.registerTool){const lifecycle=new AbortController();try{Promise.resolve(document.modelContext.registerTool({name:'set_fold_opening',description:'Imposta l’apertura del dispositivo 3D da 0 (chiuso) a 100 (aperto).',inputSchema:{type:'object',properties:{percent:{type:'number',minimum:0,maximum:100}},required:['percent'],additionalProperties:false},annotations:{readOnlyHint:false},execute(input){if(!input||!Number.isFinite(input.percent)||input.percent<0||input.percent>100)throw new Error('Percentuale non valida');tween=null;target=input.percent/100;progress(target);return {percent:Math.round(p*100)};}},{signal:lifecycle.signal})).catch(()=>{});}catch{}addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}
