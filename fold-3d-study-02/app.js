@@ -1,11 +1,12 @@
 import * as THREE from './vendor/three.module.js';
-import { createGlassCompositor } from './glass.js?v=13';
+import { createGlassCompositor } from './glass.js?v=14';
+import { createDepthOfField } from './depth-of-field.js?v=14';
 const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const W=314,H=440,PAD=48,w=3.14,h=4.40;
 const studioLight={value:1},cinema={value:1};
-const railMaterials=[];
+const railMaterials=[],antennaTint={value:new THREE.Color(0x92999e)};
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#loading').textContent='WebGL non disponibile. Abilita l’accelerazione grafica nel browser.';throw e;}
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -69,6 +70,7 @@ const finishes={
 };
 function setFinish(name){
  const finish=finishes[name]||finishes.titanium;
+ antennaTint.value.setHex(name==='midnight'?0x273340:0x92999e);
  titanium.color.setHex(finish.metal);titanium.roughness=finish.roughness;titanium.needsUpdate=true;
  railMaterials.forEach(m=>{m.color.copy(titanium.color);m.roughness=titanium.roughness;});
  satinGlass.color.setHex(finish.glass);satinGlass.roughness=finish.glassRoughness;satinGlass.needsUpdate=true;
@@ -164,10 +166,11 @@ function railCut(isLeft){
 function railMaterial(isLeft){
  const material=titanium.clone();railMaterials.push(material);
  material.onBeforeCompile=shader=>{
+  shader.uniforms.antennaTint=antennaTint;
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nrailPoint=position+vec3(0.,0.,-.11);');
   const cut=railCut(isLeft);
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
- varying vec3 railPoint;
+ varying vec3 railPoint;uniform vec3 antennaTint;
  float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}`);
   shader.fragmentShader=shader.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
  ${cut}
@@ -175,7 +178,7 @@ function railMaterial(isLeft){
  float sideEdge=step(3.125,abs(railPoint.x));
  float antenna=max(railEdge*max(1.-smoothstep(.020,.022,abs(abs(railPoint.x)-.31)),1.-smoothstep(.020,.022,abs(abs(railPoint.x)-2.78))),sideEdge*(1.-smoothstep(.024,.026,abs(abs(railPoint.y)-1.59))));
  antenna*=step(-.146,railPoint.z)*step(railPoint.z,.031);`);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(.29,.31,.33),antenna);').replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.55,antenna);').replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,0.,antenna);');
+  shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,antennaTint,antenna);').replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.55,antenna);').replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,0.,antenna);');
  };
  material.customProgramCacheKey=()=>isLeft?'rail-left-v11':'rail-right-v11';return material;
 }
@@ -262,6 +265,7 @@ const frag=`precision highp float;
  float coverGain=face>1.5?1.45:1.;
  vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
  col+=lightLevel*coverGain*coatingReflection*fresnel*(face>1.5?1.:(.35+.65*(1.-shadow)));
+ col*=1.+.10*(1.-smoothstep(0.,.35,lightLevel));
  col*=aperture*(1.-feather*.95);
  gl_FragColor=vec4(col,1.);
  #include <tonemapping_fragment>
@@ -302,13 +306,14 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(
 canvas.onkeydown=e=>{let x=0,y=0;if(e.key==='ArrowUp')x=-.1;if(e.key==='ArrowDown')x=.1;if(e.key==='ArrowLeft')y=-.1;if(e.key==='ArrowRight')y=.1;if(x||y){e.preventDefault();orientation.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,0)));}if(e.key==='+'||e.key==='=')zoom=clamp(zoom-.5,5,24);if(e.key==='-')zoom=clamp(zoom+.5,5,24);};
 // Continuous separable Gaussian bloom, not displaced copies of the sharp image.
 const hdr=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:4});
+const dof=createDepthOfField(renderer,hdr,camera,[insideRight,insideLeft,outsideLeft]);
 const bloomA=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
 const bloomB=bloomA.clone();
 const postScene=new THREE.Scene(),postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const postVertex='varying vec2 uvScreen;void main(){uvScreen=uv;gl_Position=vec4(position.xy,0.,1.);}';
-const extractMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{source:{value:hdr.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;void main(){vec4 c=texture2D(source,uvScreen);float l=max(c.r,max(c.g,c.b));gl_FragColor=vec4(min(c.rgb,vec3(12.))*smoothstep(1.8,4.,l)*c.a,1.);}`});
+const extractMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{source:{value:dof.target.texture},lightLevel:studioLight},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform float lightLevel;void main(){vec4 c=texture2D(source,uvScreen);float l=max(c.r,max(c.g,c.b));float studio=smoothstep(0.,.5,lightLevel);float emission=smoothstep(mix(.35,1.8,studio),mix(.95,4.,studio),l);gl_FragColor=vec4(min(c.rgb,vec3(12.))*emission*c.a,1.);}`});
 const blurMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{source:{value:bloomA.texture},direction:{value:new THREE.Vector2()}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform vec2 direction;void main(){vec3 c=vec3(0.);float sum=0.;for(int i=-12;i<=12;i++){float f=float(i),weight=exp(-f*f/32.);c+=texture2D(source,uvScreen+direction*f).rgb*weight;sum+=weight;}gl_FragColor=vec4(c/sum,1.);}`});
-const postMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{cinema,lightLevel:studioLight,source:{value:hdr.texture},bloom:{value:bloomA.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform sampler2D bloom;uniform float lightLevel;uniform float cinema;
+const postMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{cinema,lightLevel:studioLight,source:{value:dof.target.texture},bloom:{value:bloomA.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform sampler2D bloom;uniform float lightLevel;uniform float cinema;
 void main(){vec4 base=texture2D(source,uvScreen);
 // Composite over the studio background in linear light, with opaque output.
 // Bloom energy must never be divided by its own coverage: that normalizes
@@ -335,6 +340,7 @@ const glass=createGlassCompositor(renderer,cinema);
 const postQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMaterial);postScene.add(postQuad);
 function composite(){
  renderer.setRenderTarget(hdr);renderer.render(scene,camera);
+ dof.render();
  postQuad.material=extractMaterial;renderer.setRenderTarget(bloomA);renderer.render(postScene,postCamera);
  postQuad.material=blurMaterial;
  for(let pass=0;pass<2;pass++){
@@ -362,7 +368,7 @@ $('#light').oninput=e=>setStudioLight(Number(e.target.value));
 document.querySelectorAll('.finish').forEach(button=>button.addEventListener('click',()=>setFinish(button.dataset.finish)));
 setFinish('titanium');
 setStudioLight(100);
-const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);glass.resize(size.x,size.y,r.width,r.height);};new ResizeObserver(resize).observe(stage);resize();
+const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);dof.resize(size.x,size.y,r.width,r.height);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);glass.resize(size.x,size.y,r.width,r.height);};new ResizeObserver(resize).observe(stage);resize();
 let previous=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000);previous=now;
  if(tween){const t=clamp((now-tween.start)/tween.duration),ease=t*t*t*(t*(t*6-15)+10);progress(tween.from+(tween.to-tween.from)*ease);if(t===1){target=p;tween=null;}}
