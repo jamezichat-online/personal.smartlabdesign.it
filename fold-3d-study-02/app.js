@@ -46,6 +46,16 @@ function polishedNormals(geo){
 }
 const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65});
 const ceramic=new THREE.MeshPhysicalMaterial({color:0xe5e3dc,metalness:0,roughness:.3,clearcoat:.6,clearcoatRoughness:.2});
+const finishes={
+ titanium:{metal:0xaaaead,glass:0xeeeae3,roughness:.19,glassRoughness:.43},
+ midnight:{metal:0x071426,glass:0x0d1b2d,roughness:.16,glassRoughness:.38}
+};
+function setFinish(name){
+ const finish=finishes[name]||finishes.titanium;
+ titanium.color.setHex(finish.metal);titanium.roughness=finish.roughness;titanium.needsUpdate=true;
+ satinGlass.color.setHex(finish.glass);satinGlass.roughness=finish.glassRoughness;satinGlass.needsUpdate=true;
+ document.querySelectorAll('.finish').forEach(button=>{const active=button.dataset.finish===name;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
+}
 function solid(outline,depth,bevel,material){const geo=new THREE.ExtrudeGeometry(outline,{depth,bevelEnabled:true,bevelSegments:20,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:128});return new THREE.Mesh(polishedNormals(geo),material);}
 function shell(parent,x0,x1,rl,rr){
  const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.105,.035,titanium);body.position.z=-.11;parent.add(body);
@@ -121,13 +131,24 @@ for(const x of [1.72,2.27]){
  const key=solid(shape(-.215,.215,-.035,.035,.034,.034),.014,.007,titanium);
  key.rotation.x=-Math.PI/2;key.position.set(x,h/2+.038,-.047);right.add(key);
 }
-const polymer=new THREE.MeshStandardMaterial({color:0xbbbcb7,roughness:.48,metalness:0});
+const polymer=new THREE.MeshStandardMaterial({color:0xa9adb0,roughness:.5,metalness:.04});
 for(const parent of [left,right]){
  const sign=parent===left?-1:1;
- for(const x of [.46,2.64])for(const y of [-h/2-.026,h/2+.026]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.033,.012,.13),polymer);strip.position.set(sign*x,y,-.042);parent.add(strip);}
- for(const y of [-1.63,1.63]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.012,.034,.13),polymer);strip.position.set(sign*(w+.026),y,-.042);parent.add(strip);}
- // Speaker recesses, aligned with each half's top rail.
- for(let i=0;i<(parent===left?6:0);i++){const hole=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,.012,48),black);hole.position.set(sign*(1.17+i*.105),h/2+.036,-.043);parent.add(hole);}
+ // Dielectric antenna windows wrap the top, bottom and outer rails.
+ for(const x of [.46,2.64])for(const y of [-h/2-.026,h/2+.026]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.052,.018,.165),polymer);strip.position.set(sign*x,y,-.045);parent.add(strip);}
+ for(const y of [-1.63,1.63]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.018,.065,.165),polymer);strip.position.set(sign*(w+.026),y,-.045);parent.add(strip);}
+}
+// Machined underside: USB-C socket, paired speaker grilles and exposed screws.
+const undersideY=-h/2-.032;
+function bottomPlate(parent,x,z,width,height,material,depth=.014){const plate=solid(shape(-width/2,width/2,-height/2,height/2,height/2,height/2),depth,.006,material);plate.rotation.x=Math.PI/2;plate.position.set(x,undersideY,z);parent.add(plate);return plate;}
+bottomPlate(right,.91,-.047,.61,.14,graphite,.018);
+bottomPlate(right,.91,-.051,.46,.075,black,.02);
+function bottomDisc(parent,x,z,r,material){const disc=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.015,48),material);disc.position.set(x,undersideY-.006,z);parent.add(disc);return disc;}
+for(let i=0;i<6;i++)bottomDisc(left,-2.60+i*.125,-.047,.027,black);
+for(let i=0;i<5;i++)bottomDisc(right,2.10+i*.125,-.047,.027,black);
+for(const [parent,x] of [[left,-.43],[right,.43],[right,1.48]]){
+ bottomDisc(parent,x,-.047,.034,graphite);
+ const slot=new THREE.Mesh(new THREE.BoxGeometry(.052,.004,.009),black);slot.position.set(x,undersideY-.014,-.047);slot.rotation.y=.35;parent.add(slot);
 }
 // Two predefined compositions; aperture projection compensates the hinge only.
 // Orbit rotation remains a true perspective projection of the complete object.
@@ -155,16 +176,21 @@ const frag=`precision highp float;
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
  float grazing=pow(max(0.,sin(opening*3.14159265)),.82);
+ float fold=clamp(1.-opening,0.,1.);
+ float creaseWidth=mix(.025,.28,smoothstep(0.,.92,fold));
+ float crease=face<1.5?exp(-pow(abs(q.x)/max(creaseWidth,.001),2.))*pow(fold,.62):0.;
  float freeEdge=abs(vLocal.x)/W;
  float side=smoothstep(.38,1.,freeEdge);
  float feather=moving?smoothstep(-.11*grazing-.005,-.001,dist):0.;
- float blurAmount=moving?clamp(grazing*side*1.2+feather*.5,0.,1.):0.;
+ float blurAmount=moving?clamp(grazing*side*1.2+feather*.5+crease*.24,0.,1.):crease*.12;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  vec4 soft=texture2D(blurred,clamp(uv,0.,1.));
  vec3 col=mix(sharp.rgb,soft.rgb,blurAmount);
  float shadow=moving?(.97*grazing*pow(side,.72)):0.;
  if(face<.5)shadow=.96*(1.-smoothstep(0.,.5,opening));
  col*=1.-shadow;
+ // Optical fold valley: it narrows and disappears continuously at full opening.
+ col*=1.-crease*.42;
  // Broad low-energy specular lobe for the matte display coating.
  vec3 N=normalize(worldNormal)*(gl_FrontFacing?1.:-1.);
  vec3 V=normalize(cameraPosition-worldPoint),L=normalize(vec3(-5.,6.,7.)-worldPoint);
@@ -176,12 +202,14 @@ const frag=`precision highp float;
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`;
-function screen(parent,x0,x1,z,face,back=false){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,x0<0?.395:.003,x0<0?.003:.395),128);
+function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
  const u={lightLevel:studioLight,picture:{value:null},blurred:{value:null},opening:{value:.7},face:{value:face},bound:{value:-w},panel:{value:new THREE.Matrix4()},visibleFace:{value:1}};uniforms.push(u);
  const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
-const insideRight=screen(right,.065,w-.065,.045,0);
-const insideLeft=screen(left,-w+.065,-.015,.045,1);
+// Both inner sheets meet beneath the fold line. At 180° the shared texture is
+// visually continuous; during motion only the shader crease describes the bend.
+const insideRight=screen(right,-.008,w-.065,.045,0,false,.001,.395);
+const insideLeft=screen(left,-w+.065,.008,.045,1,false,.395,.001);
 const outsideLeft=screen(left,-w+.065,-.015,-.15,2,true);
 // Circular cover camera in the latest supplied closed-device reference.
 rearDisc(left,-w+.265,h/2-.29,-.164,.091,.012,black);
@@ -248,6 +276,8 @@ function setStudioLight(percent){
  $('#light').setAttribute('aria-valuetext',Math.round(value*100)+' per cento');
 }
 $('#light').oninput=e=>setStudioLight(Number(e.target.value));
+document.querySelectorAll('.finish').forEach(button=>button.addEventListener('click',()=>setFinish(button.dataset.finish)));
+setFinish('titanium');
 setStudioLight(100);
 const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);};new ResizeObserver(resize).observe(stage);resize();
 let previous=performance.now();
@@ -262,6 +292,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  root.position.set(pan.x,pan.y+(floating?Math.sin(now*.0007)*.055:0),0);
  camera.position.z=THREE.MathUtils.lerp(camera.position.z,zoom/Math.min(1,camera.aspect/.95),1-Math.exp(-dt*14));
  left.updateMatrix();right.updateMatrix();hingeGroup.rotation.y=theta*.5;
+ // The spine tucks between both shells when closed instead of reading as a third slab.
+ const hingeTuck=.62+.38*p;hingeGroup.scale.set(hingeTuck,1,.76+.24*p);hingeGroup.position.z=.025*(1-p);
  const projected=-w*Math.cos(theta)*10.65/(10.65-w*Math.sin(theta));
  for(const u of uniforms){u.opening.value=p;u.bound.value=projected;u.panel.value.copy(u.face.value>.5?left.matrix:right.matrix);u.visibleFace.value=1;}
  if(loaded)composite();
