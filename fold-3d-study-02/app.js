@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import { createGlassCompositor } from './glass.js?v=13';
 const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
@@ -246,16 +247,21 @@ const frag=`precision highp float;
  // Optical fold valley: it narrows and disappears continuously at full opening.
  col*=1.-crease*.42;
  // Broad low-energy specular lobe for the matte display coating.
- vec3 N=normalize(worldNormal)*(gl_FrontFacing?1.:-1.);
+ // BackSide rendering reverses GL winding; use the physical cover normal explicitly.
+ vec3 N=normalize(worldNormal)*(face>1.5?-1.:1.);
  vec3 V=normalize(cameraPosition-worldPoint),L=normalize(vec3(-5.,6.,7.)-worldPoint);
  vec3 halfway=normalize(V+L);float fresnel=.04+.16*pow(1.-max(dot(N,V),0.),5.);
- float reflection=0.;
+ float reflection=0.,fillReflection=0.;
  // Integrate a broad softbox lobe over its extent for a diffuse matte reflection.
  for(int ix=-1;ix<=1;ix++)for(int iy=-1;iy<=1;iy++){
  vec3 areaL=normalize(vec3(-5.+float(ix)*1.3,6.+float(iy)*1.5,7.)-worldPoint);
- reflection+=pow(max(dot(N,normalize(V+areaL)),0.),24.)*max(dot(N,areaL),0.)/9.;
+ reflection+=pow(max(dot(N,normalize(V+areaL)),0.),16.)*max(dot(N,areaL),0.)/9.;
+ vec3 fillL=normalize(vec3(4.5+float(ix)*.4,1.+float(iy)*1.7,3.)-worldPoint);
+ fillReflection+=pow(max(dot(N,normalize(V+fillL)),0.),12.)*max(dot(N,fillL),0.)/9.;
  }
- col+=lightLevel*vec3(1.,.96,.9)*reflection*(.12+fresnel)*(.35+.65*(1.-shadow));
+ float coverGain=face>1.5?1.45:1.;
+ vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
+ col+=lightLevel*coverGain*coatingReflection*fresnel*(face>1.5?1.:(.35+.65*(1.-shadow)));
  col*=aperture*(1.-feather*.95);
  gl_FragColor=vec4(col,1.);
  #include <tonemapping_fragment>
@@ -325,6 +331,7 @@ gl_FragColor=vec4(base.rgb+background*(1.-base.a)+glow,1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
 }`});
+const glass=createGlassCompositor(renderer,cinema);
 const postQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMaterial);postScene.add(postQuad);
 function composite(){
  renderer.setRenderTarget(hdr);renderer.render(scene,camera);
@@ -334,7 +341,8 @@ function composite(){
   blurMaterial.uniforms.source.value=bloomA.texture;blurMaterial.uniforms.direction.value.set(1/bloomA.width,0);renderer.setRenderTarget(bloomB);renderer.render(postScene,postCamera);
   blurMaterial.uniforms.source.value=bloomB.texture;blurMaterial.uniforms.direction.value.set(0,1/bloomA.height);renderer.setRenderTarget(bloomA);renderer.render(postScene,postCamera);
  }
- postQuad.material=postMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+ postQuad.material=postMaterial;renderer.setRenderTarget(glass.target);renderer.render(postScene,postCamera);
+ glass.render();
 }
 function setStudioLight(percent){
  if(!Number.isFinite(percent))return;
@@ -354,7 +362,7 @@ $('#light').oninput=e=>setStudioLight(Number(e.target.value));
 document.querySelectorAll('.finish').forEach(button=>button.addEventListener('click',()=>setFinish(button.dataset.finish)));
 setFinish('titanium');
 setStudioLight(100);
-const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);};new ResizeObserver(resize).observe(stage);resize();
+const resize=()=>{const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());hdr.setSize(size.x,size.y);bloomA.setSize(Math.max(1,Math.ceil(size.x/4)),Math.max(1,Math.ceil(size.y/4)));bloomB.setSize(bloomA.width,bloomA.height);glass.resize(size.x,size.y,r.width,r.height);};new ResizeObserver(resize).observe(stage);resize();
 let previous=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000);previous=now;
  if(tween){const t=clamp((now-tween.start)/tween.duration),ease=t*t*t*(t*(t*6-15)+10);progress(tween.from+(tween.to-tween.from)*ease);if(t===1){target=p;tween=null;}}
