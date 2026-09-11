@@ -3,7 +3,8 @@ const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const W=314,H=440,PAD=48,w=3.14,h=4.40;
-const studioLight={value:1};
+const studioLight={value:1},cinema={value:0};
+const railMaterials=[];
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#loading').textContent='WebGL non disponibile. Abilita l’accelerazione grafica nel browser.';throw e;}
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -53,12 +54,19 @@ const finishes={
 function setFinish(name){
  const finish=finishes[name]||finishes.titanium;
  titanium.color.setHex(finish.metal);titanium.roughness=finish.roughness;titanium.needsUpdate=true;
+ railMaterials.forEach(m=>{m.color.copy(titanium.color);m.roughness=titanium.roughness;});
  satinGlass.color.setHex(finish.glass);satinGlass.roughness=finish.glassRoughness;satinGlass.needsUpdate=true;
  document.querySelectorAll('.finish').forEach(button=>{const active=button.dataset.finish===name;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
 }
 function solid(outline,depth,bevel,material){const geo=new THREE.ExtrudeGeometry(outline,{depth,bevelEnabled:true,bevelSegments:20,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:128});return new THREE.Mesh(polishedNormals(geo),material);}
 function shell(parent,x0,x1,rl,rr){
- const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.105,.035,titanium);body.position.z=-.11;parent.add(body);
+ const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.105,.035,railMaterial(parent===left));body.position.z=-.11;
+ const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});
+ depth.onBeforeCompile=shader=>{
+ shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nrailPoint=position+vec3(0.,0.,-.11);');
+ shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+railCut(parent===left));
+ };
+ depth.customProgramCacheKey=()=>parent===left?'rail-shadow-left':'rail-shadow-right';body.customDepthMaterial=depth;parent.add(body);
  const border=shape(x0+.025,x1-.025,-h/2+.025,h/2-.025,Math.max(.005,rl-.025),Math.max(.005,rr-.025));
  const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),graphite);bezel.position.z=.042;parent.add(bezel);
  // Only the fixed half has a frosted rear panel. The moving half carries the cover display.
@@ -131,24 +139,55 @@ for(const x of [1.72,2.27]){
  const key=solid(shape(-.215,.215,-.035,.035,.034,.034),.014,.007,titanium);
  key.rotation.x=-Math.PI/2;key.position.set(x,h/2+.038,-.047);right.add(key);
 }
-const polymer=new THREE.MeshStandardMaterial({color:0xa9adb0,roughness:.5,metalness:.04});
-for(const parent of [left,right]){
- const sign=parent===left?-1:1;
- // Dielectric antenna windows wrap the top, bottom and outer rails.
- for(const x of [.46,2.64])for(const y of [-h/2-.026,h/2+.026]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.052,.018,.165),polymer);strip.position.set(sign*x,y,-.045);parent.add(strip);}
- for(const y of [-1.63,1.63]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.018,.065,.165),polymer);strip.position.set(sign*(w+.026),y,-.045);parent.add(strip);}
+// Antennas are dielectric regions of the rail itself: no overlapping geometry.
+// Openings remove the rail surface and expose recessed socket walls.
+function railCut(isLeft){
+ const holes=isLeft?Array.from({length:6},(_,i)=>[-2.48+i*.125,.027,.027]):[[.91,.255,.048],...Array.from({length:5},(_,i)=>[2.10+i*.125,.027,.027])];
+ return holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
 }
-// Machined underside: USB-C socket, paired speaker grilles and exposed screws.
-const undersideY=-h/2-.032;
-function bottomPlate(parent,x,z,width,height,material,depth=.014){const plate=solid(shape(-width/2,width/2,-height/2,height/2,height/2,height/2),depth,.006,material);plate.rotation.x=Math.PI/2;plate.position.set(x,undersideY,z);parent.add(plate);return plate;}
-bottomPlate(right,.91,-.047,.61,.14,graphite,.018);
-bottomPlate(right,.91,-.051,.46,.075,black,.02);
-function bottomDisc(parent,x,z,r,material){const disc=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.015,48),material);disc.position.set(x,undersideY-.006,z);parent.add(disc);return disc;}
-for(let i=0;i<6;i++)bottomDisc(left,-2.60+i*.125,-.047,.027,black);
-for(let i=0;i<5;i++)bottomDisc(right,2.10+i*.125,-.047,.027,black);
-for(const [parent,x] of [[left,-.43],[right,.43],[right,1.48]]){
- bottomDisc(parent,x,-.047,.034,graphite);
- const slot=new THREE.Mesh(new THREE.BoxGeometry(.052,.004,.009),black);slot.position.set(x,undersideY-.014,-.047);slot.rotation.y=.35;parent.add(slot);
+function railMaterial(isLeft){
+ const material=titanium.clone();railMaterials.push(material);
+ material.onBeforeCompile=shader=>{
+  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nrailPoint=position+vec3(0.,0.,-.11);');
+  const cut=railCut(isLeft);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+ varying vec3 railPoint;
+ float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}`);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
+ ${cut}
+ float railEdge=step(2.10,abs(railPoint.y));
+ float sideEdge=step(3.125,abs(railPoint.x));
+ float antenna=max(railEdge*max(1.-smoothstep(.020,.022,abs(abs(railPoint.x)-.31)),1.-smoothstep(.020,.022,abs(abs(railPoint.x)-2.78))),sideEdge*(1.-smoothstep(.024,.026,abs(abs(railPoint.y)-1.59))));
+ antenna*=step(-.146,railPoint.z)*step(railPoint.z,.031);`);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(.29,.31,.33),antenna);').replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.55,antenna);').replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,0.,antenna);');
+ };
+ material.customProgramCacheKey=()=>isLeft?'rail-left-v11':'rail-right-v11';return material;
+}
+const undersideY=-h/2-.035;
+function socket(parent,x,width,height){
+ const outline=new THREE.Shape(),radius=height/2,offset=width/2-radius;
+ outline.absarc(offset,0,radius,-Math.PI/2,Math.PI/2,false);outline.absarc(-offset,0,radius,Math.PI/2,Math.PI*1.5,false);outline.closePath();
+ const contour=outline.getPoints(),pos=[],indices=[];
+ // Mouth on the rail tangent, interior 0.065 units into the device.
+ for(const depth of [0,.065])for(const p of contour)pos.push(p.x,p.y,depth);
+ const n=contour.length;
+ for(let i=0;i<n-1;i++)indices.push(i,i+n,i+1,i+1,i+n,i+n+1);
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(indices);g.computeVertexNormals();
+ const group=new THREE.Group();group.rotation.x=-Math.PI/2;group.position.set(x,undersideY,-.052);parent.add(group);
+ const wall=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x41464c,metalness:.85,roughness:.32,side:THREE.DoubleSide}));group.add(wall);
+ const back=new THREE.Mesh(new THREE.ShapeGeometry(outline),black);back.material=black.clone();back.material.side=THREE.DoubleSide;back.position.z=.064;group.add(back);
+ return group;
+}
+const usb=socket(right,.91,.51,.096);
+// Recessed tongue and two rows of discrete contacts, wholly inside the mouth.
+const tongue=solid(shape(-.181,.181,-.012,.012,.011,.011),.022,.002,graphite);tongue.position.z=.026;usb.add(tongue);
+const contactMaterial=new THREE.MeshStandardMaterial({color:0xb1a17e,metalness:.85,roughness:.3});
+for(let i=0;i<12;i++)for(const row of [-1,1]){const contact=new THREE.Mesh(new THREE.BoxGeometry(.014,.002,.017),contactMaterial);contact.position.set(-.148+i*.027,row*.014,.030);usb.add(contact);}
+for(let i=0;i<6;i++)socket(left,-2.48+i*.125,.054,.054);
+for(let i=0;i<5;i++)socket(right,2.10+i*.125,.054,.054);
+for(const [parent,x] of [[left,-.48],[right,.48],[right,1.40]]){
+ const disc=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,.002,64),titanium);disc.position.set(x,undersideY-.0005,-.052);parent.add(disc);
+ for(let i=0;i<5;i++){const slot=new THREE.Mesh(new THREE.BoxGeometry(.005,.001,.016),black);slot.rotation.y=i*Math.PI*2/5;slot.position.set(x,undersideY-.002,-.052);parent.add(slot);}
 }
 // Two predefined compositions; aperture projection compensates the hinge only.
 // Orbit rotation remains a true perspective projection of the complete object.
@@ -243,15 +282,20 @@ const postScene=new THREE.Scene(),postCamera=new THREE.OrthographicCamera(-1,1,1
 const postVertex='varying vec2 uvScreen;void main(){uvScreen=uv;gl_Position=vec4(position.xy,0.,1.);}';
 const extractMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{source:{value:hdr.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;void main(){vec4 c=texture2D(source,uvScreen);float l=max(c.r,max(c.g,c.b));gl_FragColor=vec4(min(c.rgb,vec3(12.))*smoothstep(1.8,4.,l)*c.a,1.);}`});
 const blurMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{source:{value:bloomA.texture},direction:{value:new THREE.Vector2()}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform vec2 direction;void main(){vec3 c=vec3(0.);float sum=0.;for(int i=-12;i<=12;i++){float f=float(i),weight=exp(-f*f/32.);c+=texture2D(source,uvScreen+direction*f).rgb*weight;sum+=weight;}gl_FragColor=vec4(c/sum,1.);}`});
-const postMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{lightLevel:studioLight,source:{value:hdr.texture},bloom:{value:bloomA.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform sampler2D bloom;uniform float lightLevel;
+const postMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{cinema,lightLevel:studioLight,source:{value:hdr.texture},bloom:{value:bloomA.texture}},vertexShader:postVertex,fragmentShader:`varying vec2 uvScreen;uniform sampler2D source;uniform sampler2D bloom;uniform float lightLevel;uniform float cinema;
 void main(){vec4 base=texture2D(source,uvScreen);
 // Composite over the studio background in linear light, with opaque output.
 // Bloom energy must never be divided by its own coverage: that normalizes
 // every faint halo pixel to white and creates a solid expanded silhouette.
 float vignette=smoothstep(.0,.8,length((uvScreen-.5)*vec2(1.,.8)));
 vec3 background=mix(vec3(.57,.58,.60),vec3(.50,.51,.53),vignette)*(.035+.965*lightLevel);
+background*=mix(1.,.32,cinema);
 vec3 spread=max(texture2D(bloom,uvScreen).rgb,vec3(0.));
-vec3 glow=.22*(vec3(1.)-exp(-spread*.65));
+vec3 glow=mix(.22,.60,cinema)*(vec3(1.)-exp(-spread*.65));
+// Continuous, centered horizontal optical diffusion; no displaced ghost copies.
+vec3 streak=vec3(0.);float weightSum=0.;
+for(int i=-24;i<=24;i++){float t=float(i)/24.;float weight=exp(-t*t*5.);streak+=texture2D(bloom,uvScreen+vec2(t*.055,0.)).rgb*weight;weightSum+=weight;}
+glow+=cinema*.08*(vec3(1.)-exp(-streak/weightSum*.45));
 gl_FragColor=vec4(base.rgb+background*(1.-base.a)+glow,1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -270,11 +314,12 @@ function composite(){
 function setStudioLight(percent){
  if(!Number.isFinite(percent))return;
  const value=clamp(percent,0,250)/100;studioLight.value=value;
- ambient.intensity=.55*value;key.intensity=115*value;fill.intensity=.75*value;rimLight.intensity=1.6*value;
- scene.environmentIntensity=value;
+ ambient.intensity=(cinema.value?.23:.55)*value;key.intensity=(cinema.value?175:115)*value;fill.intensity=(cinema.value?.32:.75)*value;rimLight.intensity=(cinema.value?3.8:1.6)*value;
+ scene.environmentIntensity=value*(cinema.value?1.45:1);
  $('#light').value=Math.round(value*100);$('#light-value').value=Math.round(value*100)+'%';
  $('#light').setAttribute('aria-valuetext',Math.round(value*100)+' per cento');
 }
+$('#cinema').onclick=e=>{cinema.value=1-cinema.value;e.currentTarget.setAttribute('aria-pressed',!!cinema.value);key.color.setHex(cinema.value?0xffe6cc:0xfff5e8);rimLight.color.setHex(cinema.value?0xc8ddff:0xffffff);setStudioLight(studioLight.value*100);};
 $('#light').oninput=e=>setStudioLight(Number(e.target.value));
 document.querySelectorAll('.finish').forEach(button=>button.addEventListener('click',()=>setFinish(button.dataset.finish)));
 setFinish('titanium');
