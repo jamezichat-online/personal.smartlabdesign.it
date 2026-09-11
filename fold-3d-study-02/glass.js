@@ -47,13 +47,16 @@ export function createGlassCompositor(renderer,cinema){
  function measure(){
   const nodes=[document.querySelector('header'),document.querySelector('footer'),...document.querySelectorAll('button,.range')].filter(Boolean);
   let n=0;
-  for(const element of nodes){const r=element.getBoundingClientRect();if(r.width===0||r.height===0||n===count)continue;
+  for(const element of nodes){let r=element.getBoundingClientRect();if(r.width===0||r.height===0||n===count)continue;
+   const scrollPanel=element.closest('#control-panel');
+   if(scrollPanel){const clip=scrollPanel.getBoundingClientRect();const x=Math.max(r.x,clip.x),y=Math.max(r.y,clip.y),right=Math.min(r.right,clip.right),bottom=Math.min(r.bottom,clip.bottom);if(right<=x||bottom<=y)continue;r={x,y,width:right-x,height:bottom-y};}
    const panel=element.tagName==='HEADER'||element.tagName==='FOOTER';const radius=Math.min(parseFloat(getComputedStyle(element).borderRadius)||0,r.width/2,r.height/2);
    rects[n].set(r.x+r.width/2,viewportHeight-r.y-r.height/2,r.width/2,r.height/2);
    params[n].set(radius,panel?14:2.4,panel?0:5.0,panel?0:1);n++;
   }material.uniforms.count.value=n;
   const footer=document.querySelector('footer');if(footer)document.documentElement.style.setProperty('--footer-height',footer.getBoundingClientRect().height+'px');
  }
+ document.querySelector('#control-panel')?.addEventListener('scroll',measure,{passive:true});
  const observer=new ResizeObserver(measure);document.querySelectorAll('header,footer,button,.range').forEach(node=>observer.observe(node));
  window.addEventListener('pointermove',e=>material.uniforms.pointer.value.set(e.clientX,viewportHeight-e.clientY),{passive:true});
  document.addEventListener('pointerleave',()=>material.uniforms.pointer.value.set(-1000,-1000));
