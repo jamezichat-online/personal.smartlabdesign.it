@@ -253,7 +253,16 @@ const frag=`precision highp float;
  float veil=face>1.5?coverActivity:innerVeil;
  float baseBlur=face>1.5?coverActivity:innerBlur;
  float edgeVeil=grazing*pow(side,.72)*.55;
- float blurAmount=clamp(max(baseBlur*.99,grazing*side*1.45+feather*.65)+crease*.18,0.,1.);
+ // Two independent spatial layers on the moving display, not a uniform tint.
+ // The outer half remains a deep void; the soft front reaches inward toward the hinge.
+ float motionOnset=face>1.5?smoothstep(0.,.10,opening):1.;
+ float voidActivity=motionOnset*(1.-smoothstep(.70,1.,opening));
+ float blurActivity=motionOnset*(1.-smoothstep(.88,1.,opening));
+ float voidShape=smoothstep(.12,.50,freeEdge);
+ float blurShape=smoothstep(.015,.38,freeEdge);
+ float voidMask=moving?1.-exp(-9.*voidShape*voidActivity):0.;
+ float revealBlur=moving?blurShape*blurActivity:0.;
+ float blurAmount=clamp(max(max(baseBlur*.99,grazing*side*1.45+feather*.65),revealBlur)+crease*.18,0.,1.);
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  vec4 soft=texture2D(blurred,clamp(uv,0.,1.));
  vec3 col=mix(sharp.rgb,soft.rgb,blurAmount);
@@ -278,7 +287,9 @@ const frag=`precision highp float;
  vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
  col+=lightLevel*coverGain*coatingReflection*fresnel*(.12+.88*(1.-shadow));
  col*=1.+.10*(1.-smoothstep(0.,.35,lightLevel));
- col*=aperture*(1.-feather*.95);
+ // Apply the black layer last, after coating reflections and display emission.
+ // Nothing can brighten the void back into a grey, readable image.
+ col*=aperture*(1.-feather*.95)*(1.-voidMask);
  gl_FragColor=vec4(col,1.);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -425,7 +436,7 @@ function blurAtlas(source,w){
    }
   }return out;
  }
- return [3,9,20].map(radius=>{
+ return [3,9,34].map(radius=>{
   let pixels=padded;for(let pass=0;pass<3;pass++){pixels=box(pixels,radius,true);pixels=box(pixels,radius,false)}
   const blurred=document.createElement('canvas');blurred.width=bw;blurred.height=bh;
   blurred.getContext('2d').putImageData(new ImageData(pixels,bw,bh),0,0);return blurred;
