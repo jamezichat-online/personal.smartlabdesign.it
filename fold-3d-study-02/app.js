@@ -223,21 +223,26 @@ const frag=`precision highp float;
  float W=3.14,H=4.40;
  bool moving=face>.5;
  bool front=face>1.5;
- // Anchor reveal projection to the device, not to an orbit camera that can
- // cross the reference plane. Orbit perspective is applied by the real camera.
- // For tight folds the reference eye follows the inside of the hinge wedge.
+ // Texture coordinates must lie on the fixed display plane along the REAL
+ // viewing ray. A virtual eye here would make the picture bend with the panel.
+ vec3 viewRay=vDevice-cameraInDevice;
+ float viewDenominator=abs(viewRay.z)>.000001?viewRay.z:(viewRay.z<0.?-.000001:.000001);
+ float planeT=(.045-cameraInDevice.z)/viewDenominator;
+ vec2 q=moving?(cameraInDevice+viewRay*planeT).xy:vDevice.xy;
+ // Only the authored blur/shadow field uses a stable reference projection.
+ // Its domain must not collapse when the orbit camera crosses an edge ray.
  float eyeAngle=front?0.:max(3.141592653589793*(1.-opening)-1.45,0.);
  vec3 revealEye=vec3(sin(eyeAngle)*10.65,0.,.045+cos(eyeAngle)*10.65);
  vec3 ray=vDevice-revealEye;
  float denominator=abs(ray.z)>.0001?ray.z:(ray.z<0.?-.0001:.0001);
- float planeT=(.045-revealEye.z)/denominator;
- vec2 q=moving?(revealEye+ray*planeT).xy:vDevice.xy;
+ float effectT=(.045-revealEye.z)/denominator;
+ vec2 effectPoint=(revealEye+ray*effectT).xy;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
  vec3 edgeRay=outerEdge-revealEye;
  float edgeDenominator=abs(edgeRay.z)>.0001?edgeRay.z:(edgeRay.z<0.?-.0001:.0001);
  float edgeX=(revealEye+edgeRay*((.045-revealEye.z)/edgeDenominator)).x;
- float leftEdge=moving?(front?0.:max(-W,edgeX)):-W;
+ float leftEdge=front?0.:-W;
  // The hinge is an internal join, never an image-mask edge. Let the physical
  // sheet end there, preserving its small overlap without painting a black rim.
  float rightEdge=moving?(front?min(W,edgeX):W):W;
@@ -250,12 +255,13 @@ const frag=`precision highp float;
  float dist=rounded(q-vec2(center,0.),vec2((rightEdge-leftEdge)*.5,H*.5-.065),min(rad,max(.001,(rightEdge-leftEdge)*.45)));
  // At full opening both overlapping sheets share the same exterior aperture.
  // Clipping the moving sheet at x=0 would paint its overlap opaque black.
- if(!front)dist=mix(dist,rounded(q,vec2(W,H*.5-.065),.395),smoothstep(.92,1.,opening));
+ if(!front)dist=rounded(q,vec2(W,H*.5-.065),.395);
  float aa=max(fwidth(dist),.001);float aperture=1.-smoothstep(-aa,aa,dist);
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
+ if(moving&&!front&&planeT<=0.)aperture=0.;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
- vec2 field=moving?study01Field(-vLocal.x*100.,q*100.,edgeX*100.,opening,front):vec2(0.);
+ vec2 field=moving?study01Field(-vLocal.x*100.,effectPoint*100.,edgeX*100.,opening,front):vec2(0.);
  // Exactly the three source-over blur layers from STUDY 01.
  vec3 col=sharp.rgb;
  col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
