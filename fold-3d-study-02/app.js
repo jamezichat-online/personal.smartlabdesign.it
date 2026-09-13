@@ -221,21 +221,26 @@ const frag=`precision highp float;
  void main(){
  if(visibleFace<.5)discard;
  float W=3.14,H=4.40;
- // Reproject each surface fragment onto the fixed half's display plane.
- // Camera and fragment share device coordinates, preserving global orbit perspective.
- vec3 ray=vDevice-cameraInDevice;
- float denominator=abs(ray.z)>.0001?ray.z:(ray.z<0.?-.0001:.0001);
- float planeT=(.045-cameraInDevice.z)/denominator;
- vec2 q=(cameraInDevice+ray*planeT).xy;
  bool moving=face>.5;
+ bool front=face>1.5;
+ // Anchor reveal projection to the device, not to an orbit camera that can
+ // cross the reference plane. Orbit perspective is applied by the real camera.
+ // For tight folds the reference eye follows the inside of the hinge wedge.
+ float eyeAngle=front?0.:max(3.141592653589793*(1.-opening)-1.45,0.);
+ vec3 revealEye=vec3(sin(eyeAngle)*10.65,0.,.045+cos(eyeAngle)*10.65);
+ vec3 ray=vDevice-revealEye;
+ float denominator=abs(ray.z)>.0001?ray.z:(ray.z<0.?-.0001:.0001);
+ float planeT=(.045-revealEye.z)/denominator;
+ vec2 q=moving?(revealEye+ray*planeT).xy:vDevice.xy;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
- vec3 edgeRay=outerEdge-cameraInDevice;
+ vec3 edgeRay=outerEdge-revealEye;
  float edgeDenominator=abs(edgeRay.z)>.0001?edgeRay.z:(edgeRay.z<0.?-.0001:.0001);
- float edgeX=(cameraInDevice+edgeRay*((.045-cameraInDevice.z)/edgeDenominator)).x;
- bool front=face>1.5;
+ float edgeX=(revealEye+edgeRay*((.045-revealEye.z)/edgeDenominator)).x;
  float leftEdge=moving?(front?0.:max(-W,edgeX)):-W;
- float rightEdge=moving?(front?min(W,edgeX):0.):W;
+ // The hinge is an internal join, never an image-mask edge. Let the physical
+ // sheet end there, preserving its small overlap without painting a black rim.
+ float rightEdge=moving?(front?min(W,edgeX):W):W;
  // The back of a fully opened device still has a complete physical cover screen.
  if(front&&opening>.5){leftEdge=0.;rightEdge=W;}
  float center=(leftEdge+rightEdge)*.5;
@@ -388,6 +393,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  if(!pointers.size&&!reduced){rotationVelocity.multiplyScalar(Math.exp(-dt*9));orientation.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationVelocity.x*dt*45,rotationVelocity.y*dt*45,0)));}
  root.quaternion.slerp(orientation,1-Math.exp(-dt*20));
  const theta=Math.PI*(1-p);left.rotation.y=theta;
+ // Rotate about the emitting surface so both display edges share one hinge line.
+ left.position.set(-.045*Math.sin(theta),0,.045*(1-Math.cos(theta)));
  // Camera follows the changing silhouette center, independent of its orbit.
  device.position.x=-(w-w*Math.cos(theta))*.25;
  root.position.set(pan.x,pan.y+(floating?Math.sin(now*.0007)*.055:0),0);
