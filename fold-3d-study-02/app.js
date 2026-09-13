@@ -46,7 +46,6 @@ const fill=new THREE.DirectionalLight(0xd9e7ff,.75);fill.position.set(5,1,3);sce
 const rimLight=new THREE.DirectionalLight(0xffffff,1.6);rimLight.position.set(1,5,-5);scene.add(rimLight);
 const titanium=new THREE.MeshPhysicalMaterial({color:0xb8b8b3,metalness:1,roughness:.145,clearcoat:.08,clearcoatRoughness:.14,envMapIntensity:1.25});
 const graphite=new THREE.MeshStandardMaterial({color:0x111315,metalness:.35,roughness:.3});
-const displaySeal=new THREE.MeshStandardMaterial({color:0x101112,metalness:0,roughness:.38});
 const black=new THREE.MeshStandardMaterial({color:0x020303,metalness:.1,roughness:.26});
 // Superelliptic corner profile with a wider footprint and tangential transitions.
 function shape(x0,x1,y0,y1,rl,rr){
@@ -81,20 +80,17 @@ function setFinish(name){
 }
 function solid(outline,depth,bevel,material){const geo=new THREE.ExtrudeGeometry(outline,{depth,bevelEnabled:true,bevelSegments:20,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:128});return new THREE.Mesh(polishedNormals(geo),material);}
 function shell(parent,x0,x1,rl,rr){
- const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.105,.035,railMaterial(parent===left));body.position.z=-.11;
+ // The metal front lands at z=.045, the common display/hinge contact plane.
+ const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.120,.035,railMaterial(parent===left));body.position.z=-.11;
  const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});
  depth.onBeforeCompile=shader=>{
  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nrailPoint=position+vec3(0.,0.,-.11);');
  shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+railCut(parent===left));
  };
  depth.customProgramCacheKey=()=>parent===left?'rail-shadow-left':'rail-shadow-right';body.customDepthMaterial=depth;parent.add(body);
- // Continuous display seal closes the recessed space above the metal shoulders.
- // Top z=.0445, just beneath the emitting plane at .045: opposed seals leave
- // only a .001 contact seam at zero opening, with no exposed interior cavity.
- const seal=solid(shape(x0-.012,x1+.012,-h/2-.012,h/2+.012,rl+.012,rr+.012),.0115,.003,displaySeal);
- seal.position.z=.030;seal.name='display-contact-seal';parent.add(seal);
  const border=shape(x0+.025,x1-.025,-h/2+.025,h/2-.025,Math.max(.005,rl-.025),Math.max(.005,rr-.025));
- const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),graphite);bezel.position.z=.042;parent.add(bezel);
+ const bezelMaterial=graphite.clone();bezelMaterial.polygonOffset=true;bezelMaterial.polygonOffsetFactor=-.5;bezelMaterial.polygonOffsetUnits=-.5;
+ const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),bezelMaterial);bezel.position.z=.045;parent.add(bezel);
  // Only the fixed half has a frosted rear panel. The moving half carries the cover display.
  if(parent===right){const inset=.045;
   const rear=solid(shape(x0+inset,x1-inset,-h/2+inset,h/2-inset,.012,.415),.018,.012,satinGlass);
@@ -225,6 +221,16 @@ const frag=`precision highp float;
  uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurSmall;uniform sampler2D blurMedium;uniform sampler2D blurLarge;uniform vec3 outerEdge;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
  ${study01EffectsGLSL}
  float rounded(vec2 p,vec2 size,float r){vec2 q=abs(p)-size+r;return min(max(q.x,q.y),0.)+length(max(q,0.))-r;}
+ vec2 imageRevealField(vec2 imagePoint,float p,bool cover){
+  float amount=pow(max(0.,1.-abs(2.*p-1.)),.72);
+  float side=smoothstep(0.,1.,clamp((cover?imagePoint.x:-imagePoint.x)/3.14,0.,1.));
+  float rim=1.-smoothstep(0.,.14,max(0.,1.-abs(imagePoint.y)/2.20));
+  float edge=max(side,rim);
+  // At 90 degrees amount=1: both masks cover EVERY image-plane pixel.
+  // On either side of 90 degrees both masks decrease monotonically to zero.
+  return vec2(pow(amount,.65)*mix(.42+.58*edge,1.,amount),
+              amount*mix(.20+.80*edge,1.,amount));
+ }
  void main(){
  if(visibleFace<.5)discard;
  float W=3.14,H=4.40;
@@ -234,7 +240,10 @@ const frag=`precision highp float;
  // viewing ray. A virtual eye here would make the picture bend with the panel.
  vec3 viewRay=vDevice-cameraInDevice;
  float viewDenominator=abs(viewRay.z)>.000001?viewRay.z:(viewRay.z<0.?-.000001:.000001);
- float planeT=(.045-cameraInDevice.z)/viewDenominator;
+ // The closed cover lies at z=.250; projecting it onto the inner z=.045
+ // plane would make its picture appear recessed behind its own glass.
+ float imagePlane=front?.250:.045;
+ float planeT=(imagePlane-cameraInDevice.z)/viewDenominator;
  vec2 q=moving?(cameraInDevice+viewRay*planeT).xy:vDevice.xy;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
@@ -259,16 +268,13 @@ const frag=`precision highp float;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  // Image and masks use exactly the same plane coordinates. Neither local panel
  // position nor a projected silhouette edge participates in the reveal field.
- vec2 field=moving?study01Field((front?q.x:-q.x)*100.,q*100.,front?314.:-314.,opening,front):vec2(0.);
- field.x=min(1.,field.x*1.12);
+ vec2 field=moving?imageRevealField(q,opening,front):vec2(0.);
  // Exactly the three source-over blur layers from STUDY 01.
  vec3 col=sharp.rgb;
  col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
  col=mix(col,texture2D(blurMedium,clamp(uv,0.,1.)).rgb,smoothstep(.20,.68,field.x));
  col=mix(col,texture2D(blurLarge,clamp(uv,0.,1.)).rgb,smoothstep(.58,1.,field.x));
  float shadow=moving?field.y:0.;
- float settled=front?0.:smoothstep(.92,1.,opening);
- col=mix(col,sharp.rgb,settled);shadow*=1.-settled;
  // Broad low-energy specular lobe for the matte display coating.
  // BackSide rendering reverses GL winding; use the physical cover normal explicitly.
  vec3 N=normalize(worldNormal)*(face>1.5?-1.:1.);
@@ -298,12 +304,12 @@ const frag=`precision highp float;
  }`;
 function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
  const u={lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
- const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
+ const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
 // Inner sheets overlap slightly; their texture and exterior aperture agree at 180°.
 const insideRight=screen(right,-.008,w-.065,.045,0,false,.001,.395);
 const insideLeft=screen(left,-w+.065,.008,.045,1,false,.395,.001);
-const outsideLeft=screen(left,-w+.065,-.015,-.15,2,true);
+const outsideLeft=screen(left,-w+.065,-.015,-.160,2,true);
 // Circular cover camera in the latest supplied closed-device reference.
 rearDisc(left,-w+.265,h/2-.29,-.164,.091,.012,black);
 rearDisc(left,-w+.265,h/2-.29,-.173,.027,.007,optical);
@@ -440,7 +446,7 @@ function blurAtlas(source,w){
    }
   }return out;
  }
- return [3,9,20].map(radius=>{
+ return [4,12,28].map(radius=>{
   let pixels=padded;for(let pass=0;pass<3;pass++){pixels=box(pixels,radius,true);pixels=box(pixels,radius,false)}
   const blurred=document.createElement('canvas');blurred.width=bw;blurred.height=bh;
   blurred.getContext('2d').putImageData(new ImageData(pixels,bw,bh),0,0);return blurred;
