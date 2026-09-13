@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import { study01EffectsGLSL } from './study01-effects.js';
 import { createGlassCompositor } from './glass.js?v=15';
 import { createDepthOfField } from './depth-of-field.js?v=14';
 const $=s=>document.querySelector(s),canvas=$('#view'),stage=$('#stage');
@@ -214,7 +215,8 @@ const uniforms=[];
 const vert=`varying vec3 vDevice; varying vec2 vLocal; varying vec3 worldPoint; varying vec3 worldNormal; uniform mat4 deviceInverse; void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(mat3(modelMatrix)*normal);vLocal=position.xy;vDevice=(deviceInverse*vec4(worldPoint,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const frag=`precision highp float;
  varying vec3 vDevice;varying vec2 vLocal;varying vec3 worldPoint;varying vec3 worldNormal;
- uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurred;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
+ uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurSmall;uniform sampler2D blurMedium;uniform sampler2D blurLarge;uniform vec3 outerEdge;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
+ ${study01EffectsGLSL}
  float rounded(vec2 p,vec2 size,float r){vec2 q=abs(p)-size+r;return min(max(q.x,q.y),0.)+length(max(q,0.))-r;}
  void main(){
  if(visibleFace<.5)discard;
@@ -228,48 +230,32 @@ const frag=`precision highp float;
  bool moving=face>.5;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
- float leftEdge=face>1.5?0.:-W;
- float rightEdge=W;
- float rad=.395;
+ vec3 edgeRay=outerEdge-cameraInDevice;
+ float edgeDenominator=abs(edgeRay.z)>.0001?edgeRay.z:(edgeRay.z<0.?-.0001:.0001);
+ float edgeX=(cameraInDevice+edgeRay*((.045-cameraInDevice.z)/edgeDenominator)).x;
+ bool front=face>1.5;
+ float leftEdge=moving?(front?0.:max(-W,edgeX)):-W;
+ float rightEdge=moving?(front?min(W,edgeX):0.):W;
+ // The back of a fully opened device still has a complete physical cover screen.
+ if(front&&opening>.5){leftEdge=0.;rightEdge=W;}
  float center=(leftEdge+rightEdge)*.5;
+ float rad=moving?((front?q.x>=center:q.x<center)?.25:0.):.395;
  // Closed composition has square hinge-side corners, rounded free-edge corners.
  if(face>1.5&&q.x<center)rad=0.;
  float dist=rounded(q-vec2(center,0.),vec2((rightEdge-leftEdge)*.5,H*.5-.065),min(rad,max(.001,(rightEdge-leftEdge)*.45)));
  float aa=max(fwidth(dist),.001);float aperture=1.-smoothstep(-aa,aa,dist);
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
- float grazing=pow(max(0.,sin(opening*3.14159265)),.82);
- float fold=clamp(1.-opening,0.,1.);
- float creaseWidth=mix(.025,.28,smoothstep(0.,.92,fold));
- float crease=face<1.5?exp(-pow(abs(q.x)/max(creaseWidth,.001),2.))*pow(fold,.62):0.;
- float freeEdge=abs(vLocal.x)/W;
- float side=smoothstep(.38,1.,freeEdge);
- float feather=moving?smoothstep(-.11*grazing-.005,-.001,dist):0.;
- // Keep the entire image veiled until the final opening, including the fixed half.
- float innerVeil=pow(1.-smoothstep(.18,1.,opening),.55);
- float innerBlur=pow(1.-smoothstep(.12,1.,opening),.50);
- // The cover is clear at rest when closed, then becomes camouflaged during the fold.
- float coverActivity=smoothstep(0.,.18,opening)*pow(1.-smoothstep(.18,1.,opening),.45);
- float veil=face>1.5?coverActivity:innerVeil;
- float baseBlur=face>1.5?coverActivity:innerBlur;
- float edgeVeil=grazing*pow(side,.72)*.55;
- // Two independent spatial layers on the moving display, not a uniform tint.
- // The outer half remains a deep void; the soft front reaches inward toward the hinge.
- float motionOnset=face>1.5?smoothstep(0.,.10,opening):1.;
- float voidActivity=motionOnset*(1.-smoothstep(.70,1.,opening));
- float blurActivity=motionOnset*(1.-smoothstep(.88,1.,opening));
- float voidShape=smoothstep(.12,.50,freeEdge);
- float blurShape=smoothstep(.015,.38,freeEdge);
- float voidMask=moving?1.-exp(-9.*voidShape*voidActivity):0.;
- float revealBlur=moving?blurShape*blurActivity:0.;
- float blurAmount=clamp(max(max(baseBlur*.99,grazing*side*1.45+feather*.65),revealBlur)+crease*.18,0.,1.);
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
- vec4 soft=texture2D(blurred,clamp(uv,0.,1.));
- vec3 col=mix(sharp.rgb,soft.rgb,blurAmount);
- float shadow=1.-(1.-.975*veil)*(1.-edgeVeil);
- col*=1.-shadow;
- // Optical fold valley: it narrows and disappears continuously at full opening.
- col*=1.-crease*.42;
+ vec2 field=moving?study01Field(-vLocal.x*100.,q*100.,edgeX*100.,opening,front):vec2(0.);
+ // Exactly the three source-over blur layers from STUDY 01.
+ vec3 col=sharp.rgb;
+ col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
+ col=mix(col,texture2D(blurMedium,clamp(uv,0.,1.)).rgb,smoothstep(.20,.68,field.x));
+ col=mix(col,texture2D(blurLarge,clamp(uv,0.,1.)).rgb,smoothstep(.58,1.,field.x));
+ float shadow=moving?field.y:.96*(1.-smoothstep(0.,.5,opening));
+ float settled=front?0.:smoothstep(.92,1.,opening);
+ col=mix(col,sharp.rgb,settled);shadow*=1.-settled;
  // Broad low-energy specular lobe for the matte display coating.
  // BackSide rendering reverses GL winding; use the physical cover normal explicitly.
  vec3 N=normalize(worldNormal)*(face>1.5?-1.:1.);
@@ -285,17 +271,16 @@ const frag=`precision highp float;
  }
  float coverGain=face>1.5?1.45:1.;
  vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
- col+=lightLevel*coverGain*coatingReflection*fresnel*(.12+.88*(1.-shadow));
+ col+=lightLevel*coverGain*coatingReflection*fresnel;
+ col*=1.-shadow;
  col*=1.+.10*(1.-smoothstep(0.,.35,lightLevel));
- // Apply the black layer last, after coating reflections and display emission.
- // Nothing can brighten the void back into a grey, readable image.
- col*=aperture*(1.-feather*.95)*(1.-voidMask);
+  col*=aperture;
  gl_FragColor=vec4(col,1.);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`;
 function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
- const u={lightLevel:studioLight,picture:{value:null},blurred:{value:null},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
+ const u={lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
  const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
 // Both inner sheets meet beneath the fold line. At 180° the shared texture is
@@ -409,7 +394,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  const hingeTuck=.62+.38*p;hingeGroup.scale.set(hingeTuck,1,.76+.24*p);hingeGroup.position.z=.025*(1-p);
  device.updateWorldMatrix(true,true);camera.updateMatrixWorld();
  deviceInverse.copy(device.matrixWorld).invert();cameraInDevice.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(deviceInverse);
- for(const u of uniforms){u.opening.value=p;u.deviceInverse.value.copy(deviceInverse);u.cameraInDevice.value.copy(cameraInDevice);u.visibleFace.value=1;}
+ for(const u of uniforms){u.opening.value=p;u.deviceInverse.value.copy(deviceInverse);u.cameraInDevice.value.copy(cameraInDevice);u.outerEdge.value.set(-w,0,u.face.value>1.5?-.15:.045).applyMatrix4(left.matrix);u.visibleFace.value=1;}
  if(loaded)composite();
 }requestAnimationFrame(frame);
 const photo=new Image();
@@ -436,7 +421,7 @@ function blurAtlas(source,w){
    }
   }return out;
  }
- return [3,9,34].map(radius=>{
+ return [3,9,20].map(radius=>{
   let pixels=padded;for(let pass=0;pass<3;pass++){pixels=box(pixels,radius,true);pixels=box(pixels,radius,false)}
   const blurred=document.createElement('canvas');blurred.width=bw;blurred.height=bh;
   blurred.getContext('2d').putImageData(new ImageData(pixels,bw,bh),0,0);return blurred;
@@ -446,13 +431,13 @@ function blurAtlas(source,w){
 function texture(c){const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t;}
 function applyPhoto(image){
  const closed=makePlate(W,image),opened=makePlate(W*2,image);
- const cb=blurAtlas(closed,W)[2],ob=blurAtlas(opened,W*2)[2];
+ const cb=blurAtlas(closed,W),ob=blurAtlas(opened,W*2);
  function cropped(c,width){const out=document.createElement('canvas');out.width=width;out.height=H;out.getContext('2d').drawImage(c,PAD,PAD,width,H,0,0,width,H);return texture(out)}
  const textures=[];
  try{
- const ct=texture(closed);textures.push(ct);const ot=texture(opened);textures.push(ot);const cblur=cropped(cb,W);textures.push(cblur);const oblur=cropped(ob,W*2);textures.push(oblur);
- const previous=new Set(uniforms.flatMap(u=>[u.picture.value,u.blurred.value]).filter(Boolean));
- for(const u of uniforms){u.picture.value=u.face.value===2?ct:ot;u.blurred.value=u.face.value===2?cblur:oblur;}
+ const ct=texture(closed);textures.push(ct);const ot=texture(opened);textures.push(ot);const cblur=cb.map(c=>{const t=cropped(c,W);textures.push(t);return t});const oblur=ob.map(c=>{const t=cropped(c,W*2);textures.push(t);return t});
+ const previous=new Set(uniforms.flatMap(u=>[u.picture.value,u.blurSmall.value,u.blurMedium.value,u.blurLarge.value]).filter(Boolean));
+ for(const u of uniforms){u.picture.value=u.face.value===2?ct:ot;const atlas=u.face.value===2?cblur:oblur;u.blurSmall.value=atlas[0];u.blurMedium.value=atlas[1];u.blurLarge.value=atlas[2];}
  previous.forEach(t=>t.dispose());loaded=true;$('#loading').hidden=true;progress(p);
  }catch(error){textures.forEach(t=>t.dispose());throw error;}
 }
