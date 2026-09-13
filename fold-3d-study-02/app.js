@@ -243,6 +243,9 @@ const frag=`precision highp float;
  // Closed composition has square hinge-side corners, rounded free-edge corners.
  if(face>1.5&&q.x<center)rad=0.;
  float dist=rounded(q-vec2(center,0.),vec2((rightEdge-leftEdge)*.5,H*.5-.065),min(rad,max(.001,(rightEdge-leftEdge)*.45)));
+ // At full opening both overlapping sheets share the same exterior aperture.
+ // Clipping the moving sheet at x=0 would paint its overlap opaque black.
+ if(!front)dist=mix(dist,rounded(q,vec2(W,H*.5-.065),.395),smoothstep(.92,1.,opening));
  float aa=max(fwidth(dist),.001);float aperture=1.-smoothstep(-aa,aa,dist);
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
@@ -283,8 +286,7 @@ function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.3
  const u={lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
  const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
-// Both inner sheets meet beneath the fold line. At 180° the shared texture is
-// visually continuous; during motion only the shader crease describes the bend.
+// Inner sheets overlap slightly; their texture and exterior aperture agree at 180°.
 const insideRight=screen(right,-.008,w-.065,.045,0,false,.001,.395);
 const insideLeft=screen(left,-w+.065,.008,.045,1,false,.395,.001);
 const outsideLeft=screen(left,-w+.065,-.015,-.15,2,true);
@@ -382,6 +384,7 @@ let previous=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000);previous=now;
  if(tween){const t=clamp((now-tween.start)/tween.duration),ease=t*t*t*(t*(t*6-15)+10);progress(tween.from+(tween.to-tween.from)*ease);if(t===1){target=p;tween=null;}}
  else if(Math.abs(target-p)>.00001)progress(p+(target-p)*(1-Math.exp(-dt*24)));
+ else if(p!==target)progress(target);
  if(!pointers.size&&!reduced){rotationVelocity.multiplyScalar(Math.exp(-dt*9));orientation.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationVelocity.x*dt*45,rotationVelocity.y*dt*45,0)));}
  root.quaternion.slerp(orientation,1-Math.exp(-dt*20));
  const theta=Math.PI*(1-p);left.rotation.y=theta;
