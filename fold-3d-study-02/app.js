@@ -21,7 +21,7 @@ softbox(-5,6,7,4,5,7);softbox(5,0,2,1.3,7,5);softbox(0,6,-2,6,2,8);softbox(0,-4,
 const pmrem=new THREE.PMREMGenerator(renderer);const env=pmrem.fromScene(studio,.025,.1,100,{size:1024});scene.environment=env.texture;
 // A separate photographic reflection rig: broad key, narrow edge strips,
 // negative fill and graded emitters rather than uniformly bright white cards.
-const filmStudio=new THREE.Scene();filmStudio.background=new THREE.Color(.006,.008,.012);
+const filmStudio=new THREE.Scene();filmStudio.background=new THREE.Color(.024,.025,.027);
 function filmSoftbox(position,size,energy,tint){
  const material=new THREE.ShaderMaterial({side:THREE.DoubleSide,toneMapped:false,uniforms:{energy:{value:energy},tint:{value:new THREE.Color(tint)}},
  vertexShader:'varying vec2 cardUv;void main(){cardUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -33,6 +33,7 @@ filmSoftbox([4.5,1,3],[.85,7],5.0,0xe9f0ff);
 filmSoftbox([1,5,-5],[5,1.5],10.0,0xeaf1ff);
 filmSoftbox([-4,-2,-4],[1.2,5],3.8,0xffffff);
 filmSoftbox([0,-5,4],[5,2],.65,0xffffff);
+filmSoftbox([0,2,9],[7,4],1.25,0xffffff);
 const filmEnv=pmrem.fromScene(filmStudio,.035,.1,100,{size:1024});pmrem.dispose();
 // World-space studio key: the same position as the reflected main softbox.
 const ambient=new THREE.HemisphereLight(0xeaf2ff,0x454039,.55);scene.add(ambient);
@@ -43,8 +44,9 @@ key.shadow.camera.near=.5;key.shadow.camera.far=30;
 key.shadow.bias=-.00008;key.shadow.normalBias=.0025;key.shadow.radius=4;
 const fill=new THREE.DirectionalLight(0xd9e7ff,.75);fill.position.set(5,1,3);scene.add(fill);
 const rimLight=new THREE.DirectionalLight(0xffffff,1.6);rimLight.position.set(1,5,-5);scene.add(rimLight);
-const titanium=new THREE.MeshPhysicalMaterial({color:0xaaaead,metalness:1,roughness:.19,clearcoat:.18,clearcoatRoughness:.18,envMapIntensity:1.5});
+const titanium=new THREE.MeshPhysicalMaterial({color:0xb8b8b3,metalness:1,roughness:.145,clearcoat:.08,clearcoatRoughness:.14,envMapIntensity:1.25});
 const graphite=new THREE.MeshStandardMaterial({color:0x111315,metalness:.35,roughness:.3});
+const displaySeal=new THREE.MeshStandardMaterial({color:0x101112,metalness:0,roughness:.38});
 const black=new THREE.MeshStandardMaterial({color:0x020303,metalness:.1,roughness:.26});
 // Superelliptic corner profile with a wider footprint and tangential transitions.
 function shape(x0,x1,y0,y1,rl,rr){
@@ -66,7 +68,7 @@ function polishedNormals(geo){
 const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65});
 const ceramic=new THREE.MeshPhysicalMaterial({color:0xe5e3dc,metalness:0,roughness:.3,clearcoat:.6,clearcoatRoughness:.2});
 const finishes={
- titanium:{metal:0xaaaead,glass:0xeeeae3,roughness:.19,glassRoughness:.43},
+ titanium:{metal:0xb8b8b3,glass:0xeeeae3,roughness:.145,glassRoughness:.43},
  midnight:{metal:0x071426,glass:0x0d1b2d,roughness:.16,glassRoughness:.38}
 };
 function setFinish(name){
@@ -86,6 +88,11 @@ function shell(parent,x0,x1,rl,rr){
  shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+railCut(parent===left));
  };
  depth.customProgramCacheKey=()=>parent===left?'rail-shadow-left':'rail-shadow-right';body.customDepthMaterial=depth;parent.add(body);
+ // Continuous display seal closes the recessed space above the metal shoulders.
+ // Top z=.0445, just beneath the emitting plane at .045: opposed seals leave
+ // only a .001 contact seam at zero opening, with no exposed interior cavity.
+ const seal=solid(shape(x0-.012,x1+.012,-h/2-.012,h/2+.012,rl+.012,rr+.012),.0115,.003,displaySeal);
+ seal.position.z=.030;seal.name='display-contact-seal';parent.add(seal);
  const border=shape(x0+.025,x1-.025,-h/2+.025,h/2-.025,Math.max(.005,rl-.025),Math.max(.005,rr-.025));
  const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),graphite);bezel.position.z=.042;parent.add(bezel);
  // Only the fixed half has a frosted rear panel. The moving half carries the cover display.
@@ -229,23 +236,12 @@ const frag=`precision highp float;
  float viewDenominator=abs(viewRay.z)>.000001?viewRay.z:(viewRay.z<0.?-.000001:.000001);
  float planeT=(.045-cameraInDevice.z)/viewDenominator;
  vec2 q=moving?(cameraInDevice+viewRay*planeT).xy:vDevice.xy;
- // Only the authored blur/shadow field uses a stable reference projection.
- // Its domain must not collapse when the orbit camera crosses an edge ray.
- float eyeAngle=front?0.:max(3.141592653589793*(1.-opening)-1.45,0.);
- vec3 revealEye=vec3(sin(eyeAngle)*10.65,0.,.045+cos(eyeAngle)*10.65);
- vec3 ray=vDevice-revealEye;
- float denominator=abs(ray.z)>.0001?ray.z:(ray.z<0.?-.0001:.0001);
- float effectT=(.045-revealEye.z)/denominator;
- vec2 effectPoint=(revealEye+ray*effectT).xy;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
- vec3 edgeRay=outerEdge-revealEye;
- float edgeDenominator=abs(edgeRay.z)>.0001?edgeRay.z:(edgeRay.z<0.?-.0001:.0001);
- float edgeX=(revealEye+edgeRay*((.045-revealEye.z)/edgeDenominator)).x;
  float leftEdge=front?0.:-W;
  // The hinge is an internal join, never an image-mask edge. Let the physical
  // sheet end there, preserving its small overlap without painting a black rim.
- float rightEdge=moving?(front?min(W,edgeX):W):W;
+ float rightEdge=W;
  // The back of a fully opened device still has a complete physical cover screen.
  if(front&&opening>.5){leftEdge=0.;rightEdge=W;}
  float center=(leftEdge+rightEdge)*.5;
@@ -261,13 +257,16 @@ const frag=`precision highp float;
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
  if(moving&&!front&&planeT<=0.)aperture=0.;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
- vec2 field=moving?study01Field(-vLocal.x*100.,effectPoint*100.,edgeX*100.,opening,front):vec2(0.);
+ // Image and masks use exactly the same plane coordinates. Neither local panel
+ // position nor a projected silhouette edge participates in the reveal field.
+ vec2 field=moving?study01Field((front?q.x:-q.x)*100.,q*100.,front?314.:-314.,opening,front):vec2(0.);
+ field.x=min(1.,field.x*1.12);
  // Exactly the three source-over blur layers from STUDY 01.
  vec3 col=sharp.rgb;
  col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
  col=mix(col,texture2D(blurMedium,clamp(uv,0.,1.)).rgb,smoothstep(.20,.68,field.x));
  col=mix(col,texture2D(blurLarge,clamp(uv,0.,1.)).rgb,smoothstep(.58,1.,field.x));
- float shadow=moving?field.y:.96*(1.-smoothstep(0.,.5,opening));
+ float shadow=moving?field.y:0.;
  float settled=front?0.:smoothstep(.92,1.,opening);
  col=mix(col,sharp.rgb,settled);shadow*=1.-settled;
  // Broad low-energy specular lobe for the matte display coating.
@@ -285,9 +284,13 @@ const frag=`precision highp float;
  }
  float coverGain=face>1.5?1.45:1.;
  vec3 coatingReflection=vec3(1.,.97,.93)*reflection*6.+vec3(.90,.95,1.)*fillReflection*2.;
- col+=lightLevel*coverGain*coatingReflection*fresnel;
  col*=1.-shadow;
  col*=1.+.10*(1.-smoothstep(0.,.35,lightLevel));
+ // Switch off emitted cover content progressively; the dark glass can still
+ // reflect studio lights after the internal display takes over.
+ float coverPower=front?pow(1.-smoothstep(0.,.70,opening),1.25):1.;
+ col*=coverPower;
+ col+=lightLevel*coverGain*coatingReflection*fresnel*(front?1.:1.-shadow);
   col*=aperture;
  gl_FragColor=vec4(col,1.);
  #include <tonemapping_fragment>
