@@ -79,10 +79,6 @@ function setFinish(name){
  document.querySelectorAll('.finish').forEach(button=>{const active=button.dataset.finish===name;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
 }
 function solid(outline,depth,bevel,material){const geo=new THREE.ExtrudeGeometry(outline,{depth,bevelEnabled:true,bevelSegments:20,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:128});return new THREE.Mesh(polishedNormals(geo),material);}
-function displayCut(isLeft,point){
- const cx=isLeft?-1.53:1.53;
- return `vec2 ds=${point}.xy-vec2(${cx},0.);float dr=${isLeft?'ds.x<0.':'ds.x>0.'}?.40:0.;vec2 dq=max(abs(ds)-vec2(1.548,2.138)+dr,0.);bool displayArea=dr>0.?pow(dq.x/dr,2.25)+pow(dq.y/dr,2.25)<1.:max(abs(ds.x)-1.548,abs(ds.y)-2.138)<0.;if(displayArea)discard;`;
-}
 function shell(parent,x0,x1,rl,rr){
  // The metal front lands at z=.045, the common display/hinge contact plane.
  const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.120,.035,railMaterial(parent===left));body.position.z=-.11;
@@ -93,12 +89,7 @@ function shell(parent,x0,x1,rl,rr){
  };
  depth.customProgramCacheKey=()=>parent===left?'rail-shadow-left':'rail-shadow-right';body.customDepthMaterial=depth;parent.add(body);
  const border=shape(x0+.025,x1-.025,-h/2+.025,h/2-.025,Math.max(.005,rl-.025),Math.max(.005,rr-.025));
- const bezelMaterial=graphite.clone();
- bezelMaterial.onBeforeCompile=shader=>{
-  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 bezelPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nbezelPoint=position;');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 bezelPoint;').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+displayCut(parent===left,'bezelPoint'));
- };
- bezelMaterial.customProgramCacheKey=()=>parent===left?'bezel-cut-left':'bezel-cut-right';
+ const bezelMaterial=graphite.clone();bezelMaterial.polygonOffset=true;bezelMaterial.polygonOffsetFactor=-.5;bezelMaterial.polygonOffsetUnits=-.5;
  const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),bezelMaterial);bezel.position.z=.045;parent.add(bezel);
  // Only the fixed half has a frosted rear panel. The moving half carries the cover display.
  if(parent===right){const inset=.045;
@@ -175,7 +166,7 @@ for(const x of [1.72,2.27]){
 // Openings remove the rail surface and expose recessed socket walls.
 function railCut(isLeft){
  const holes=isLeft?Array.from({length:6},(_,i)=>[-2.48+i*.125,.027,.027]):[[.91,.255,.048],...Array.from({length:5},(_,i)=>[2.10+i*.125,.027,.027])];
- return 'if(railPoint.z>.025){'+displayCut(isLeft,'railPoint')+'}\n'+holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
+ return holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
 }
 function railMaterial(isLeft){
  const material=titanium.clone();railMaterials.push(material);
@@ -316,11 +307,11 @@ const frag=`precision highp float;
  }`;
 function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
  const u={lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
- const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
+ const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
 // Inner sheets overlap slightly; their texture and exterior aperture agree at 180°.
-const insideRight=screen(right,0,w-.065,.045,0,false,0,.395);
-const insideLeft=screen(left,-w+.065,0,.045,1,false,.395,0);
+const insideRight=screen(right,-.008,w-.065,.045,0,false,.001,.395);
+const insideLeft=screen(left,-w+.065,.008,.045,1,false,.395,.001);
 const outsideLeft=screen(left,-w+.065,-.015,-.160,2,true);
 // Circular cover camera in the latest supplied closed-device reference.
 rearDisc(left,-w+.265,h/2-.29,-.164,.091,.012,black);

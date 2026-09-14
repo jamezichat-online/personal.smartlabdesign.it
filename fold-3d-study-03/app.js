@@ -1,3 +1,4 @@
+import { createInterior } from './interior.js';
 import * as THREE from './vendor/three.module.js';
 import { study01EffectsGLSL } from './study01-effects.js';
 import { createGlassCompositor } from './glass.js?v=15';
@@ -64,7 +65,7 @@ function polishedNormals(geo){
  for(const ids of buckets.values()){const normal=new THREE.Vector3();for(const i of ids)normal.add(new THREE.Vector3(n.getX(i),n.getY(i),n.getZ(i)));normal.normalize();for(const i of ids)n.setXYZ(i,normal.x,normal.y,normal.z);}
  n.needsUpdate=true;return geo;
 }
-const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65});
 const ceramic=new THREE.MeshPhysicalMaterial({color:0xe5e3dc,metalness:0,roughness:.3,clearcoat:.6,clearcoatRoughness:.2});
 const finishes={
  titanium:{metal:0xb8b8b3,glass:0xeeeae3,roughness:.145,glassRoughness:.43},
@@ -79,32 +80,27 @@ function setFinish(name){
  document.querySelectorAll('.finish').forEach(button=>{const active=button.dataset.finish===name;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
 }
 function solid(outline,depth,bevel,material){const geo=new THREE.ExtrudeGeometry(outline,{depth,bevelEnabled:true,bevelSegments:20,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:128});return new THREE.Mesh(polishedNormals(geo),material);}
-function displayCut(isLeft,point){
- const cx=isLeft?-1.53:1.53;
- return `vec2 ds=${point}.xy-vec2(${cx},0.);float dr=${isLeft?'ds.x<0.':'ds.x>0.'}?.40:0.;vec2 dq=max(abs(ds)-vec2(1.548,2.138)+dr,0.);bool displayArea=dr>0.?pow(dq.x/dr,2.25)+pow(dq.y/dr,2.25)<1.:max(abs(ds.x)-1.548,abs(ds.y)-2.138)<0.;if(displayArea)discard;`;
+function displayCut(isLeft,point,back=false){
+ const cx=(isLeft?-1:1)*(back?1.57:1.53);
+ return `vec2 ds=${point}.xy-vec2(${cx},0.);float dr=${isLeft?'ds.x<0.':'ds.x>0.'}?${back?.43:.40}:0.;vec2 dq=max(abs(ds)-vec2(${back?1.55:1.548},${back?2.18:2.138})+dr,0.);bool displayArea=dr>0.?pow(dq.x/dr,2.25)+pow(dq.y/dr,2.25)<1.:max(abs(ds.x)-${back?1.55:1.548},abs(ds.y)-${back?2.18:2.138})<0.;if(displayArea)discard;`;
 }
 function shell(parent,x0,x1,rl,rr){
  // The metal front lands at z=.045, the common display/hinge contact plane.
- const body=solid(shape(x0,x1,-h/2,h/2,rl,rr),.120,.035,railMaterial(parent===left));body.position.z=-.11;
+ const frameOutline=shape(x0,x1,-h/2,h/2,rl,rr);
+ const cavity=shape(x0+.10,x1-.10,-h/2+.10,h/2-.10,Math.max(.01,rl-.10),Math.max(.01,rr-.10));frameOutline.holes.push(cavity);
+ const body=solid(frameOutline,.120,.035,railMaterial(parent===left));body.position.z=-.11;body.name='housing-frame';
  const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});
  depth.onBeforeCompile=shader=>{
  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nrailPoint=position+vec3(0.,0.,-.11);');
  shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 railPoint;float capsule(vec2 p,vec2 halfSize){vec2 q=abs(p)-halfSize+halfSize.y;return length(max(q,0.))+min(max(q.x,q.y),0.)-halfSize.y;}').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+railCut(parent===left));
  };
  depth.customProgramCacheKey=()=>parent===left?'rail-shadow-left':'rail-shadow-right';body.customDepthMaterial=depth;parent.add(body);
- const border=shape(x0+.025,x1-.025,-h/2+.025,h/2-.025,Math.max(.005,rl-.025),Math.max(.005,rr-.025));
- const bezelMaterial=graphite.clone();
- bezelMaterial.onBeforeCompile=shader=>{
-  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 bezelPoint;').replace('#include <begin_vertex>','#include <begin_vertex>\nbezelPoint=position;');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 bezelPoint;').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n'+displayCut(parent===left,'bezelPoint'));
- };
- bezelMaterial.customProgramCacheKey=()=>parent===left?'bezel-cut-left':'bezel-cut-right';
- const bezel=new THREE.Mesh(new THREE.ShapeGeometry(border,128),bezelMaterial);bezel.position.z=.045;parent.add(bezel);
+ // The metal rim owns this surface; no coplanar bezel sheet.
  // Only the fixed half has a frosted rear panel. The moving half carries the cover display.
  if(parent===right){const inset=.045;
   const rear=solid(shape(x0+inset,x1-inset,-h/2+inset,h/2-inset,.012,.415),.018,.012,satinGlass);
   // Exterior glass and metal both terminate at z=-.145: no proud glass edge.
-  rear.position.z=-.133;parent.add(rear);
+  rear.position.z=-.133;rear.name='Vetro posteriore satinato';parent.add(rear);
  }
  return body;
 }
@@ -175,7 +171,7 @@ for(const x of [1.72,2.27]){
 // Openings remove the rail surface and expose recessed socket walls.
 function railCut(isLeft){
  const holes=isLeft?Array.from({length:6},(_,i)=>[-2.48+i*.125,.027,.027]):[[.91,.255,.048],...Array.from({length:5},(_,i)=>[2.10+i*.125,.027,.027])];
- return 'if(railPoint.z>.025){'+displayCut(isLeft,'railPoint')+'}\n'+holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
+ return 'if(railPoint.z>.025){'+displayCut(isLeft,'railPoint')+'}else if(railPoint.z<-.12){'+displayCut(isLeft,'railPoint',true)+'}\n'+holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
 }
 function railMaterial(isLeft){
  const material=titanium.clone();railMaterials.push(material);
@@ -228,7 +224,7 @@ const uniforms=[];
 const vert=`varying vec3 vDevice; varying vec2 vLocal; varying vec3 worldPoint; varying vec3 worldNormal; uniform mat4 deviceInverse; void main(){worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(mat3(modelMatrix)*normal);vLocal=position.xy;vDevice=(deviceInverse*vec4(worldPoint,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const frag=`precision highp float;
  varying vec3 vDevice;varying vec2 vLocal;varying vec3 worldPoint;varying vec3 worldNormal;
- uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurSmall;uniform sampler2D blurMedium;uniform sampler2D blurLarge;uniform vec3 outerEdge;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;
+ uniform vec3 cameraInDevice;uniform float lightLevel;uniform sampler2D picture;uniform sampler2D blurSmall;uniform sampler2D blurMedium;uniform sampler2D blurLarge;uniform vec3 outerEdge;uniform float opening;uniform float face;uniform float bound;uniform float visibleFace;uniform float displayOpacity;uniform float exploded;
  ${study01EffectsGLSL}
  float rounded(vec2 p,vec2 size,float r){vec2 q=abs(p)-size+r;return min(max(q.x,q.y),0.)+length(max(q,0.))-r;}
  vec2 imageRevealField(vec2 imagePoint,float p,bool cover){
@@ -258,6 +254,7 @@ const frag=`precision highp float;
  vec2 q=moving?(cameraInDevice+viewRay*planeT).xy:vDevice.xy;
  // Once folded away, the separate cover display resumes its physical local mapping.
  if(face>1.5)q=mix(q,vec2(-vLocal.x,vLocal.y),smoothstep(.52,.68,opening));
+ q=mix(q,front?vec2(-vLocal.x,vLocal.y):vLocal,exploded);
  float leftEdge=front?0.:-W;
  // The hinge is an internal join, never an image-mask edge. Let the physical
  // sheet end there, preserving its small overlap without painting a black rim.
@@ -275,7 +272,7 @@ const frag=`precision highp float;
  float aa=max(fwidth(dist),.001);float aperture=1.-smoothstep(-aa,aa,dist);
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
  if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
- if(moving&&!front&&planeT<=0.)aperture=0.;
+ if(moving&&!front&&planeT<=0.&&exploded<.01)aperture=0.;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  // Image and masks use exactly the same plane coordinates. Neither local panel
  // position nor a projected silhouette edge participates in the reveal field.
@@ -285,8 +282,9 @@ const frag=`precision highp float;
  col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
  col=mix(col,texture2D(blurMedium,clamp(uv,0.,1.)).rgb,smoothstep(.20,.68,field.x));
  col=mix(col,texture2D(blurLarge,clamp(uv,0.,1.)).rgb,smoothstep(.58,1.,field.x));
- // Fixed half switches on gradually: 50% emitted content at 90 degrees.
- float shadow=moving?field.y:1.-smoothstep(0.,1.,opening);
+ // Both inner halves share one emission envelope; reveal masks remain separate.
+ float innerPower=front?1.:smoothstep(0.,1.,opening);
+ float shadow=moving?field.y:0.;
  // Broad low-energy specular lobe for the matte display coating.
  // BackSide rendering reverses GL winding; use the physical cover normal explicitly.
  vec3 N=normalize(worldNormal)*(face>1.5?-1.:1.);
@@ -307,15 +305,15 @@ const frag=`precision highp float;
  // Switch off emitted cover content progressively; the dark glass can still
  // reflect studio lights after the internal display takes over.
  float coverPower=front?pow(1.-smoothstep(0.,.70,opening),1.25):1.;
- col*=coverPower;
- col+=lightLevel*coverGain*coatingReflection*fresnel*(front?1.:1.-shadow);
+ col*=coverPower*innerPower;
+ col+=lightLevel*coverGain*coatingReflection*fresnel*(front?1.:(1.-shadow)*innerPower);
   col*=aperture;
- gl_FragColor=vec4(col,1.);
+ gl_FragColor=vec4(col,displayOpacity);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`;
 function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.395){const geo=new THREE.ShapeGeometry(shape(x0,x1,-h/2+.065,h/2-.065,rl,rr),128);
- const u={lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
+ const u={displayOpacity:{value:1},exploded:{value:0},lightLevel:studioLight,picture:{value:null},blurSmall:{value:null},blurMedium:{value:null},blurLarge:{value:null},outerEdge:{value:new THREE.Vector3()},opening:{value:.7},face:{value:face},bound:{value:-w},deviceInverse:{value:new THREE.Matrix4()},cameraInDevice:{value:new THREE.Vector3()},visibleFace:{value:1}};uniforms.push(u);
  const mat=new THREE.ShaderMaterial({uniforms:u,vertexShader:vert,fragmentShader:frag,side:back?THREE.BackSide:THREE.FrontSide,toneMapped:false});
  const mesh=new THREE.Mesh(geo,mat);mesh.position.z=z;parent.add(mesh);return mesh;}
 // Inner sheets overlap slightly; their texture and exterior aperture agree at 180°.
@@ -327,14 +325,20 @@ rearDisc(left,-w+.265,h/2-.29,-.164,.091,.012,black);
 rearDisc(left,-w+.265,h/2-.29,-.173,.027,.007,optical);
 // Hardware casts and receives dynamic shadows; transmissive lens covers do not
 // turn into opaque black occluders. The display keeps its authored reveal shader.
-device.traverse(object=>{if(object.isMesh){const glass=object.material.transmission>0;object.castShadow=!glass&&!object.userData.optic;object.receiveShadow=!object.material.isShaderMaterial&&!object.userData.optic;}});
-let p=.7,target=.7,tween=null,slow=false,floating=!reduced,loaded=false;
-let orientation=new THREE.Quaternion().setFromEuler(new THREE.Euler(.1,-.28,0));root.quaternion.copy(orientation);
-const rotationVelocity=new THREE.Vector2(),pan=new THREE.Vector2();let zoom=12;
+device.traverse(object=>{if(object.isMesh){const glass=object.material.transmission>0;object.castShadow=!glass&&!object.userData.optic&&!object.material.isShaderMaterial;object.receiveShadow=!object.material.isShaderMaterial&&!object.userData.optic;}});
+const lab=createInterior({left,right,hingeGroup,shape,solid,screens:[insideRight,insideLeft,outsideLeft]});
+let p=1,target=1,tween=null,slow=false,floating=!reduced,loaded=false;
+let orientation=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.13,-.22,0));root.quaternion.copy(orientation);
+const rotationVelocity=new THREE.Vector2(),pan=new THREE.Vector2();let zoom=14;
 function progress(value){p=clamp(value);$('#fold').value=Math.round(p*1000);$('#percent').textContent=Math.round(p*100)+'%';$('#angle').textContent=Math.round(p*180)+'°';$('#toggle').textContent=p>.5?'Chiudi dispositivo ↙':'Apri dispositivo ↗';}
 function animate(targetValue){target=targetValue;tween={from:p,to:target,start:performance.now(),duration:reduced?1:(slow?16000:4000)*Math.max(.12,Math.abs(target-p))};}
 $('#toggle').onclick=()=>animate(p>.5?0:1);$('#fold').oninput=e=>{tween=null;target=+e.target.value/1000;if(reduced)progress(target)};
 $('#slow').onclick=e=>{slow=!slow;e.currentTarget.setAttribute('aria-pressed',slow)};$('#float').onclick=e=>{floating=!floating;e.currentTarget.setAttribute('aria-pressed',floating)};
+let inspectionView=null;
+$('#explode').onclick=()=>{const next=!lab.exploded;lab.setExploded(next);if(next){inspectionView={orientation:orientation.clone(),zoom};animate(1);orientation.setFromEuler(new THREE.Euler(-.26,-.62,0));zoom=17;}else if(inspectionView){orientation.copy(inspectionView.orientation);zoom=inspectionView.zoom;}$('#explode').setAttribute('aria-pressed',next);$('#explode').textContent=next?'Ricomponi dispositivo':'Esplodi componenti';};
+$('#settings-toggle').onclick=()=>{const expanded=$('#settings-panel').hidden;$('#settings-panel').hidden=!expanded;$('#settings-toggle').setAttribute('aria-expanded',expanded);};
+$('#transparency').oninput=e=>{const value=Number(e.target.value);lab.setTransparency(value);$('#transparency-value').value=value+'%';};
+$('#part-count').textContent=lab.componentCount+' componenti';
 $('#reset').onclick=()=>{orientation.identity();rotationVelocity.set(0,0);pan.set(0,0);zoom=12;};
 const pointers=new Map();let lastPinch=null;
 canvas.oncontextmenu=e=>e.preventDefault();
@@ -419,6 +423,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  else if(p!==target)progress(target);
  if(!pointers.size&&!reduced){rotationVelocity.multiplyScalar(Math.exp(-dt*9));orientation.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationVelocity.x*dt*45,rotationVelocity.y*dt*45,0)));}
  root.quaternion.slerp(orientation,1-Math.exp(-dt*20));
+ const expansion=lab.update(reduced?10:dt);
+ $('#fold').disabled=expansion>.001||lab.exploded;$('#toggle').disabled=expansion>.001||lab.exploded;
  const theta=Math.PI*(1-p);left.rotation.y=theta;
  // Rotate about the emitting surface so both display edges share one hinge line.
  left.position.set(-.045*Math.sin(theta),0,.045*(1-Math.cos(theta)));
