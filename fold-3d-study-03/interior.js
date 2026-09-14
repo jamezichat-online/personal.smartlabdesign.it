@@ -59,7 +59,7 @@ export function createInterior({left,right,hingeGroup,shape,solid,screens}){
  for(const parent of [left,right])for(const object of [...parent.children]){
   if(!object.isMesh||screens.includes(object)||object.name==='housing-frame')continue;
   let lift=object.position.z<-.10?-.75-Math.abs(object.position.z+.14)*2.3:.05;
-  if(object.name==='display-bezel')lift=1.75;
+  if(object.userData.displaySeal)lift=object.position.z<-.10?-1.55:1.8;
   register(object,object.name||'Componente esterno',[object.position.x*.06,object.position.y*.04,lift]);
  }
  for(const object of hingeGroup.children)if(object.isMesh)register(object,'Carter cerniera',[0,0,-.28]);

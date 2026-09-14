@@ -1,4 +1,4 @@
-import { createInterior } from './interior.js';
+import { createInterior } from './interior.js?v=3';
 import * as THREE from './vendor/three.module.js';
 import { study01EffectsGLSL } from './study01-effects.js';
 import { createGlassCompositor } from './glass.js?v=15';
@@ -65,7 +65,7 @@ function polishedNormals(geo){
  for(const ids of buckets.values()){const normal=new THREE.Vector3();for(const i of ids)normal.add(new THREE.Vector3(n.getX(i),n.getY(i),n.getZ(i)));normal.normalize();for(const i of ids)n.setXYZ(i,normal.x,normal.y,normal.z);}
  n.needsUpdate=true;return geo;
 }
-const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65});
+const satinGlass=new THREE.MeshPhysicalMaterial({color:0xeeeae3,metalness:0,roughness:.43,ior:1.46,clearcoat:.35,clearcoatRoughness:.32,envMapIntensity:.65,transmission:.06,thickness:.025});
 const ceramic=new THREE.MeshPhysicalMaterial({color:0xe5e3dc,metalness:0,roughness:.3,clearcoat:.6,clearcoatRoughness:.2});
 const finishes={
  titanium:{metal:0xb8b8b3,glass:0xeeeae3,roughness:.145,glassRoughness:.43},
@@ -105,13 +105,16 @@ function shell(parent,x0,x1,rl,rr){
  return body;
 }
 shell(right,0,w,.035,.46);shell(left,-w,0,.46,.035);
-// Enclosed hinge spine with rounded profile, machined end blocks and two joints.
+// Retracting cover rides the half-angle bisector; its width never scales.
 const hingeGroup=new THREE.Group();device.add(hingeGroup);
-const spine=solid(shape(-.085,.085,-h/2+.035,h/2-.035,.07,.07),.105,.025,titanium);spine.position.z=-.135;hingeGroup.add(spine);
-for(const y of [-h/2+.075,h/2-.075]){
- const cap=solid(shape(-.078,.078,y-.047,y+.047,.022,.022),.105,.014,titanium);cap.position.z=-.135;hingeGroup.add(cap);
- const jointY=y+(y>0?-.060:.060);
- const joint=solid(shape(-.08,.08,jointY-.003,jointY+.003,.002,.002),.10,.003,graphite);joint.position.z=-.133;hingeGroup.add(joint);
+const spine=solid(shape(-.077,.077,-h/2+.052,h/2-.052,.06,.06),.026,.012,titanium);spine.position.z=-.014;hingeGroup.add(spine);
+for(const y of [-h/2+.070,h/2-.070]){
+ const cap=solid(shape(-.070,.070,y-.025,y+.025,.020,.020),.025,.009,titanium);cap.position.z=-.013;hingeGroup.add(cap);
+}
+function updateHinge(p){
+ const half=Math.PI*(1-p)*.5,depth=.008+.092*Math.cos(half)**2;
+ hingeGroup.rotation.y=half;hingeGroup.scale.set(1,1,1);
+ hingeGroup.position.set(-Math.sin(half)*depth,0,.045-Math.cos(half)*depth);
 }
 function rearDisc(parent,x,y,z,r,depth,material){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,depth,192,1),material);m.userData.optic=true;m.rotation.x=Math.PI/2;m.position.set(x,y,z);parent.add(m);return m;}
 // Lofted frosted-glass island: broad tangent foot, concave shoulder, flat crown.
@@ -171,7 +174,7 @@ for(const x of [1.72,2.27]){
 // Openings remove the rail surface and expose recessed socket walls.
 function railCut(isLeft){
  const holes=isLeft?Array.from({length:6},(_,i)=>[-2.48+i*.125,.027,.027]):[[.91,.255,.048],...Array.from({length:5},(_,i)=>[2.10+i*.125,.027,.027])];
- return 'if(railPoint.z>.025){'+displayCut(isLeft,'railPoint')+'}else if(railPoint.z<-.12){'+displayCut(isLeft,'railPoint',true)+'}\n'+holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
+ return 'if(abs(railPoint.x)<.103 && railPoint.z<.019 && railPoint.z>-.13)discard;\nif(railPoint.z>.025){'+displayCut(isLeft,'railPoint')+'}else if(railPoint.z<-.12){'+displayCut(isLeft,'railPoint',true)+'}\n'+holes.map(([x,rx,rz])=>`if(railPoint.y < -2.17 && capsule(railPoint.xz-vec2(${x.toFixed(5)},-.052),vec2(${rx.toFixed(5)},${rz.toFixed(5)})) < 0.) discard;`).join('\n');
 }
 function railMaterial(isLeft){
  const material=titanium.clone();railMaterials.push(material);
@@ -233,16 +236,17 @@ const frag=`precision highp float;
   float travel=smoothstep(.5,1.,p);
   // Hold the peak strengths; move a soft front across the IMAGE plane instead
   // of fading every pixel uniformly. At 90 degrees the whole half is covered.
-  float feather=.18;
+  float feather=.27;
   float boundary=mix(-feather,1.+feather,travel);
   float coverage=rise*smoothstep(boundary-feather,boundary+feather,u);
-  return vec2(.80,.50)*coverage;
+  return vec2(.96,.66)*coverage;
  }
  void main(){
  if(visibleFace<.5)discard;
  float W=3.14,H=4.40;
  bool moving=face>.5;
  bool front=face>1.5;
+ if(front && distance(vLocal,vec2(-2.875,1.91))<.035)discard;
  // Texture coordinates must lie on the fixed display plane along the REAL
  // viewing ray. A virtual eye here would make the picture bend with the panel.
  vec3 viewRay=vDevice-cameraInDevice;
@@ -269,14 +273,20 @@ const frag=`precision highp float;
  // At full opening both overlapping sheets share the same exterior aperture.
  // Clipping the moving sheet at x=0 would paint its overlap opaque black.
  if(!front)dist=rounded(q,vec2(W,H*.5-.065),.395);
- float aa=max(fwidth(dist),.001);float aperture=1.-smoothstep(-aa,aa,dist);
+ vec2 field=moving?imageRevealField(q,opening,front):vec2(0.);
+ // Blur the image aperture as well as its content, in the same image plane.
+ // A broad inward feather connects the image to the black reveal void.
+ float aa=max(fwidth(dist),.001);
+ float edgeSoftness=.27*field.x;
+ float aperture=1.-smoothstep(-aa-edgeSoftness,aa+edgeSoftness*.18,dist);
+ float borderVoid=1.-smoothstep(-.42,-.025,dist);
+ aperture*=mix(1.,borderVoid,field.y*.70);
  vec2 uv=face>1.5?vec2(q.x/W,q.y/H+.5):vec2(q.x/(2.*W)+.5,q.y/H+.5);
- if(uv.x<0.||uv.x>1.||uv.y<0.||uv.y>1.)aperture=0.;
+ // Aperture controls the boundary; hard UV clipping would restore a sharp edge.
  if(moving&&!front&&planeT<=0.&&exploded<.01)aperture=0.;
  vec4 sharp=texture2D(picture,clamp(uv,0.,1.));
  // Image and masks use exactly the same plane coordinates. Neither local panel
  // position nor a projected silhouette edge participates in the reveal field.
- vec2 field=moving?imageRevealField(q,opening,front):vec2(0.);
  // Exactly the three source-over blur layers from STUDY 01.
  vec3 col=sharp.rgb;
  col=mix(col,texture2D(blurSmall,clamp(uv,0.,1.)).rgb,smoothstep(0.,.34,field.x));
@@ -320,9 +330,38 @@ function screen(parent,x0,x1,z,face,back=false,rl=x0<0?.395:.003,rr=x0<0?.003:.3
 const insideRight=screen(right,0,w-.065,.045,0,false,0,.395);
 const insideLeft=screen(left,-w+.065,0,.045,1,false,.395,0);
 const outsideLeft=screen(left,-w+.065,-.015,-.160,2,true);
-// Circular cover camera in the latest supplied closed-device reference.
-rearDisc(left,-w+.265,h/2-.29,-.164,.091,.012,black);
-rearDisc(left,-w+.265,h/2-.29,-.173,.027,.007,optical);
+// Matte carrier fills the entire depth of the peripheral reveal without a
+// second coplanar display sheet. Inner edges are shared with the screen contour.
+const displaySeal=new THREE.MeshStandardMaterial({color:0x030405,roughness:.92,metalness:0});
+function seal(parent,x0,x1,z,back,rl,rr){
+ const outer=shape(x0===0?0:x0-.057,x1===0?0:Math.min(0,x1)<0?Math.min(0,x1+.057):x1+.057,-h/2+.008,h/2-.008,rl===0?0:rl+.057,rr===0?0:rr+.057).getPoints();
+ const inner=shape(x0,x1,-h/2+.065,h/2-.065,rl,rr).getPoints();
+ const vertices=[];
+ function quad(a,b,c,d){for(const v of [a,b,c,a,c,d])vertices.push(...v);}
+ for(let i=0;i<inner.length-1;i++){
+  const a=outer[i],b=outer[i+1],c=inner[i+1],d=inner[i];
+  if(a.distanceTo(d)+b.distanceTo(c)<.00001)continue;
+  const v=(p,z)=>[p.x,p.y,z];
+  quad(v(a,.035),v(b,.035),v(c,.035),v(d,.035));
+  quad(v(d,0),v(c,0),v(b,0),v(a,0));
+  quad(v(a,0),v(b,0),v(b,.035),v(a,.035));
+  quad(v(c,0),v(d,0),v(d,.035),v(c,.035));
+ }
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
+ const rim=new THREE.Mesh(geometry,displaySeal);
+ rim.position.z=back?z+.002:z-.037;rim.name='Cornice display nero opaco';rim.userData.displaySeal=true;parent.add(rim);
+ return rim;
+}
+seal(right,0,w-.065,.045,false,0,.395);
+seal(left,-w+.065,0,.045,false,.395,0);
+seal(left,-w+.065,-.015,-.160,true,.395,.003);
+// The cover camera belongs to the display assembly and remains seated during explosion.
+const frontCamera=new THREE.Group();outsideLeft.add(frontCamera);frontCamera.name='Fotocamera frontale incassata';
+rearDisc(frontCamera,-w+.265,h/2-.29,.006,.043,.010,displaySeal);
+rearDisc(frontCamera,-w+.265,h/2-.29,.004,.030,.005,optical);
+const frontLens=new THREE.Mesh(new THREE.SphereGeometry(.027,64,40),lensGlass.clone());
+frontLens.scale.z=.13;frontLens.position.set(-w+.265,h/2-.29,.002);frontLens.userData.optic=true;
+frontLens.material.opacity=.50;frontCamera.add(frontLens);
 // Hardware casts and receives dynamic shadows; transmissive lens covers do not
 // turn into opaque black occluders. The display keeps its authored reveal shader.
 device.traverse(object=>{if(object.isMesh){const glass=object.material.transmission>0;object.castShadow=!glass&&!object.userData.optic&&!object.material.isShaderMaterial;object.receiveShadow=!object.material.isShaderMaterial&&!object.userData.optic;}});
@@ -432,9 +471,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-prev
  device.position.x=-(w-w*Math.cos(theta))*.25;
  root.position.set(pan.x,pan.y+(floating?Math.sin(now*.0007)*.055:0),0);
  camera.position.z=THREE.MathUtils.lerp(camera.position.z,zoom/Math.min(1,camera.aspect/.95),1-Math.exp(-dt*14));
- left.updateMatrix();right.updateMatrix();hingeGroup.rotation.y=theta*.5;
- // The spine tucks between both shells when closed instead of reading as a third slab.
- const hingeTuck=.62+.38*p;hingeGroup.scale.set(hingeTuck,1,.76+.24*p);hingeGroup.position.z=.025*(1-p);
+ left.updateMatrix();right.updateMatrix();updateHinge(p);
+ satinGlass.transmission=.06+.34*expansion;satinGlass.thickness=.025+.055*expansion;
  device.updateWorldMatrix(true,true);camera.updateMatrixWorld();
  deviceInverse.copy(device.matrixWorld).invert();cameraInDevice.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(deviceInverse);
  for(const u of uniforms){u.opening.value=p;u.deviceInverse.value.copy(deviceInverse);u.cameraInDevice.value.copy(cameraInDevice);u.outerEdge.value.set(-w,0,u.face.value>1.5?-.15:.045).applyMatrix4(left.matrix);u.visibleFace.value=1;}
@@ -464,7 +502,7 @@ function blurAtlas(source,w){
    }
   }return out;
  }
- return [4,12,28].map(radius=>{
+ return [6,18,36].map(radius=>{
   let pixels=padded;for(let pass=0;pass<3;pass++){pixels=box(pixels,radius,true);pixels=box(pixels,radius,false)}
   const blurred=document.createElement('canvas');blurred.width=bw;blurred.height=bh;
   blurred.getContext('2d').putImageData(new ImageData(pixels,bw,bh),0,0);return blurred;
