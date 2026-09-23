@@ -117,6 +117,8 @@
     .project-card { min-height: min(78vh, 810px); position: relative; display: grid; align-items: end; margin-top: 32px; overflow: hidden; isolation: isolate; text-decoration: none; border: 2px solid rgba(255,240,206,.42); border-radius: 6px 44px 6px 44px; box-shadow: 15px 15px 0 var(--pink); }
     .project-card::before { content: ""; position: absolute; inset: 0; z-index: -2; background: url("https://d2ol7oe51mr4n9.cloudfront.net/user_37u4BdIWLdxIKRnNlGRqjLjMgTw/46aa4109-9f74-4251-8837-866468284918.png") center 43% / cover no-repeat; transition: transform .9s cubic-bezier(.2,.7,.2,1), filter .7s; }
     .project-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4,24,28,.95), rgba(4,24,28,.66) 40%, transparent 73%), linear-gradient(0deg, rgba(4,24,28,.9), transparent 58%); }
+    .project-card--burger::before { background-image: url("/giggiooo-burger/assets/hero-poster.jpg"); background-position: center 48%; }
+    .project-card--burger::after { background: linear-gradient(90deg, rgba(24,9,5,.96), rgba(24,9,5,.72) 39%, rgba(24,9,5,.08) 75%), linear-gradient(0deg, rgba(24,9,5,.88), transparent 58%); }
     .project-card:hover::before { transform: scale(1.045); filter: saturate(1.12); }
     .project-content { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; padding: clamp(28px, 5vw, 72px); }
     .project-meta { margin-bottom: 20px; color: var(--sun); font: 500 10px "DM Mono"; letter-spacing: .13em; text-transform: uppercase; }
@@ -207,6 +209,8 @@
       .project-card { min-height: min(680px, 82svh); margin-top: 24px; margin-right: 8px; border-radius: 5px 26px 5px 26px; box-shadow: 8px 8px 0 var(--pink); }
       .project-card::before { background-position: 59% center; }
       .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.48) 68%, rgba(4,24,28,.12)); }
+      .project-card--burger::before { background-position: center center; }
+      .project-card--burger::after { background: linear-gradient(0deg, rgba(24,9,5,.97), rgba(24,9,5,.55) 60%, rgba(24,9,5,.08)); }
       .project-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 26px 20px 22px; }
       .project-meta { margin-bottom: 14px; font-size: 9px; }
       .project-title { max-width: 100%; font-size: clamp(48px, 15.5vw, 58px); line-height: .8; }
@@ -315,6 +319,16 @@
               <div class="project-meta">01 / Cinematic story / 2026</div>
               <h3 class="project-title">The Right<i>One.</i></h3>
               <p class="project-description">A small disaster, a worried child and JACK — the tiny multi-tool brave enough to become the hero.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+        <a class="project-card project-card--burger" href="/giggiooo-burger/" aria-label="Open Giggiooo Burger project">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">02 / Brand experience / 2026</div>
+              <h3 class="project-title">Giggiooo<i>Burger.</i></h3>
+              <p class="project-description">A cinematic burger brand experience with scroll-synced film, rich food imagery and a signature gold-and-brown identity.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
