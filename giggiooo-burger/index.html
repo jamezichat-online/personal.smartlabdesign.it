@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1c0c08" />
+    <meta name="description" content="Giggiooo Burger. Burger creativi, ingredienti generosi e una confezione premium pensata per ogni dettaglio." />
+    <title>Giggiooo Burger — More than a Burger</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link rel="preload" href="assets/hero-poster.jpg" as="image" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header" id="top">
+      <a class="brand" href="#top" aria-label="Giggiooo Burger, torna all'inizio"><img src="assets/giggiooo-logo.png" alt="Giggiooo Burger" width="170" height="170" /></a>
+      <nav class="desktop-nav" aria-label="Navigazione principale">
+        <a href="#menu">I BURGER</a><a href="#experience">L'ESPERIENZA</a><a href="#premium">IL PREMIUM BOX</a>
+      </nav>
+      <a class="header-link" href="#menu">SCOPRI IL MENU <span aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span></button>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Navigazione mobile" inert>
+        <a href="#menu">I BURGER</a><a href="#experience">L'ESPERIENZA</a><a href="#premium">IL PREMIUM BOX</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="scroll-story" id="story" aria-label="La storia di Giggiooo Burger">
+        <div class="hero-stage">
+          <video class="hero-video" id="hero-video" poster="assets/hero-poster.jpg" preload="auto" muted playsinline aria-hidden="true"><source src="assets/giggiooo-scrub.mp4" type="video/mp4" /></video>
+          <div class="hero-shade"></div>
+          <div class="hero-grain" aria-hidden="true"></div>
+          <div class="hero-content">
+            <span class="hero-eyebrow">GIGGIOOO BURGER <i></i> 01 / 03</span>
+            <div class="hero-chapter is-active" data-chapter="0">
+              <span class="kicker">THE SIGNATURE</span>
+              <h1>Il gusto<br /><em>si fa notare.</em></h1>
+              <p>Un morso, e capisci perché lo chiamiamo Giggiooo.</p>
+            </div>
+            <div class="hero-chapter" data-chapter="1" aria-hidden="true">
+              <span class="kicker">INSIDE THE FLAVOUR</span>
+              <h2>Ogni strato<br /><em>conta.</em></h2>
+              <p>Ingredienti scelti, consistenze che si incontrano, carattere in ogni dettaglio.</p>
+            </div>
+            <div class="hero-chapter" data-chapter="2" aria-hidden="true">
+              <span class="kicker">THE FULL EXPERIENCE</span>
+              <h2>Più di<br /><em>un burger.</em></h2>
+              <p>Un'esperienza da aprire, assaporare e ricordare.</p>
+              <a class="text-link" href="#menu">SCOPRI I BURGER <span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+          <div class="hero-progress" aria-hidden="true"><span class="hero-progress-fill"></span></div>
+          <div class="hero-bottom"><span>01&nbsp;—&nbsp;03 <span class="hero-counter-label">LA FIRMA</span></span><span class="scroll-cue">SCORRI PER SCOPRIRE <b>↓</b></span></div>
+        </div>
+      </section>
+
+      <section class="manifesto" id="experience">
+        <div class="section-index"><span>01 / LA FILOSOFIA</span><span class="rule"></span><span>MADE TO CRAVE</span></div>
+        <p class="manifesto-lead">Per chi cerca <em>quel qualcosa in più.</em></p>
+        <div class="manifesto-bottom"><span class="asterisk" aria-hidden="true">✳</span><p>Burger che si riconoscono al primo sguardo. Sapori decisi, ingredienti che si fanno sentire e il piacere di scegliere il proprio preferito.</p></div>
+      </section>
+
+      <section class="menu-section" id="menu">
+        <div class="section-index"><span>02 / LA SELEZIONE</span><span class="rule"></span><span>GIGGIOOO BURGER</span></div>
+        <div class="section-title-row"><div><span class="kicker">SCEGLI IL TUO</span><h2>Non il solito<br /><em>burger.</em></h2></div><p>Quattro personalità. Una sola voglia: il prossimo morso.</p></div>
+        <div class="burger-grid">
+          <article class="burger-card"><div class="burger-image"><img src="assets/burger-originale.webp" alt="Burger con doppio smash, cheddar fuso e bacon" loading="lazy" width="1000" height="1250" /><span class="card-number">01 / 04</span></div><div class="burger-details"><div><span class="card-tag">THE SIGNATURE</span><h3>L'Originale</h3><p>Doppio smash, cheddar, bacon croccante, cipolla caramellata, salsa signature.</p></div><span class="card-mark" aria-hidden="true">↗</span></div></article>
+          <article class="burger-card"><div class="burger-image"><img src="assets/burger-fume.webp" alt="Burger affumicato con salsa barbecue e anelli di cipolla" loading="lazy" width="1000" height="1250" /><span class="card-number">02 / 04</span></div><div class="burger-details"><div><span class="card-tag">SMOKE & FIRE</span><h3>Il Fumé</h3><p>Manzo, scamorza affumicata, BBQ, onion rings dorati, scalogno crispy.</p></div><span class="card-mark" aria-hidden="true">↗</span></div></article>
+          <article class="burger-card"><div class="burger-image"><img src="assets/burger-dorato.webp" alt="Burger di pollo croccante con salsa miele e senape" loading="lazy" width="1000" height="1250" /><span class="card-number">03 / 04</span></div><div class="burger-details"><div><span class="card-tag">CRISPY EDITION</span><h3>Il Dorato</h3><p>Pollo croccante, honey mustard, cheddar stagionato, cavolo viola, lattuga.</p></div><span class="card-mark" aria-hidden="true">↗</span></div></article>
+          <article class="burger-card"><div class="burger-image"><img src="assets/burger-bosco.webp" alt="Burger con funghi grigliati, fontina e salsa al tartufo" loading="lazy" width="1000" height="1250" /><span class="card-number">04 / 04</span></div><div class="burger-details"><div><span class="card-tag">THE BOLD ONE</span><h3>Il Bosco</h3><p>Manzo, funghi grigliati, fontina filante, crema al tartufo, rucola.</p></div><span class="card-mark" aria-hidden="true">↗</span></div></article>
+        </div>
+      </section>
+
+      <section class="premium-section" id="premium">
+        <div class="premium-image"><img src="assets/premium-box.png" alt="Confezione premium Giggiooo Burger con burger, salse e bevanda al cioccolato" loading="lazy" width="1672" height="941" /></div>
+        <div class="premium-copy"><span class="kicker">03 / IL PREMIUM BOX</span><h2>La voglia<br />di aprirlo.<br /><em>E rifarlo.</em></h2><p>Il burger, le salse e il nostro shake in una confezione pensata per rendere speciale ogni momento.</p><span class="premium-signature">MORE THAN A BURGER <i>✳</i></span></div>
+      </section>
+    </main>
+    <footer class="site-footer"><div class="footer-top"><img src="assets/giggiooo-logo.png" alt="Giggiooo Burger" width="180" height="180" /><p>Good burgers.<br /><em>Brighter days.</em></p></div><div class="footer-bottom"><span>© <span id="year">2026</span> GIGGIOOO BURGER</span><a href="#top">TORNA SU ↑</a><span>MORE THAN A BURGER</span></div></footer>
+  </body>
+</html>
