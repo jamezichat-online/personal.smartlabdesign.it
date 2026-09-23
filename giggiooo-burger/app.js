@@ -10,12 +10,15 @@
   const menuButton = document.querySelector('.menu-toggle');
   const mobileMenu = document.querySelector('.mobile-menu');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const mobileVideo = window.matchMedia('(max-width: 700px)');
   const sceneLabels = ['LA FIRMA', 'GLI INGREDIENTI', 'L’ESPERIENZA'];
-  let scheduled = false;
+  let frame = 0;
+  let needsMeasure = true;
   let currentScene = -1;
+  let targetProgress = 0;
+  let renderedProgress = 0;
   let currentTarget = 0;
-  let ready = video.readyState >= HTMLMediaElement.HAVE_METADATA;
+  let ready = false;
+  let primed = false;
 
   document.querySelector('#year').textContent = String(new Date().getFullYear());
 
@@ -34,43 +37,71 @@
     counter.innerHTML = `0${scene + 1}&nbsp;—&nbsp;03 <span class="hero-counter-label">${sceneLabels[scene]}</span>`;
   }
 
-  function update() {
-    scheduled = false;
+  function measure() {
     header.classList.toggle('is-scrolled', window.scrollY > 60);
     if (reducedMotion.matches) { setScene(0); return; }
     const rect = story.getBoundingClientRect();
     const travel = Math.max(1, story.offsetHeight - window.innerHeight);
     const p = Math.min(1, Math.max(0, -rect.top / travel));
+    targetProgress = p;
     progressBar.style.transform = `scaleX(${p})`;
     setScene(p < .31 ? 0 : p < .69 ? 1 : 2);
+  }
+  function render() {
+    frame = 0;
+    if (needsMeasure) { measure(); needsMeasure = false; }
+    if (!ready || reducedMotion.matches) return;
+
+    renderedProgress += (targetProgress - renderedProgress) * .16;
     const duration = Number.isFinite(video.duration) ? video.duration : 10;
-    currentTarget = Math.max(.01, Math.min(duration - .055, p * (duration - .055)));
-    if (!mobileVideo.matches && ready && Math.abs(video.currentTime - currentTarget) > .032) {
+    currentTarget = Math.max(.001, Math.min(duration - .04, renderedProgress * (duration - .04)));
+    if (Math.abs(video.currentTime - currentTarget) > .012) {
       try { video.currentTime = currentTarget; } catch (_) {}
     }
+    if (Math.abs(targetProgress - renderedProgress) > .00035) {
+      frame = requestAnimationFrame(render);
+    }
   }
-  function schedule() { if (!scheduled) { scheduled = true; requestAnimationFrame(update); } }
+  function schedule() {
+    needsMeasure = true;
+    if (!frame) frame = requestAnimationFrame(render);
+  }
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', schedule, { passive: true });
-  window.addEventListener('pageshow', schedule);
-  video.addEventListener('loadedmetadata', () => { ready = true; schedule(); });
-  video.addEventListener('loadeddata', () => { ready = true; schedule(); });
-  video.addEventListener('canplay', () => { ready = true; schedule(); });
+  window.addEventListener('pageshow', () => { video.pause(); schedule(); });
+  function activateVideo() {
+    if (ready) return;
+    video.pause();
+    try { video.currentTime = .001; } catch (_) {}
+    ready = true;
+    schedule();
+  }
+  video.addEventListener('loadedmetadata', activateVideo, { once: true });
+  video.addEventListener('loadeddata', schedule);
   video.addEventListener('seeked', () => {
     if (Math.abs(video.currentTime - currentTarget) > .08) schedule();
   });
-  function syncPlayback() {
-    if (reducedMotion.matches || !mobileVideo.matches) {
+  function primeVideo() {
+    if (primed || window.innerWidth > 700 || reducedMotion.matches) return;
+    const playback = video.play();
+    if (playback) playback.then(() => {
       video.pause();
-    } else {
-      const playback = video.play();
-      if (playback) playback.catch(() => {});
-    }
-    schedule();
+      primed = true;
+      schedule();
+    }).catch(() => {});
   }
-  mobileVideo.addEventListener('change', syncPlayback);
-  reducedMotion.addEventListener('change', syncPlayback);
-  syncPlayback();
+  window.addEventListener('pointerdown', primeVideo, { passive: true });
+  window.addEventListener('touchstart', primeVideo, { passive: true });
+  window.addEventListener('pagehide', () => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+  });
+  video.pause();
+  if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    activateVideo();
+  } else {
+    video.load();
+  }
   schedule();
 
   function closeMenu() {
