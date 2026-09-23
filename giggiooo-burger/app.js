@@ -10,11 +10,12 @@
   const menuButton = document.querySelector('.menu-toggle');
   const mobileMenu = document.querySelector('.mobile-menu');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const mobileVideo = window.matchMedia('(max-width: 700px)');
   const sceneLabels = ['LA FIRMA', 'GLI INGREDIENTI', 'L’ESPERIENZA'];
   let scheduled = false;
   let currentScene = -1;
   let currentTarget = 0;
-  let ready = false;
+  let ready = video.readyState >= HTMLMediaElement.HAVE_METADATA;
 
   document.querySelector('#year').textContent = String(new Date().getFullYear());
 
@@ -44,7 +45,7 @@
     setScene(p < .31 ? 0 : p < .69 ? 1 : 2);
     const duration = Number.isFinite(video.duration) ? video.duration : 10;
     currentTarget = Math.max(.01, Math.min(duration - .055, p * (duration - .055)));
-    if (ready && Math.abs(video.currentTime - currentTarget) > .032) {
+    if (!mobileVideo.matches && ready && Math.abs(video.currentTime - currentTarget) > .032) {
       try { video.currentTime = currentTarget; } catch (_) {}
     }
   }
@@ -58,7 +59,18 @@
   video.addEventListener('seeked', () => {
     if (Math.abs(video.currentTime - currentTarget) > .08) schedule();
   });
-  video.pause();
+  function syncPlayback() {
+    if (reducedMotion.matches || !mobileVideo.matches) {
+      video.pause();
+    } else {
+      const playback = video.play();
+      if (playback) playback.catch(() => {});
+    }
+    schedule();
+  }
+  mobileVideo.addEventListener('change', syncPlayback);
+  reducedMotion.addEventListener('change', syncPlayback);
+  syncPlayback();
   schedule();
 
   function closeMenu() {
