@@ -38,7 +38,9 @@
   }
 
   function measure() {
-    header.classList.toggle('is-scrolled', window.scrollY > 60);
+    // The header starts blurring only when the pinned hero releases.
+    const heroBottom = story.getBoundingClientRect().bottom;
+    header.classList.toggle('is-scrolled', heroBottom < window.innerHeight - .5);
     if (reducedMotion.matches) { setScene(0); return; }
     const rect = story.getBoundingClientRect();
     const travel = Math.max(1, story.offsetHeight - window.innerHeight);
