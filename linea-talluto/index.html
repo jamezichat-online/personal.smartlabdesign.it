@@ -125,11 +125,9 @@
     .scene-label { margin: 0 0 18px; font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
     .scene h2 { margin: 0; font: 800 clamp(64px, 8.6vw, 140px)/.84 var(--f-body); letter-spacing: -.048em; text-transform: uppercase; }
     .scene h2 .hot { display: block; color: var(--pink); text-shadow: 2px 2px 0 var(--sun); }
-    .scene-note { width: min(470px, 100%); margin: 34px 0 0; padding-left: 22px; border-left: 4px solid var(--coral); font-size: 21px; line-height: 1.45; }
+    .scene-note { width: min(520px, 100%); margin: 26px 0 0; padding-left: 20px; border-left: 4px solid var(--coral); font-size: 18px; line-height: 1.42; }
     /* portrait panel: same geometry as the original Mainframe panel so the gaze calibration holds */
     .scene-face { position: absolute; z-index: 1; right: 0; top: 0; bottom: 0; width: 64%; overflow: visible; pointer-events: none; }
-    .scene-face::before { content: ""; position: absolute; left: 12%; right: 6%; top: 8%; bottom: -10%; z-index: -1; border-radius: 50%;
-      background: radial-gradient(ellipse at 50% 40%, rgba(255,188,66,.55), rgba(255,45,135,.18) 45%, transparent 70%); filter: blur(10px); }
     .portrait-media { position: absolute; width: var(--subject-w, 100%); height: var(--subject-h, 100%); left: var(--subject-x, 0px); top: var(--subject-y, 0px); max-width: none; image-rendering: auto; }
 
     /* hotspot 1 (gaze: up-left) — creative ticket */
@@ -240,24 +238,9 @@
     .ticker-track span::after { content: "✦"; margin-left: 34px; color: var(--sun); }
     @keyframes marquee { to { transform: translateX(-50%); } }
 
-    /* AI terminus */
-    .ai-sec { position: relative; padding: clamp(80px, 11vw, 170px) 0 clamp(60px, 8vw, 120px); background:
-      radial-gradient(ellipse 60% 50% at 82% 18%, rgba(255,45,135,.22), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 10% 90%, rgba(0,191,196,.16), transparent 70%), var(--ink); overflow: hidden; }
     .ai-head .mono { color: var(--pink); }
     .ai-head h2 span { color: var(--pink); text-shadow: 3px 3px 0 var(--sun); }
     .ai-head h2 i { display: block; color: transparent; -webkit-text-stroke: 2px var(--cream); font: italic 800 .62em/1 var(--f-body); letter-spacing: -.03em; margin-top: .18em; }
-    .ai-lead { max-width: 640px; margin: 40px 0 0 auto; padding-left: 22px; border-left: 4px solid var(--pink); font-size: 22px; line-height: 1.42; }
-    .tracks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 30px); margin-top: clamp(56px, 7vw, 100px); }
-    .track { min-width: 0; border-top: 3px solid var(--pink); padding-top: 18px; display: grid; gap: 12px; align-content: start; }
-    .track:nth-child(2) { border-color: var(--sun); } .track:nth-child(3) { border-color: var(--aqua); }
-    .track .mono { color: var(--cream-dim); }
-    .track h3 { margin: 0; font: 800 clamp(30px, 3vw, 44px)/.9 var(--f-body); letter-spacing: -.02em; text-transform: uppercase; }
-    .track p { margin: 0; color: var(--cream-dim); }
-    .track dl { margin: 6px 0 0; }
-    .track dl div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
-    .track dt { font-weight: 600; font-size: 19px; }
-    .track dd { margin: 0; font: 500 10px/1.9 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--sun); text-align: right; }
 
     /* footer */
     .foot { padding: 52px 0 64px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: end; }
@@ -276,7 +259,6 @@
       .stop-when { grid-column: 2; grid-row: 1; text-align: left; padding: 0 0 6px; }
       .stop-dot { grid-column: 1; grid-row: 1 / span 2; width: 44px; }
       .stop-body { grid-column: 2; }
-      .tracks { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
       .shell { width: calc(100% - 28px); }
@@ -305,7 +287,6 @@
     <a class="brand" href="/" aria-label="Back to SmartLabDesign"><span class="badge" aria-hidden="true">T</span>SmartLabDesign</a>
     <nav aria-label="Page navigation">
       <a href="#route">Route</a>
-      <a href="#today">Today</a>
       <a href="#contact">Contact</a>
     </nav>
   </header>
@@ -355,7 +336,7 @@
             <div class="scene-copy">
               <p class="scene-label">Terminus · You have arrived</p>
               <h2 id="scene-name">Alessio <span class="hot">Talluto</span></h2>
-              <p class="scene-note">Curiosity drew the first line. Every tool since, from pencil to prompt, has only let it run further.</p>
+              <p class="scene-note">My method comes from a passion for design and from creativity. Twenty years of graphic design, technical bids and social media were the stops where I put it to work. Today it runs on a new engine: I work intensively with artificial intelligence to generate design, build websites and direct animation that a year ago would have needed a whole team.</p>
             </div>
             <div class="scene-tracks">
               <p class="tracks-pick-label">Where I'm heading next · pick a track</p>
@@ -415,11 +396,10 @@
 
     <section class="route" id="route" aria-labelledby="route-h">
       <div class="shell">
-        <div class="sec-head">
+        <div class="sec-head ai-head">
           <p class="mono">The route · 10 stops</p>
           <div>
-            <h2 id="route-h">Every stop <span>on the line</span></h2>
-            <p>The career line runs around the face from my hometown to today. At the interchange it changes colour and becomes the AI line, which draws the features.</p>
+            <h2 id="route-h">Today the line <span>runs on AI</span><i>every day, in production</i></h2>
           </div>
         </div>
         <ol class="stops">
@@ -531,49 +511,6 @@
       <span>Generative design</span><span>Prompt engineering</span><span>Cinematic websites</span><span>Live dashboards</span><span>AI motion</span><span>Higgsfield</span><span>Seedance 2.0</span><span>Three.js</span><span>Claude</span>
     </div></div>
 
-    <section class="ai-sec" id="today" aria-labelledby="ai-h">
-      <div class="shell">
-        <div class="sec-head ai-head">
-          <p class="mono">Terminus · October 2026</p>
-          <div>
-            <h2 id="ai-h">Today the line <span>runs on AI</span><i>every day, in production</i></h2>
-            <p class="ai-lead">My method comes from a passion for design and from creativity. Twenty years of graphic design, technical bids and social media were the stops where I put it to work. Today it runs on a new engine: I work intensively with artificial intelligence to generate design, build websites and direct animation that a year ago would have needed a whole team.</p>
-          </div>
-        </div>
-        <div class="tracks">
-          <article class="track">
-            <span class="mono">Track 1</span>
-            <h3>Generative design</h3>
-            <p>Concepts, key visuals and reference sheets with consistent subjects and style.</p>
-            <dl>
-              <div><dt>Nano Banana Pro</dt><dd>Image gen</dd></div>
-              <div><dt>Subject Sheet Generator</dt><dd>Own tool</dd></div>
-              <div><dt>Canva API</dt><dd>Automation</dd></div>
-            </dl>
-          </article>
-          <article class="track">
-            <span class="mono">Track 2</span>
-            <h3>Websites</h3>
-            <p>Cinematic, scroll-driven pages written in code and published live.</p>
-            <dl>
-              <div><dt>Claude</dt><dd>Code &amp; artifacts</dd></div>
-              <div><dt>Cinematic Web Engine</dt><dd>Scroll-scrub</dd></div>
-              <div><dt>Three.js</dt><dd>Interactive 3D</dd></div>
-            </dl>
-          </article>
-          <article class="track">
-            <span class="mono">Track 3</span>
-            <h3>Animation &amp; video</h3>
-            <p>Storyboards, camera direction and video generation across multi-model pipelines.</p>
-            <dl>
-              <div><dt>Seedance 2.0</dt><dd>Reference video</dd></div>
-              <div><dt>Cinema Studio</dt><dd>Final delivery</dd></div>
-              <div><dt>Prompt Power AI</dt><dd>Storyboard</dd></div>
-            </dl>
-          </article>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="shell foot" id="contact">
@@ -591,14 +528,14 @@
   </footer>
 
   <script src="map.js?v=3"></script>
-  <script src="portrait/portrait.js?v=1"></script>
+  <script src="portrait/portrait.js?v=2"></script>
   <script>
   /* Mainframe portrait = the act-2 reveal component (window.LineaReveal contract used by the hero) */
   (() => {
     if (!window.LineaPortrait) return;
     let handle = null;
     window.LineaReveal = {
-      mount(el) { handle = LineaPortrait.mount(el, { base: 'portrait/', isActive: () => document.getElementById('hero').classList.contains('revealed') }); },
+      mount(el) { handle = LineaPortrait.mount(el, { base: 'portrait/', zone: document.getElementById('scene'), isActive: () => document.getElementById('hero').classList.contains('revealed') }); },
       wake() { handle && handle.wake(); }
     };
   })();
