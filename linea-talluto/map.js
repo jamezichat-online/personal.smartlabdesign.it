@@ -31,10 +31,11 @@
     '.lm-line{fill:none;stroke-width:7;stroke-linejoin:round;stroke-linecap:round;transition:stroke .6s}',
     '.lm-ring{stroke:var(--coral,#ff6848)}',
     '.lm-ai{stroke:var(--pink,#ff2d87)}',
-    '.lm-live .lm-line{filter:drop-shadow(0 0 4px rgba(255,45,135,.85))}',
-    '.lm-live .lm-ring{stroke:var(--pink,#ff2d87)}',
-    '.lm-pulse{fill:none;stroke:var(--sun,#ffbc42);stroke-width:3;stroke-linecap:round;stroke-dasharray:2 26;opacity:0;transition:opacity .5s}',
-    '.lm-live .lm-pulse{opacity:.95;animation:lm-run 2.4s linear infinite}',
+    '.lm-charge{fill:none;stroke:var(--pink,#ff2d87);stroke-width:7.4;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 4px rgba(255,45,135,.9))}',
+    '.lm-spark .halo{fill:var(--pink,#ff2d87);opacity:.45}',
+    '.lm-spark .core{fill:var(--cream,#fff0ce)}',
+    '.lm-pulse{fill:none;stroke:var(--sun,#ffbc42);stroke-width:3;stroke-linecap:round;stroke-dasharray:2 26;opacity:0;transition:opacity .6s}',
+    '.lm-charged .lm-pulse{opacity:.95;animation:lm-run 2.4s linear infinite}',
     '@keyframes lm-run{to{stroke-dashoffset:-56}}',
     '.lm-st .core{fill:var(--cream,#fff0ce);stroke:#04211f;stroke-width:3;transition:fill .3s}',
     '.lm-st.pending .core{fill:#0a3a3f}',
@@ -53,7 +54,7 @@
     '.lm-train .halo{fill:var(--sun,#ffbc42);opacity:.25}',
     '.lm-train .car{fill:var(--sun,#ffbc42)}',
     '@media (max-width:640px){.lm-lab.inner{display:none}}',
-    '@media (prefers-reduced-motion:reduce){.lm-live .lm-pulse,.lm-st.on .ping,.lm-live .lm-st.term .ping{animation:none}}'
+    '@media (prefers-reduced-motion:reduce){.lm-charged .lm-pulse,.lm-st.on .ping,.lm-live .lm-st.term .ping{animation:none}}'
   ].join('\n');
 
   function injectCSS() {
@@ -110,15 +111,60 @@
     el('path', { 'class':'lm-ghost', d: ringD + ' ' + aiD }, g);
     var ring = el('path', { 'class':'lm-line lm-ring', d: ringD }, g);
     var ai = el('path', { 'class':'lm-line lm-ai', d: aiD }, g);
+    /* electrification wave: same geometry reversed, so it runs from the terminus back to the origin */
+    var chAI = el('path', { 'class':'lm-charge', d: roundedD(AI.slice().reverse()) }, g);
+    var chRing = el('path', { 'class':'lm-charge', d: roundedD(RING.slice().reverse()) }, g);
     el('path', { 'class':'lm-pulse', d: ringD }, g);
     el('path', { 'class':'lm-pulse', d: aiD }, g);
     var gS = el('g', {}, g), gL = el('g', {}, g);
     var train = el('g', { 'class':'lm-train' }, g);
     el('circle', { r:10, 'class':'halo' }, train); el('circle', { r:4.6, 'class':'car' }, train);
+    var spark = el('g', { 'class':'lm-spark' }, g);
+    el('circle', { r:11, 'class':'halo' }, spark); el('circle', { r:4, 'class':'core' }, spark);
+    spark.style.opacity = 0;
 
     var LR = ring.getTotalLength(), LA = ai.getTotalLength(), LT = LR + LA;
     ring.style.strokeDasharray = LR + ' ' + LR;
     ai.style.strokeDasharray = LA + ' ' + LA;
+    chAI.style.strokeDasharray = LA + ' ' + LA; chRing.style.strokeDasharray = LR + ' ' + LR;
+
+    var rmq = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+    var CHARGE_MS = opts.chargeMs || 3000;
+    var charging = false, charged = false, chargeRaf = 0, chargeT0 = 0, chargedFns = [];
+    function setCharge(c) {
+      var a = Math.min(c, LA), r = Math.max(0, c - LA);
+      chAI.style.strokeDashoffset = LA - a;
+      chRing.style.strokeDashoffset = LR - r;
+      if (c > 0 && c < LT) {
+        var pt = c <= LA ? chAI.getPointAtLength(a) : chRing.getPointAtLength(r);
+        spark.setAttribute('transform', 'translate(' + fmt(pt.x) + ' ' + fmt(pt.y) + ')');
+        spark.style.opacity = 1;
+      } else spark.style.opacity = 0;
+    }
+    function finishCharge() {
+      charging = false; charged = true; setCharge(LT);
+      svg.classList.add('lm-charged');
+      chargedFns.forEach(function (fn) { try { fn(); } catch (e) {} });
+    }
+    function startCharge() {
+      charging = true;
+      if (rmq.matches) { finishCharge(); return; }
+      chargeT0 = 0;
+      var step = function (ts) {
+        if (!charging) return;
+        if (!chargeT0) chargeT0 = ts;
+        var t = Math.min(1, (ts - chargeT0) / CHARGE_MS);
+        var e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        setCharge(e * LT);
+        if (t < 1) chargeRaf = requestAnimationFrame(step); else finishCharge();
+      };
+      chargeRaf = requestAnimationFrame(step);
+    }
+    function resetCharge() {
+      cancelAnimationFrame(chargeRaf); charging = false; charged = false;
+      setCharge(0); svg.classList.remove('lm-charged');
+    }
+    setCharge(0);
 
     var st = STATIONS.map(function (s) {
       var o = { def: s };
@@ -159,7 +205,10 @@
         var reached = st.some(function (t) { return t.g === o.g && t.L <= L + .5; });
         o.g.classList.toggle('pending', !reached);
       });
-      svg.classList.toggle('lm-live', L >= LT - .5);
+      var atEnd = L >= LT - .5;
+      svg.classList.toggle('lm-live', atEnd);
+      if (atEnd) { if (!charging && !charged) startCharge(); }
+      else if (charging || charged) resetCharge();
       var a = activeAt(L);
       if (a !== active) {
         active = a;
@@ -196,7 +245,10 @@
       };
     }
 
-    return { svg: svg, LR: LR, LA: LA, LT: LT, stations: st, count: st.length, draw: draw, activeAt: activeAt, timeline: timeline };
+    return { svg: svg, LR: LR, LA: LA, LT: LT, stations: st, count: st.length, draw: draw, activeAt: activeAt, timeline: timeline,
+      onCharged: function (fn) { chargedFns.push(fn); }, isCharged: function () { return charged; },
+      /* static render (no-JS-like resting state): fully drawn and already electrified */
+      drawCharged: function () { draw(LT); cancelAnimationFrame(chargeRaf); finishCharge(); } };
   }
 
   window.LineaMap = { mount: mount, STATIONS: STATIONS };

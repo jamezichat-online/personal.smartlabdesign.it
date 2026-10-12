@@ -409,7 +409,7 @@
     </div>
   </footer>
 
-  <script src="map.js?v=2"></script>
+  <script src="map.js?v=3"></script>
   <script>
   /* Hero: time-based autoplay on the shared timeline. At the terminus the network electrifies;
      if a reveal component is registered (window.LineaReveal = { mount(el) }), the face dissolves into it. */
@@ -440,11 +440,12 @@
     }
     function maybeReveal() {
       if (!window.LineaReveal || typeof window.LineaReveal.mount !== 'function') return;
+      clearTimeout(revealTimer);
       revealTimer = setTimeout(() => {
         if (!revealMounted) { window.LineaReveal.mount(reveal); revealMounted = true; }
         reveal.setAttribute('aria-hidden', 'false');
         face.classList.add('dissolving');
-      }, 1800);
+      }, 900);
     }
     function frame(ts) {
       if (!t0) t0 = ts;
@@ -452,19 +453,22 @@
       const a = map.draw(tl.resolve(p));
       if (a !== last) { last = a; setNow(a, p >= 1); }
       if (p < 1) raf = requestAnimationFrame(frame);
-      else { setNow(map.count - 1, true); maybeReveal(); }
+      else setNow(map.count - 1, true);
     }
     function play() {
       cancelAnimationFrame(raf); clearTimeout(revealTimer);
       face.classList.remove('dissolving'); reveal.setAttribute('aria-hidden', 'true');
       t0 = 0; last = -1;
-      if (rm.matches) { map.draw(map.LT); setNow(map.count - 1, true); return; }
+      if (rm.matches) { map.drawCharged(); setNow(map.count - 1, true); return; }
       map.draw(0); raf = requestAnimationFrame(frame);
     }
     document.getElementById('replay').addEventListener('click', play);
     /* start once the hero is visible (it is on load; also covers restored scroll positions) */
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); play(); } }, { threshold: .25 });
-    map.draw(map.LT); setNow(map.count - 1, true);
+    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); started = true; play(); } }, { threshold: .25 });
+    map.onCharged(() => { if (started) maybeReveal(); });
+    let started = false;
+    document.getElementById('replay').addEventListener('click', () => { started = true; }, true);
+    map.drawCharged(); setNow(map.count - 1, true);
     io.observe(face);
   })();
 

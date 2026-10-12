@@ -625,7 +625,7 @@
       video.load();
     })();
   </script>
-  <script src="/linea-talluto/map.js?v=2"></script>
+  <script src="/linea-talluto/map.js?v=3"></script>
   <script>
   /* Founder: pinned scroll-scrub. Starts when the section reaches the top of the viewport and
      holds the page until the line reaches the terminus. Reduced motion / no JS: full map + all stops. */
@@ -662,7 +662,7 @@
       on = want;
       sec.classList.toggle('is-scrub', on);
       if (on) { size(); addEventListener('scroll', req, { passive: true }); req(); }
-      else { removeEventListener('scroll', req); active = -1; stops.forEach(li => li.classList.remove('is-active')); map.draw(map.LT); count.textContent = `${map.count} stops`; }
+      else { removeEventListener('scroll', req); active = -1; stops.forEach(li => li.classList.remove('is-active')); map.drawCharged(); count.textContent = `${map.count} stops`; }
     }
     function goTo(i) {
       i = Math.max(0, Math.min(map.count - 1, i));
@@ -672,7 +672,7 @@
     next.addEventListener('click', () => goTo(active + 1));
     addEventListener('resize', () => { if (on) { size(); req(); } });
     rm.addEventListener && rm.addEventListener('change', mode);
-    map.draw(map.LT);
+    map.drawCharged();
     mode();
   })();
   </script>
