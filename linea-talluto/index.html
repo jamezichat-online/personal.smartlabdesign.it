@@ -79,9 +79,9 @@
     .hero-grid { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: clamp(30px, 5vw, 80px); align-items: center; padding: clamp(36px, 5vw, 70px) 0 clamp(40px, 5vw, 80px); min-height: min(calc(100svh - 80px), 900px); }
     .kicker { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; color: var(--aqua); }
     .kicker::before { content: ""; width: 40px; height: 3px; background: var(--coral); box-shadow: 0 0 10px var(--pink); }
-    h1 { margin: 0; font: 400 clamp(56px, 7.6vw, 120px)/.8 var(--f-display); letter-spacing: -.07em; text-transform: uppercase; text-wrap: balance; text-shadow: 5px 6px 0 rgba(0,0,0,.3); }
-    h1 span { display: block; margin-top: .14em; color: var(--sun); font: italic 800 .5em/.95 var(--f-body); letter-spacing: -.025em; text-shadow: 3px 3px 0 var(--pink); }
-    .face.dissolving figcaption { opacity: 0; transition: opacity .6s; }
+    h1 { margin: 0; font: 400 clamp(58px, 8.6vw, 136px)/.8 var(--f-display); letter-spacing: -.07em; text-transform: uppercase; text-wrap: balance; text-shadow: 5px 6px 0 rgba(0,0,0,.3); }
+    h1 span { display: block; color: var(--pink); text-shadow: 3px 3px 0 var(--sun); }
+    .face.dissolving figcaption, .face.named figcaption { opacity: 0; transition: opacity .6s; }
     .lede { max-width: 30ch; margin: 28px 0 0; font: 600 clamp(24px, 2.4vw, 34px)/1.12 var(--f-body); letter-spacing: -.005em; }
     .lede em { font-style: normal; color: var(--pink); }
     .now { display: flex; align-items: center; gap: 14px; margin-top: 30px; padding: 14px 16px; border: 1px solid var(--rule); background: rgba(4,33,31,.55); max-width: 460px; min-height: 76px; }
@@ -98,11 +98,18 @@
 
     .face { position: relative; margin: 0; min-width: 0; display: grid; }
     .face > * { grid-area: 1 / 1; }
-    .face svg { display: block; width: 100%; height: auto; max-height: calc(100svh - 120px); overflow: visible; transition: opacity 1.4s ease, filter 1.4s ease, transform 1.6s cubic-bezier(.2,.8,.2,1); }
+    .face svg { display: block; width: 100%; height: auto; max-height: calc(100svh - 250px); overflow: visible; transition: opacity 1.4s ease, filter 1.4s ease, transform 1.6s cubic-bezier(.2,.8,.2,1); }
     .face.dissolving svg { opacity: 0; filter: blur(12px) saturate(1.6); transform: scale(1.05); }
     .reveal { opacity: 0; transition: opacity 1.4s ease .4s; pointer-events: none; display: grid; place-items: center; min-height: 0; }
     .face.dissolving .reveal { opacity: 1; pointer-events: auto; }
-    .face figcaption { grid-area: auto; margin-top: 10px; text-align: center; color: var(--cream-dim); font: 500 10px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; }
+    /* name reveal: station nameplate unrolled over the revealed face */
+    .nameplate { grid-area: 2 / 1; align-self: start; justify-self: center; z-index: 2; width: min(92%, 520px); margin: 12px 0 0; padding: 14px 20px 16px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); box-shadow: 8px 8px 0 var(--pink); text-align: left; }
+    .nameplate-line { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; color: var(--pink); font: 500 10px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; }
+    .nameplate-line::before { content: ""; width: 26px; height: 6px; border-radius: 3px; background: var(--pink); }
+    .nameplate-name { margin: 0; font: 400 clamp(30px, 3.6vw, 54px)/.86 var(--f-display); letter-spacing: -.06em; text-transform: uppercase; }
+    .js .nameplate { opacity: 0; clip-path: inset(-16px 100% -16px -16px); transform: translateY(14px); pointer-events: none; }
+    .js .face.named .nameplate { opacity: 1; clip-path: inset(-16px -16px -16px -16px); transform: none; pointer-events: auto; transition: opacity .3s ease, clip-path .9s cubic-bezier(.7,0,.2,1), transform .9s cubic-bezier(.2,.8,.2,1); }
+    .face figcaption { grid-area: 2 / 1; align-self: start; margin-top: 10px; text-align: center; color: var(--cream-dim); font: 500 10px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; }
 
     /* route */
     .route { padding: clamp(90px, 11vw, 160px) 0; background: var(--ink-3); border-top: 3px solid var(--ink); }
@@ -182,18 +189,22 @@
       .shell { width: calc(100% - 28px); }
       body { font-size: 18px; }
       .top nav a:not(:last-child) { display: none; }
-      h1 { font-size: clamp(50px, 15vw, 64px); }
+      h1 { font-size: clamp(54px, 16vw, 72px); }
+      .nameplate { width: calc(100% - 8px); margin-top: 10px; padding: 11px 14px 13px; box-shadow: 6px 6px 0 var(--pink); }
+      .nameplate-line { font-size: 9px; letter-spacing: .1em; }
+      .nameplate-name { font-size: clamp(28px, 9vw, 38px); }
       .lede { font-size: 22px; }
       .stop.x .stop-dot i { width: 30px; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       .ticker-track { animation: none; }
-      .face svg, .reveal { transition: none; }
+      .face svg, .reveal, .js .face.named .nameplate { transition: none; }
     }
   </style>
 </head>
 <body>
+  <script>document.documentElement.classList.add('js');</script>
   <a class="skip" href="#route">Skip to the route</a>
 
   <header class="shell top">
@@ -210,7 +221,7 @@
       <div class="shell hero-grid">
         <div>
           <p class="kicker mono">Founder · SmartLabDesign</p>
-          <h1 id="h1">Alessio Talluto<span>One face. One line.</span></h1>
+          <h1 id="h1">One face.<span>One line.</span></h1>
           <p class="lede">Twenty years of graphic design on a single transit line, drawn as my own face. <em>The last stop runs on AI.</em></p>
           <div class="now" id="now" aria-live="off">
             <span class="now-dot" aria-hidden="true"></span>
@@ -227,6 +238,10 @@
         <figure class="face" id="face">
           <svg id="hero-svg" role="img" aria-label="Transit map whose single line draws Alessio Talluto's face: the career line traces the head, the AI line draws the features and ends at the eye." xmlns="http://www.w3.org/2000/svg" viewBox="-58 -30 496 380"></svg>
           <div class="reveal" id="reveal" aria-hidden="true"></div>
+          <div class="nameplate" id="nameplate">
+            <p class="nameplate-line">Terminus · Founder of SmartLabDesign</p>
+            <p class="nameplate-name">Alessio Talluto</p>
+          </div>
           <figcaption>Scale 1 : 20 years · drawn entirely in code</figcaption>
         </figure>
       </div>
@@ -438,14 +453,22 @@
       nowLabel.textContent = done ? 'Terminus reached' : (i === 0 ? 'Departing from' : 'Now arriving');
       now.classList.toggle('ai', !!ai);
     }
+    /* after the charge: face dissolves into the React portrait, then the name unrolls.
+       Without a registered reveal component the name unrolls over the electrified map. */
+    let nameTimer = 0;
+    function showName(delay) {
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(() => face.classList.add('named'), rm.matches ? 0 : delay);
+    }
     function maybeReveal() {
-      if (!window.LineaReveal || typeof window.LineaReveal.mount !== 'function') return;
       clearTimeout(revealTimer);
+      if (!window.LineaReveal || typeof window.LineaReveal.mount !== 'function') { showName(600); return; }
       revealTimer = setTimeout(() => {
         if (!revealMounted) { window.LineaReveal.mount(reveal); revealMounted = true; }
         reveal.setAttribute('aria-hidden', 'false');
         face.classList.add('dissolving');
-      }, 900);
+        showName(1500);
+      }, rm.matches ? 0 : 900);
     }
     function frame(ts) {
       if (!t0) t0 = ts;
@@ -456,17 +479,17 @@
       else setNow(map.count - 1, true);
     }
     function play() {
-      cancelAnimationFrame(raf); clearTimeout(revealTimer);
-      face.classList.remove('dissolving'); reveal.setAttribute('aria-hidden', 'true');
+      cancelAnimationFrame(raf); clearTimeout(revealTimer); clearTimeout(nameTimer);
+      face.classList.remove('dissolving', 'named'); reveal.setAttribute('aria-hidden', 'true');
       t0 = 0; last = -1;
       if (rm.matches) { map.drawCharged(); setNow(map.count - 1, true); return; }
       map.draw(0); raf = requestAnimationFrame(frame);
     }
     document.getElementById('replay').addEventListener('click', play);
     /* start once the hero is visible (it is on load; also covers restored scroll positions) */
+    let started = false;
     const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); started = true; play(); } }, { threshold: .25 });
     map.onCharged(() => { if (started) maybeReveal(); });
-    let started = false;
     document.getElementById('replay').addEventListener('click', () => { started = true; }, true);
     map.drawCharged(); setNow(map.count - 1, true);
     io.observe(face);
