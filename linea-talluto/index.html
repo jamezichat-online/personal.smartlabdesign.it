@@ -110,26 +110,22 @@
     .face figcaption { grid-area: 2 / 1; align-self: start; margin-top: 10px; text-align: center; color: var(--cream-dim); font: 500 10px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; }
 
 
-    /* ---------- ACT 2: revealed scene (home hero ground: smartlab-miami frame + hero overlays, Barlow Condensed) ---------- */
+    /* ---------- ACT 2: revealed scene (manifesto look from the home: paper ground, Barlow Condensed) ---------- */
     .hero-stage { display: grid; position: relative; }
     .hero-stage > * { grid-area: 1 / 1; min-width: 0; }
     .hero-grid { transition: opacity .6s ease .45s, visibility 0s 0s; }
     .hero.revealed .hero-grid { position: absolute; inset: 0 0 auto 0; opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; }
-    .scene { position: absolute; inset: 0 0 auto 0; min-height: 100%; z-index: 3; isolation: isolate; overflow: hidden; color: var(--cream);
-      background: var(--ink) url("/assets/smartlab-miami.webp") center / cover no-repeat;
+    .scene { position: absolute; inset: 0 0 auto 0; min-height: 100%; z-index: 3; isolation: isolate; overflow: hidden; background: var(--paper); color: var(--ink);
       clip-path: circle(0 at var(--ox, 70%) var(--oy, 40%)); visibility: hidden; transition: clip-path 1.1s cubic-bezier(.7,0,.2,1), visibility 0s 1.1s; }
     .hero.revealed .scene { position: relative; clip-path: circle(150% at var(--ox, 70%) var(--oy, 40%)); visibility: visible; transition: clip-path 1.3s cubic-bezier(.7,0,.2,1), visibility 0s; }
     .scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4; opacity: .055; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-    .scene::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-      background: linear-gradient(180deg, rgba(0,27,31,.7) 0%, transparent 26%, transparent 58%, rgba(0,25,29,.88) 100%),
-                  linear-gradient(90deg, rgba(0,24,29,.9) 0%, rgba(0,24,29,.72) 34%, rgba(0,24,29,.18) 60%, transparent 76%); }
     .scene-inner { position: relative; min-height: min(calc(100svh - 80px), 900px); display: grid; grid-template-columns: minmax(0, .42fr) minmax(0, .58fr); }
     .scene-left { position: relative; z-index: 3; display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: clamp(18px, 3vw, 34px) 0 clamp(26px, 4vw, 48px); }
-    .scene-label { margin: 0 0 18px; color: var(--aqua); font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
-    .scene h2 { margin: 0; font: 800 clamp(64px, 8.6vw, 140px)/.84 var(--f-body); letter-spacing: -.048em; text-transform: uppercase; text-shadow: 5px 6px 0 rgba(6,45,49,.72); }
-    .scene h2 .hot { display: block; color: var(--pink); text-shadow: 3px 3px 0 var(--sun), 7px 7px 0 rgba(6,45,49,.7); }
-    .scene-note { width: min(520px, 100%); margin: 26px 0 0; padding-left: 20px; border-left: 4px solid var(--coral); color: rgba(255,240,206,.92); font-size: 18px; line-height: 1.42; text-shadow: 0 1px 12px rgba(0,24,29,.6); }
+    .scene-label { margin: 0 0 18px; font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
+    .scene h2 { margin: 0; font: 800 clamp(64px, 8.6vw, 140px)/.84 var(--f-body); letter-spacing: -.048em; text-transform: uppercase; }
+    .scene h2 .hot { display: block; color: var(--pink); text-shadow: 2px 2px 0 var(--sun); }
+    .scene-note { width: min(520px, 100%); margin: 26px 0 0; padding-left: 20px; border-left: 4px solid var(--coral); font-size: 18px; line-height: 1.42; }
     /* portrait panel: same geometry as the original Mainframe panel so the gaze calibration holds */
     .scene-face { position: absolute; z-index: 1; right: 0; top: 0; bottom: 0; width: 64%; overflow: visible; pointer-events: none; }
     .portrait-media { position: absolute; width: var(--subject-w, 100%); height: var(--subject-h, 100%); left: var(--subject-x, 0px); top: var(--subject-y, 0px); max-width: none; image-rendering: auto; }
@@ -143,12 +139,12 @@
     .ticket-no { font: 500 9px var(--f-mono); letter-spacing: .1em; text-align: right; font-variant-numeric: tabular-nums; }
     .ticket-text { grid-column: 1 / -1; min-height: 2.5em; font: 700 19px/1.2 var(--f-body); letter-spacing: .005em; }
     .ticket-cta { grid-column: 1 / -1; font: 500 9px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
-    .ticket-hole { position: absolute; right: 16px; top: 34px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); transform: scale(0); }
+    .ticket-hole { position: absolute; right: 16px; top: 34px; width: 18px; height: 18px; border-radius: 50%; background: var(--paper); box-shadow: inset 0 0 0 2px var(--ink); transform: scale(0); }
     .ticket.punched .ticket-hole { animation: punch .35s cubic-bezier(.2,1.6,.4,1) forwards; }
     @keyframes punch { to { transform: scale(1); } }
 
     /* hotspot 2 (gaze: down-left) — the three tracks */
-    .tracks-pick-label { margin: 0 0 12px; color: var(--sun); font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
+    .tracks-pick-label { margin: 0 0 12px; font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
     .track-pills { display: flex; flex-wrap: wrap; gap: 10px; }
     .track-pill { min-height: 46px; display: inline-flex; align-items: center; gap: 10px; padding: 0 18px 0 8px; border: 2px solid var(--ink); border-radius: 999px; background: var(--cream); color: var(--ink); cursor: pointer;
       font: 700 18px/1 var(--f-body); letter-spacing: .03em; text-transform: uppercase; transition: transform .2s, box-shadow .2s; }
@@ -164,11 +160,11 @@
     .to-track:hover { transform: rotate(-12deg) translate(-2px,-2px); box-shadow: 9px 9px 0 var(--ink); }
 
     /* hotspot 3 (gaze: down, toward his arm) — back to home */
-    .to-home { position: absolute; z-index: 3; right: 0; bottom: 7%; display: inline-flex; align-items: center; gap: 16px; padding: 18px 22px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink);
-      box-shadow: 7px 7px 0 var(--pink); font: 700 19px var(--f-body); letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .22s, box-shadow .22s; }
-    .to-home:hover { transform: translate(-3px,-3px); box-shadow: 10px 10px 0 var(--pink); }
+    .to-home { position: absolute; z-index: 3; right: 0; bottom: 7%; display: inline-flex; align-items: center; gap: 16px; padding: 18px 22px; background: var(--ink); color: var(--cream); border: 2px solid var(--ink);
+      box-shadow: 7px 7px 0 var(--sun); font: 700 19px var(--f-body); letter-spacing: .04em; text-transform: uppercase; text-decoration: none; transition: transform .22s, box-shadow .22s; }
+    .to-home:hover { transform: translate(-3px,-3px); box-shadow: 10px 10px 0 var(--sun); }
     .to-home span { font-size: 22px; }
-    .scene :focus-visible { outline: 3px solid var(--sun); outline-offset: 4px; }
+    .scene :focus-visible { outline: 3px solid var(--pink); outline-offset: 4px; }
 
     /* track cards */
     .track-card { width: min(560px, calc(100% - 32px)); max-height: calc(100svh - 40px); padding: 0; border: 2px solid var(--ink); background: var(--cream); color: var(--ink); box-shadow: 12px 12px 0 var(--pink); overflow: auto; }
@@ -189,14 +185,11 @@
     .tc-line span { font: 500 10px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--pink); }
 
     @media (max-width: 1023px) {
-      .scene { background-position: 22% center; }
-      .scene::before { background: linear-gradient(180deg, rgba(0,24,29,.86) 0%, rgba(0,24,29,.66) 40%, rgba(0,24,29,.4) 62%, rgba(0,24,29,.9) 100%); }
       .scene-inner { grid-template-columns: 1fr; min-height: 0; padding-bottom: 32px; }
       .scene-left { display: contents; }
       .scene-top { order: 1; padding-top: 24px; }
       .scene-copy { order: 2; margin-top: 26px; }
-      .scene-face { order: 3; position: relative; right: auto; top: auto; bottom: auto; width: 100%; height: 62svh; margin-top: 20px; overflow: hidden;
-        -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%); mask-image: linear-gradient(180deg, #000 72%, transparent 100%); }
+      .scene-face { order: 3; position: relative; right: auto; top: auto; bottom: auto; width: 100%; height: 62svh; margin-top: 20px; overflow: hidden; }
       .scene-tracks { order: 4; margin-top: 26px; }
       .scene-exits { order: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 30px; }
       .to-track, .to-home { position: static; }
@@ -550,7 +543,7 @@
   <script>
   /* Hero, act 1: time-based autoplay on the shared timeline; at the terminus the network electrifies.
      Act 2: if the portrait component is registered (window.LineaReveal = { mount(el) }), the face dissolves
-     and the scene opens from the terminus (the eye) with the interactive portrait and four gaze hotspots.
+     and the paper scene opens from the terminus (the eye) with the interactive portrait and four gaze hotspots.
      Without it, the station nameplate unrolls under the electrified map. */
   (() => {
     const svg = document.getElementById('hero-svg');
