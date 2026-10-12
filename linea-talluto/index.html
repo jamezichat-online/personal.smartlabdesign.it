@@ -120,14 +120,17 @@
     .hero.revealed .scene { position: relative; clip-path: circle(150% at var(--ox, 70%) var(--oy, 40%)); visibility: visible; transition: clip-path 1.3s cubic-bezier(.7,0,.2,1), visibility 0s; }
     .scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4; opacity: .055; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-    .scene-inner { position: relative; min-height: min(calc(100svh - 80px), 900px); display: grid; grid-template-columns: minmax(0, .46fr) minmax(0, .54fr); }
+    .scene-inner { position: relative; min-height: min(calc(100svh - 80px), 900px); display: grid; grid-template-columns: minmax(0, .42fr) minmax(0, .58fr); }
     .scene-left { position: relative; z-index: 3; display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: clamp(18px, 3vw, 34px) 0 clamp(26px, 4vw, 48px); }
     .scene-label { margin: 0 0 18px; font: 500 10px var(--f-mono); letter-spacing: .15em; text-transform: uppercase; }
     .scene h2 { margin: 0; font: 800 clamp(64px, 8.6vw, 140px)/.84 var(--f-body); letter-spacing: -.048em; text-transform: uppercase; }
     .scene h2 .hot { display: block; color: var(--pink); text-shadow: 2px 2px 0 var(--sun); }
     .scene-note { width: min(470px, 100%); margin: 34px 0 0; padding-left: 22px; border-left: 4px solid var(--coral); font-size: 21px; line-height: 1.45; }
-    .scene-face { position: absolute; z-index: 1; right: 4%; bottom: 0; width: 54%; height: 94%; display: grid; place-items: end center; }
-    .scene-face > * { max-width: 100%; max-height: 100%; }
+    /* portrait panel: same geometry as the original Mainframe panel so the gaze calibration holds */
+    .scene-face { position: absolute; z-index: 1; right: 0; top: 0; bottom: 0; width: 64%; overflow: visible; pointer-events: none; }
+    .scene-face::before { content: ""; position: absolute; left: 12%; right: 6%; top: 8%; bottom: -10%; z-index: -1; border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 40%, rgba(255,188,66,.55), rgba(255,45,135,.18) 45%, transparent 70%); filter: blur(10px); }
+    .portrait-media { position: absolute; width: var(--subject-w, 100%); height: var(--subject-h, 100%); left: var(--subject-x, 0px); top: var(--subject-y, 0px); max-width: none; image-rendering: auto; }
 
     /* hotspot 1 (gaze: up-left) — creative ticket */
     .ticket { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 6px 18px; width: min(360px, 100%); padding: 14px 18px 14px 30px; text-align: left; cursor: pointer;
@@ -188,7 +191,7 @@
       .scene-left { display: contents; }
       .scene-top { order: 1; padding-top: 24px; }
       .scene-copy { order: 2; margin-top: 26px; }
-      .scene-face { order: 3; position: relative; right: auto; width: 100%; height: 62svh; margin-top: 20px; }
+      .scene-face { order: 3; position: relative; right: auto; top: auto; bottom: auto; width: 100%; height: 62svh; margin-top: 20px; overflow: hidden; }
       .scene-tracks { order: 4; margin-top: 26px; }
       .scene-exits { order: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 30px; }
       .to-track, .to-home { position: static; }
@@ -588,6 +591,18 @@
   </footer>
 
   <script src="map.js?v=3"></script>
+  <script src="portrait/portrait.js?v=1"></script>
+  <script>
+  /* Mainframe portrait = the act-2 reveal component (window.LineaReveal contract used by the hero) */
+  (() => {
+    if (!window.LineaPortrait) return;
+    let handle = null;
+    window.LineaReveal = {
+      mount(el) { handle = LineaPortrait.mount(el, { base: 'portrait/', isActive: () => document.getElementById('hero').classList.contains('revealed') }); },
+      wake() { handle && handle.wake(); }
+    };
+  })();
+  </script>
   <script>
   /* Hero, act 1: time-based autoplay on the shared timeline; at the terminus the network electrifies.
      Act 2: if the portrait component is registered (window.LineaReveal = { mount(el) }), the face dissolves
@@ -630,12 +645,14 @@
       hero.style.setProperty('--ox', `${p.x - h.left}px`);
       hero.style.setProperty('--oy', `${p.y - h.top}px`);
     }
+    function mountPortrait() { if (!mounted) { window.LineaReveal.mount(slot); mounted = true; } }
     function openScene() {
-      if (!mounted) { window.LineaReveal.mount(slot); mounted = true; }
+      mountPortrait();
       setOrigin();
       face.classList.add('dissolving');
       hero.classList.add('revealed');
       scene.inert = false; act1.inert = true;
+      window.LineaReveal.wake && window.LineaReveal.wake();
     }
     function closeScene() {
       hero.classList.remove('revealed');
@@ -645,6 +662,7 @@
     function maybeReveal() {
       clearTimeout(revealTimer);
       if (!hasPortrait()) { showName(600); return; }
+      mountPortrait(); /* warm poster + first frames while the charge settles */
       revealTimer = setTimeout(openScene, rm.matches ? 0 : 900);
     }
     function frame(ts) {
