@@ -775,7 +775,7 @@
       if (Math.abs(cam.z - lastZ) > .002) { applyDetail(cam.z); lastZ = cam.z; }
     }
     /* the ticket pops (out + in) only when the station it shows changes; arriving punches it */
-    let tKey = '', tPunched = false, tAnim = null, tOut = null, tTimer = 0;
+    let tKey = '', tAnim = null, tOut = null, tTimer = 0;
     function fill(show, status, isAI) {
       tHead.textContent = 'SmartLab line · ' + (isAI ? 'AI pass' : 'Skill pass');
       tNo.textContent = 'Stop ' + String(show + 1).padStart(2, '0');
@@ -804,18 +804,11 @@
     function updateBoard(L, a) {
       if (L >= map.LT - 1) a = map.stations.length - 1;
       const st = map.stations, last = st.length - 1, hold = Math.abs(L - st[a].L) < .6 || a === last;
-      const show = hold ? a : Math.min(a + 1, last);
-      const isAI = show >= 6;
-      const status = show === 0 && hold ? 'First fare · packed' : hold ? (show === last ? 'Terminus · all skills on board' : 'Skill collected') : 'Next stop collects';
+      /* the ticket belongs to the last stop reached: it pops on arrival and stays until the next arrival */
+      const show = a, isAI = show >= 6;
+      const status = show === 0 ? 'First fare · packed' : show === last ? 'Terminus · all skills on board' : 'Skill collected';
       const key = show + '|' + isAI;
-      if (key !== tKey) { popTicket(show, status, isAI, hold && show > 0); tKey = key; tPunched = hold && show > 0; }
-      else if (tStatus.textContent !== status) {
-        tStatus.textContent = status;
-        const punch = hold && show > 0;
-        if (punch && !tPunched) { ticket.classList.remove('is-punched'); void ticket.offsetWidth; ticket.classList.add('is-punched'); }
-        if (!punch) ticket.classList.remove('is-punched');
-        tPunched = punch;
-      }
+      if (key !== tKey) { popTicket(show, status, isAI, show > 0); tKey = key; }
       fig.classList.toggle('is-night', L > map.LR + .5);
       icons.forEach((ic, i) => { ic.g.classList.toggle('is-now', i === a && hold); ic.g.classList.toggle('is-seen', i <= a && !(i === a && hold)); });
     }
