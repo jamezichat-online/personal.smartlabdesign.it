@@ -111,11 +111,6 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
 .rec i{background:var(--cream);box-shadow:none;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.15}}
 
-.pivot{position:absolute;z-index:2;width:22px;height:22px;margin:-11px 0 0 -11px;border:2px solid var(--sun);border-radius:50%;box-shadow:0 0 0 2px rgba(4,33,31,.55),0 0 14px rgba(255,188,66,.7);pointer-events:none;opacity:0;transition:opacity .3s}
-.pivot::before,.pivot::after{content:"";position:absolute;background:var(--sun)}
-.pivot::before{left:50%;top:-7px;bottom:-7px;width:1.5px;transform:translateX(-50%)}
-.pivot::after{top:50%;left:-7px;right:-7px;height:1.5px;transform:translateY(-50%)}
-.pivot.on{opacity:1;transition:opacity .08s}
 .tag{position:absolute;z-index:2;pointer-events:none;padding:5px 8px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--pink);font:500 10px/1 var(--f-mono);letter-spacing:.1em;white-space:nowrap;transform:translate(-2px,-100%);font-variant-numeric:tabular-nums}
 .tag[hidden]{display:none!important}
 
@@ -879,8 +874,7 @@ frameEl.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; })
    Il pivot è il punto del frame sotto il cursore (o, nel vuoto, il punto alla profondità del soggetto).
    Yaw attorno all'asse verticale del mondo, pitch attorno all'asse orizzontale della camera: l'orizzonte resta dritto.
    Camera e target ruotano rigidamente attorno al pivot, quindi nessuno scatto quando si cambia punto. */
-const UP = new THREE.Vector3(0, 1, 0), pivotEl = document.createElement('div');
-pivotEl.className = 'pivot'; frameEl.appendChild(pivotEl);
+const UP = new THREE.Vector3(0, 1, 0);
 const nav = { on: false, pivot: new THREE.Vector3(), x: 0, y: 0, vx: 0, vy: 0, moved: false, pointers: new Set(), id: null, hideT: 0 };
 function pickPivot(cx, cy){
   const r = canvas.getBoundingClientRect();
@@ -900,10 +894,6 @@ function orbitAround(P, yaw, pitch){
   controls.target.sub(P).applyQuaternion(q).add(P);
   camera.quaternion.premultiply(q);
 }
-function showPivot(){
-  const v = nav.pivot.clone().project(camera);
-  pivotEl.style.left = ((v.x + 1) / 2 * cssW) + 'px'; pivotEl.style.top = ((1 - v.y) / 2 * cssH) + 'px';
-}
 frameEl.addEventListener('pointerdown', e => {
   nav.pointers.add(e.pointerId);
   if (nav.pointers.size > 1) { nav.on = false; return; }            /* due dita: pinch/pan di OrbitControls */
@@ -920,7 +910,6 @@ frameEl.addEventListener('pointermove', e => {
   const k = 2 * Math.PI / Math.max(300, cssH) * .9;
   nav.vx = -dx * k; nav.vy = -dy * k;
   orbitAround(nav.pivot, nav.vx, nav.vy);
-  showPivot(); pivotEl.classList.add('on');
 });
 const navEnd = e => {
   nav.pointers.delete(e.pointerId);
@@ -1024,11 +1013,9 @@ function tick(now){
   }
   /* inerzia della rotazione a pivot */
   if (!nav.on && (Math.abs(nav.vx) + Math.abs(nav.vy) > 1e-4)) {
-    orbitAround(nav.pivot, nav.vx, nav.vy); const d = Math.pow(.86, dt * 60); nav.vx *= d; nav.vy *= d; showPivot();
+    orbitAround(nav.pivot, nav.vx, nav.vy); const d = Math.pow(.86, dt * 60); nav.vx *= d; nav.vy *= d;
     if (Math.abs(nav.vx) + Math.abs(nav.vy) <= 1e-4) { nav.vx = nav.vy = 0; savePrefs(); }
   }
-  if (nav.on && nav.moved) showPivot();
-  pivotEl.classList.toggle('on', (nav.on && nav.moved) || Math.abs(nav.vx) + Math.abs(nav.vy) > 2e-3);
   controls.autoRotate = S.orbit || S.recording;
   controls.update();
   if (!Number.isFinite(camera.position.x) || !Number.isFinite(controls.target.x)) framePreset(MODE_CAM[S.mode], false);
