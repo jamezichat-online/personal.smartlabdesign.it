@@ -67,7 +67,7 @@
     /* header */
     .top { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: calc(20px + env(safe-area-inset-top, 0px)) 0 20px; border-bottom: 1px solid var(--rule); }
     .brand { display: flex; align-items: center; gap: 12px; font: 700 20px/1 var(--f-body); letter-spacing: .05em; text-transform: uppercase; text-decoration: none; }
-    .badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sun); color: var(--ink); font: 400 17px/1 var(--f-display); box-shadow: 3px 3px 0 var(--pink); }
+    .badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sun); color: var(--ink); font: 400 13px/1 var(--f-display); letter-spacing: -.04em; text-transform: uppercase; box-shadow: 3px 3px 0 var(--pink); }
     .top nav { display: flex; gap: clamp(16px, 3vw, 40px); }
     .top nav a { font: 500 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; text-decoration: none; position: relative; }
     .top nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -7px; height: 2px; background: var(--pink); transition: right .25s; }
@@ -287,7 +287,7 @@
   <a class="skip" href="#route">Skip to the route</a>
 
   <header class="shell top">
-    <a class="brand" href="/" aria-label="Back to SmartLabDesign"><span class="badge" aria-hidden="true">T</span>SmartLabDesign</a>
+    <a class="brand" href="/" aria-label="Back to SmartLabDesign"><span class="badge" aria-hidden="true">ME</span>SmartLabDesign</a>
     <nav aria-label="Page navigation">
       <a href="#route">Route</a>
       <a href="#contact">Contact</a>
