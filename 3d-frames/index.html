@@ -364,6 +364,7 @@ function makeRenderer(){
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   canvas.addEventListener('webglcontextlost', e => {
     e.preventDefault(); S.glLost = true;
+    S.memScale = Math.max(.25, (S.memScale || 1) * .6); S.lostMem = true; /* le build successive useranno un budget più prudente */
     clearTimeout(lostTimer); lostTimer = setTimeout(rebuildGL, 1200);
   });
   canvas.addEventListener('webglcontextrestored', () => { clearTimeout(lostTimer); S.glLost = false; reupload(); });
@@ -389,12 +390,13 @@ function rebuildGL(){
   canvas.replaceWith(nc); canvas = nc;
   makeRenderer(); controls = makeControls(t);
   S.glLost = false; fit(); reupload();
-  toast('Vista 3D ripristinata.');
+  if (S.lostMem) { S.lostMem = false; toast('La GPU ha esaurito la memoria: vista ripristinata con anteprime leggere. Premi Rebuild frames per ricaricarle (budget ridotto).'); }
+  else toast('Vista 3D ripristinata.');
 }
 function glDead(){ try { return renderer.getContext().isContextLost(); } catch (e) { return true; } }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && glDead()) rebuildGL(); });
 makeRenderer(); controls = makeControls();
-let grid = null;
+let grid = null, scratch = null;
 
 const BG = {
   ink:   { stops: [[0,'#0b3e43'],[.55,'#062d31'],[1,'#031a1c']], radial: true, edge: 0x00bfc4, grid: 0x00bfc4 },
@@ -542,12 +544,17 @@ function disposeFrames(){
   S.frames.forEach(f => { if (!f) return; root.remove(f.mesh); f.tex.dispose(); f.mesh.geometry.dispose(); f.mesh.material.dispose(); f.edge.geometry.dispose(); f.edge.material.dispose(); });
   S.frames = []; S.selected.clear(); updateSel();
 }
-function addFrame(i, cnv, t){
+function addFrame(i, src, cnv, t){
   const { W, H } = dims();
-  /* mipmap trilineari + filtro anisotropico: i frame lontani o inclinati restano puliti, senza seghettature */
-  const tex = new THREE.CanvasTexture(cnv); tex.colorSpace = THREE.NoColorSpace;
+  /* mipmap trilineari + filtro anisotropico: i frame lontani o inclinati restano puliti, senza seghettature.
+     La texture ad alta risoluzione viene caricata subito sulla GPU dal canvas di lavoro condiviso; in RAM resta
+     solo la miniatura (cnv), così la memoria dei canvas non cresce con la risoluzione (limite rigido in Safari). */
+  const tex = new THREE.Texture(src); tex.colorSpace = THREE.NoColorSpace;
   tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.needsUpdate = true;
+  try { renderer.initTexture(tex); } catch (e) {}
+  tex.image = cnv;
   const geo = new THREE.PlaneGeometry(W, H);
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     uniforms: { map: { value: tex }, mapPrev: { value: tex }, uOpacity: { value: 0 }, uSat: { value: 1 }, uDiff: { value: 0 } } });
@@ -620,10 +627,11 @@ async function build(){
        Budget memoria GPU: se N frame × texture (+33% mipmap) lo superano, la texture viene scalata e lo si segnala. */
     const short = Math.min(S.vw, S.vh) || S.res, want = Math.min(S.res, short), k0 = want / short;
     let tw = Math.round(S.vw * k0), th = Math.round(S.vh * k0);
-    const budget = (matchMedia('(pointer: coarse)').matches || innerWidth < 860 ? 300 : 900) * 1048576;
+    const budget = (matchMedia('(pointer: coarse)').matches || innerWidth < 860 ? 180 : 480) * 1048576 * (S.memScale || 1);
     const need = tw * th * 4 * 1.34 * N; let capped = false;
     if (need > budget) { const k = Math.sqrt(budget / need); tw = Math.round(tw * k); th = Math.round(th * k); capped = true; }
     tw -= tw % 2; th -= th % 2;
+    const thumbK = Math.min(1, 240 / Math.min(tw, th)); /* miniatura (contact sheet): lato corto 240 px */
     S.tex = { tw, th, want, native: want >= short && !capped, capped, mb: Math.round(tw * th * 4 * 1.34 * N / 1048576) };
     texInfo();
     if (capped) toast(`Memoria GPU: texture ridotte a ${tw}×${th} per ${N} frame. Riduci Sample per salire di risoluzione.`);
@@ -637,11 +645,16 @@ async function build(){
       if (token !== S.buildToken) return;
       const t = Math.min(S.dur - .04, a + (b - a) * (N === 1 ? 0 : i / (N - 1)));
       await seek(v, Math.max(0, t));
-      const c = document.createElement('canvas'); c.width = tw; c.height = th;
+      if (!scratch) scratch = document.createElement('canvas');
+      if (scratch.width !== tw || scratch.height !== th) { scratch.width = tw; scratch.height = th; }
+      const sx = scratch.getContext('2d');
+      if (!sx) throw new Error('Il browser ha esaurito la memoria per le immagini: ricarica la pagina.');
+      const c = document.createElement('canvas'); c.width = Math.max(2, Math.round(tw * thumbK)); c.height = Math.max(2, Math.round(th * thumbK));
       const cx = c.getContext('2d', { willReadFrequently: true });
-      cx.drawImage(v, 0, 0, tw, th);
-      if (isBlank(cx, tw, th)) { await sleep(160); cx.drawImage(v, 0, 0, tw, th); }
-      addFrame(i, c, t);
+      cx.drawImage(v, 0, 0, c.width, c.height);
+      if (isBlank(cx, c.width, c.height)) { await sleep(160); cx.drawImage(v, 0, 0, c.width, c.height); }
+      sx.drawImage(v, 0, 0, tw, th);
+      addFrame(i, scratch, c, t);
       $('#progBar').style.width = ((i + 1) / N * 100) + '%';
       $('#progTxt').textContent = `FRAME ${String(i+1).padStart(3,'0')} / ${N} · ${tw}×${th}`;
     }
