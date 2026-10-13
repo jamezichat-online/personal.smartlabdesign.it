@@ -207,9 +207,9 @@
     .fm-icon.is-seen .pop { opacity: .38; transform: scale(.82); }
     .fm-icon.is-now .pop { opacity: 1; transform: scale(1); }
     .fm-reveal .fm-icon .pop { opacity: 0; transform: scale(.6); }
-    .fm-me .me-car { fill: var(--sun); stroke: #04211f; stroke-width: 1.2; }
+    .fm-me .me-car { fill: var(--sun); stroke: #04211f; stroke-width: 1.4; }
     .fm-me .me-halo { fill: var(--sun); opacity: .22; }
-    .fm-me .me-face { fill: none; stroke: #04211f; stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .fm-me .me-face { fill: none; stroke: #04211f; stroke-width: 24; stroke-linecap: round; stroke-linejoin: round; }
     .founder-map svg { display: block; width: 100%; height: auto; max-width: 640px; margin-inline: auto; overflow: visible; }
     .founder-map figcaption { margin-top: 12px; text-align: center; color: rgba(255,240,206,.5); font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; }
 
@@ -705,8 +705,8 @@
     /* the dot carries the identity glyph (the network itself, in miniature) */
     const train = svg.querySelector('.lm-train'); [...train.children].forEach(c => c.style.display = 'none');
     const me = el('g', { class: 'fm-me' }, train);
-    el('circle', { r: 13, class: 'me-halo' }, me); el('circle', { r: 7.2, class: 'me-car' }, me);
-    const glyph = el('g', { transform: 'scale(.0195) translate(-203 -164)' }, me);
+    el('circle', { r: 15, class: 'me-halo' }, me); el('circle', { r: 9, class: 'me-car' }, me);
+    const glyph = el('g', { transform: 'scale(.0395) translate(-203 -164)' }, me);
     el('path', { d: ring.getAttribute('d'), class: 'me-face' }, glyph); el('path', { d: ai.getAttribute('d'), class: 'me-face' }, glyph);
 
     /* competence pictograms (24-unit glyphs) */
