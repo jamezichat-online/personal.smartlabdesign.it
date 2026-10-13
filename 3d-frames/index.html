@@ -497,8 +497,8 @@ function relayout(stagger){
 }
 
 /* ---------- camera ---------- */
-const PRESET = { front: [0,.04,1], '34': [.82,.34,1], side: [1,.12,.06], high: [.38,.82,1], top: [.001,1,.14] };
-const MODE_CAM = { stack: '34', corridor: '34', ring: 'high', scatter: '34', mosaic: 'front', helix: '34' };
+const PRESET = { front: [0,.04,1], '34': [.82,.34,1], '34l': [-.72,.3,1], side: [1,.12,.06], high: [.38,.82,1], top: [.001,1,.14] };
+const MODE_CAM = { stack: '34', corridor: '34l', ring: 'high', scatter: '34', mosaic: 'front', helix: '34' };
 var camAnim = null;
 function framePreset(name, animate = true){
   if (!layoutBox) layoutBox = computeBox();
@@ -859,6 +859,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 
 /* ---------- loop ---------- */
 const tag = $('#tag'), tmpV = new THREE.Vector3(), nrm = new THREE.Vector3();
+const RISE_MODES = new Set(['stack', 'corridor', 'scatter']);
 const ease = k => k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
 let last = performance.now();
 function tick(now){
@@ -887,12 +888,15 @@ function tick(now){
     const k = Math.max(0, Math.min(1, (t - f.t0) / f.dur)), e = ease(k);
     f.curP.lerpVectors(f.fromP, f.toP, e); f.curQ.slerpQuaternions(f.fromQ, f.toQ, e);
     const isA = f.i === ai, d = Math.abs(f.i - S.p);
-    const liftT = S.active && isA ? (S.mode === 'stack' ? .22 : .32) : 0;
+    /* Stack, Corridor, Scatter: il frame attivo sale lungo il proprio asse verticale, restando al suo posto
+       nella sequenza (niente salto in profondità davanti ai frame precedenti). Altri layout: viene in avanti. */
+    const rise = RISE_MODES.has(S.mode);
+    const liftT = S.active && isA ? (rise ? .36 * H : .32) : 0;
     f.lift += (liftT - f.lift) * Math.min(1, dt * 10);
-    nrm.set(0, 0, 1).applyQuaternion(f.curQ);
+    nrm.set(0, rise ? 1 : 0, rise ? 0 : 1).applyQuaternion(f.curQ);
     f.mesh.position.copy(f.curP).addScaledVector(nrm, f.lift);
     f.mesh.quaternion.copy(f.curQ);
-    f.mesh.scale.setScalar(1 + f.lift * .25);
+    f.mesh.scale.setScalar(rise ? 1 : 1 + f.lift * .25);
     let op, sat;
     if (!S.active) { op = 1; sat = 1; }
     else {
@@ -903,7 +907,7 @@ function tick(now){
     f.op += (op - f.op) * Math.min(1, dt * 14);
     const u = f.mesh.material.uniforms;
     u.uOpacity.value = f.op; u.uSat.value = sat; u.uDiff.value = S.diff ? 1 : 0;
-    f.mesh.renderOrder = isA ? 10 : 0;
+    f.mesh.renderOrder = isA && !rise ? 10 : 0; /* nei layout 'rise' resta l'ordinamento per profondità */
     const sel = S.selected.has(f.i);
     f.edge.visible = S.edges || sel || (isA && S.active);
     f.edge.material.color.setHex(sel ? 0xff2d87 : (isA && S.active) ? 0xffbc42 : edgeCol);
