@@ -10,12 +10,12 @@
   <meta property="og:type" content="profile">
   <meta property="og:site_name" content="SmartLabDesign">
   <meta property="og:url" content="https://sites.smartlabdesign.it/linea-talluto/">
-  <meta property="og:title" content="Alessio Talluto — One line. One identity.">
+  <meta property="og:title" content="Alessio Talluto — One track. One identity.">
   <meta property="og:description" content="Twenty years of graphic design on a single line, drawn as my own identity. The last stop runs on AI.">
   <meta property="og:image" content="https://sites.smartlabdesign.it/assets/og-home.jpg">
   <meta property="og:locale" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Alessio Talluto — One line. One identity.">
+  <meta name="twitter:title" content="Alessio Talluto — One track. One identity.">
   <meta name="twitter:description" content="Twenty years of graphic design on a single line, drawn as my own identity. The last stop runs on AI.">
   <meta name="twitter:image" content="https://sites.smartlabdesign.it/assets/og-home.jpg">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ffbc42'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Arial Black,Arial' font-size='34' fill='%23062d31'%3ET%3C/text%3E%3C/svg%3E">
@@ -277,6 +277,9 @@
       .face svg, .js .face.named .nameplate, .scene, .hero-grid, .hero.revealed .scene, .hero.revealed .hero-grid { transition: none; }
       .ticket.punched .ticket-hole { animation: none; }
     }
+    /* H1: "ONE TRACK." / "ONE IDENTITY." stay on one line each, sized to the copy column (container query units) */
+    .hero-grid > div:first-child { container-type: inline-size; min-width: 0; }
+    @supports (font-size: 1cqi) { h1 { white-space: nowrap; text-wrap: nowrap; font-size: min(13.2cqi, 118px); } }
   </style>
 </head>
 <body>
@@ -297,7 +300,7 @@
       <div class="shell hero-grid" id="act-line">
         <div>
           <p class="kicker mono">Founder · SmartLabDesign</p>
-          <h1 id="h1">One line.<span>One identity.</span></h1>
+          <h1 id="h1">One track.<span>One identity.</span></h1>
           <p class="lede">Twenty years of graphic design on a single transit line, drawn as my own identity. <em>The last stop runs on AI.</em></p>
           <div class="now" id="now" aria-live="off">
             <span class="now-dot" aria-hidden="true"></span>

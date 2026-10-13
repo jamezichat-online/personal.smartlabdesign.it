@@ -332,6 +332,9 @@
       .hero-copy { opacity: 1 !important; transform: none !important; }
       *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
+    /* Founder title: "ONE TRACK." / "ONE IDENTITY." stay on one line each, sized to the column (container query units) */
+    .founder-title { container-type: inline-size; }
+    @supports (font-size: 1cqi) { .founder h2 { white-space: nowrap; font-size: min(13.2cqi, 92px); } }
   </style>
 <script defer src="https://smartlab-analytics.smartlabdesign-tools.workers.dev/tracker.js" referrerpolicy="no-referrer"></script>
 </head>
@@ -436,7 +439,7 @@
           <div class="founder-copy">
             <div class="founder-title">
               <div class="section-label">03 / Founder</div>
-              <h2 id="founder-title">One line.<span>One identity.</span></h2>
+              <h2 id="founder-title">One track.<span>One identity.</span></h2>
             </div>
             <div class="fb">
               <div class="fb-head"><span>Next stops</span><span class="fb-count" id="fb-count">10 stops</span></div>
