@@ -209,7 +209,7 @@
     .fm-reveal .fm-icon .pop { opacity: 0; transform: scale(.6); }
     .fm-me .me-car { fill: var(--sun); stroke: #04211f; stroke-width: 1.4; }
     .fm-me .me-halo { fill: var(--sun); opacity: .22; }
-    .fm-me .me-face { fill: none; stroke: #04211f; stroke-width: 24; stroke-linecap: round; stroke-linejoin: round; }
+    .fm-me .me-label { fill: #04211f; font: 400 8.4px "Archivo Black", "Arial Black", sans-serif; letter-spacing: -.04em; text-transform: uppercase; }
     .founder-map svg { display: block; width: 100%; height: auto; max-width: 640px; margin-inline: auto; overflow: visible; }
     .founder-map figcaption { margin-top: 12px; text-align: center; color: rgba(255,240,206,.5); font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; }
 
@@ -702,12 +702,11 @@
     const themes = stops.map(li => li.querySelector('.fb-org').textContent.trim());
     const YEARS = [null, 2006, 2009, 2012, 2019, 2024, 2026, 2026, 2026, 2026];
 
-    /* the dot carries the identity glyph (the network itself, in miniature) */
+    /* the dot is the "you are here" marker: ME, set in the display face */
     const train = svg.querySelector('.lm-train'); [...train.children].forEach(c => c.style.display = 'none');
     const me = el('g', { class: 'fm-me' }, train);
     el('circle', { r: 15, class: 'me-halo' }, me); el('circle', { r: 9, class: 'me-car' }, me);
-    const glyph = el('g', { transform: 'scale(.0395) translate(-203 -164)' }, me);
-    el('path', { d: ring.getAttribute('d'), class: 'me-face' }, glyph); el('path', { d: ai.getAttribute('d'), class: 'me-face' }, glyph);
+    const label = el('text', { class: 'me-label', 'text-anchor': 'middle', x: 0, y: 0, dy: '.36em', 'aria-hidden': 'true' }, me); label.textContent = 'ME';
 
     /* competence pictograms (24-unit glyphs) */
     const ICONS = [
