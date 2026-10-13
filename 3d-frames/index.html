@@ -91,6 +91,9 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:0;backg
 .file-card{padding:11px 12px;background:var(--ink);border-left:3px solid var(--aqua);font:500 11px/1.55 var(--f-mono);word-break:break-all}
 .file-card .meta{color:var(--muted);font-variant-numeric:tabular-nums}
 .note{font:500 14px/1.3 var(--f-body);color:var(--muted)}
+input.txt{width:100%;min-height:38px;padding:0 12px;background:var(--ink);border:1px solid var(--line-strong);border-radius:4px 12px 4px 12px;font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--cream)}
+input.txt::placeholder{color:var(--muted)}
+input.txt:focus{border-color:var(--sun);outline:none;box-shadow:3px 3px 0 var(--pink)}
 select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1px solid var(--line-strong);border-radius:999px;font:500 11px var(--f-mono);letter-spacing:.06em;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sun) 50%),linear-gradient(135deg,var(--sun) 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;background-size:4px 4px;background-repeat:no-repeat;cursor:pointer}
 
 /* ---------- STAGE ---------- */
@@ -270,8 +273,22 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
             </div>
           </div>
           <p class="note" id="selNote">Nessun frame selezionato: ZIP esporta tutti i frame a piena risoluzione.</p>
-          <div class="row" style="flex-wrap:wrap"><span class="lbl">Impostazioni salvate in questo browser</span><button class="chip" id="resetPrefs" type="button" aria-pressed="false">Ripristina impostazioni</button></div>
           <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click su un frame = attivo, <kbd>Shift</kbd>+click = seleziona</div>
+        </div>
+      </details>
+
+      <details class="sec" open>
+        <summary>Preset</summary>
+        <div class="sec-body">
+          <p class="note" style="margin:0">Salva tutte le impostazioni (camera inclusa) in un file <b style="color:var(--cream)">.json</b> e ricaricale su un altro browser o dispositivo. Puoi anche trascinare il file sul tool.</p>
+          <div class="ctl"><label class="lbl" for="presetName">Nome preset</label><input class="txt" id="presetName" type="text" maxlength="48" placeholder="es. QA AI video · Reel 9:16" autocomplete="off"></div>
+          <div class="btn-grid">
+            <button class="btn" id="presetExport" type="button">Esporta preset</button>
+            <label class="btn alt" for="presetFile" style="cursor:pointer">Importa preset</label>
+            <input id="presetFile" type="file" accept=".json,application/json" hidden>
+          </div>
+          <p class="note" id="presetNote" style="margin:0">Nessun preset caricato in questa sessione.</p>
+          <div class="row" style="flex-wrap:wrap"><span class="lbl">Salvate in automatico in questo browser</span><button class="chip" id="resetPrefs" type="button" aria-pressed="false">Ripristina impostazioni</button></div>
         </div>
       </details>
     </div>
@@ -579,6 +596,7 @@ function isBlank(ctx, w, h){
 async function build(){
   if (!S.src) return;
   const token = ++S.buildToken; S.building = true;
+  S.built = { N: S.N, inP: S.inP, outP: S.outP, res: S.res };
   $('#buildBtn').disabled = true;
   disposeFrames();
   const prog = $('#progress'); prog.hidden = false; $('#progTitle').textContent = 'Extracting frames';
@@ -645,9 +663,14 @@ $('#file').onchange = e => { const f = e.target.files[0]; if (f) useSource(URL.c
 const drop = $('#drop');
 ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video')) useSource(URL.createObjectURL(f), f.name, f.size); else toast('Trascina un file video (MP4, WebM, MOV).'); });
+const isPresetFile = f => f && (/\.json$/i.test(f.name) || f.type === 'application/json');
+drop.addEventListener('drop', e => { e.stopPropagation(); const f = e.dataTransfer.files[0]; if (isPresetFile(f)) importPresetFile(f); else if (f && f.type.startsWith('video')) useSource(URL.createObjectURL(f), f.name, f.size); else toast('Trascina un file video (MP4, WebM, MOV) o un preset .json.'); });
+$('.deck').addEventListener('dragover', e => e.preventDefault());
+$('.deck').addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (isPresetFile(f)) importPresetFile(f); });
+$('#presetExport').addEventListener('click', exportPreset);
+$('#presetFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) importPresetFile(f); e.target.value = ''; });
 stage.addEventListener('dragover', e => e.preventDefault());
-stage.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video')) useSource(URL.createObjectURL(f), f.name, f.size); });
+stage.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (isPresetFile(f)) importPresetFile(f); else if (f && f.type.startsWith('video')) useSource(URL.createObjectURL(f), f.name, f.size); });
 
 /* ---------- UI bindings ---------- */
 function paintRange(el){ const p = (el.value - el.min) / (el.max - el.min) * 100; el.style.setProperty('--pct', p + '%'); }
@@ -679,8 +702,7 @@ if (prefs && typeof prefs === 'object') {
   if (c && Array.isArray(c.p) && Array.isArray(c.t) && [...c.p, ...c.t].length === 6 && [...c.p, ...c.t].every(Number.isFinite)) pendingCam = c;
 }
 let saveT;
-function writePrefs(){
-  if (noSave) return;
+function buildPrefs(){
   const p = { v: 1 };
   PREF_SLIDERS.forEach(k => p[k] = S[k]);
   PREF_CHECKS.forEach(k => p[k] = S[k]);
@@ -689,7 +711,60 @@ function writePrefs(){
     open: [...document.querySelectorAll('details.sec')].map(d => d.open),
     cam: { p: camera.position.toArray(), t: controls.target.toArray(), mode: S.mode, format: S.format }
   });
-  try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) {}
+  return p;
+}
+function writePrefs(){
+  if (noSave) return;
+  try { localStorage.setItem(PREF_KEY, JSON.stringify(buildPrefs())); } catch (e) {}
+}
+
+/* ---------- preset .json (export / import tra dispositivi) ---------- */
+const PRESET_APP = 'smartlab-3d-video-frames';
+const slug = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+function exportPreset(){
+  const name = $('#presetName').value.trim();
+  const doc = { app: PRESET_APP, type: 'preset', version: 1, name: name || null, created: new Date().toISOString(), settings: buildPrefs() };
+  const fname = `3dframes-preset_${slug(name) || S.mode + '-' + S.format.replace(':', 'x')}.json`;
+  deliver(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }), fname, 'json');
+}
+function applyPrefsLive(p){
+  /* stessi controlli di validazione del caricamento iniziale; ogni valore non valido viene ignorato */
+  const num = (k, el) => { if (Number.isFinite(p[k]) && el) { const v = Math.min(+el.max, Math.max(+el.min, p[k])); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } };
+  ['inP','outP','N','depth','surface','spread','trail','fov'].forEach(k => num(k, $('#' + k)));
+  PREF_CHECKS.forEach(k => { const el = $('#' + k); if (el && typeof p[k] === 'boolean' && el.checked !== p[k]) { el.checked = p[k]; el.dispatchEvent(new Event('change', { bubbles: true })); } });
+  if (['320','480','720'].includes(String(p.res))) { S.res = +p.res; setChip('res', String(S.res)); }
+  if (BG[p.bg]) { S.bg = p.bg; setChip('bg', S.bg); setBg(S.bg); }
+  if (p.format === 'viewport' || FORMATS[p.format]) { S.format = p.format; setChip('format', S.format); fit(); }
+  if (['0.25','0.5','1','2','4'].includes(String(p.speed))) { S.speed = +p.speed; $('#speed').value = String(p.speed); }
+  if (p.loop === 'loop' || p.loop === 'pingpong') { S.loop = p.loop; $('#loopBtn').setAttribute('aria-pressed', String(S.loop === 'pingpong')); $('#loopBtn').title = S.loop === 'loop' ? 'Loop' : 'Ping-pong'; }
+  if (['4','6','10'].includes(String(p.recDur))) $('#recDur').value = String(p.recDur);
+  if (Array.isArray(p.open)) document.querySelectorAll('details.sec').forEach((d, i) => { if (typeof p.open[i] === 'boolean') d.open = p.open[i]; });
+  const needBuild = S.built && (S.built.N !== S.N || S.built.inP !== S.inP || S.built.outP !== S.outP || S.built.res !== S.res);
+  if (MODES.includes(p.mode)) { S.mode = p.mode; setChip('mode', S.mode); hud(); }
+  const c = p.cam, camOk = c && Array.isArray(c.p) && Array.isArray(c.t) && [...c.p, ...c.t].length === 6 && [...c.p, ...c.t].every(Number.isFinite)
+    && c.mode === S.mode && (c.format || 'viewport') === S.format;
+  if (needBuild) { pendingCam = camOk ? c : null; build(); }
+  else {
+    relayout(true);
+    if (camOk) camAnim = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3().fromArray(c.p), tt: new THREE.Vector3().fromArray(c.t), t0: performance.now() / 1000, dur: 1.25 };
+    else framePreset(MODE_CAM[S.mode]);
+  }
+  writePrefs();
+}
+async function importPresetFile(file){
+  try {
+    if (file.size > 256 * 1024) throw new Error('File troppo grande per essere un preset.');
+    const doc = JSON.parse(await file.text());
+    const p = doc && doc.app === PRESET_APP && doc.settings ? doc.settings : doc;
+    if (!p || typeof p !== 'object' || !MODES.includes(p.mode)) throw new Error('Il file non è un preset di 3D Video Frames.');
+    applyPrefsLive(p);
+    const name = doc.name || file.name.replace(/\.json$/i, '');
+    if (doc.name) $('#presetName').value = doc.name;
+    $('#presetNote').textContent = `Preset attivo: ${name}`;
+    toast(`Preset «${name}» applicato.`);
+  } catch (e) {
+    toast(e instanceof SyntaxError ? 'JSON non valido: il file è danneggiato o non è un preset.' : (e.message || 'Import non riuscito.'));
+  }
 }
 function savePrefs(){ if (noSave) return; clearTimeout(saveT); saveT = setTimeout(writePrefs, 300); }
 ['input','change','click'].forEach(ev => { $('.deck').addEventListener(ev, savePrefs); $('.transport').addEventListener(ev, savePrefs); });
@@ -752,6 +827,7 @@ function updateSel(){
   $('#selBtn').setAttribute('aria-pressed', S.selected.has(Math.round(S.p)));
 }
 addEventListener('keydown', e => {
+  if (e.target.closest('input[type=text],textarea')) return;
   if (e.target.closest('input[type=range],select') && !['Space'].includes(e.code)) { if (e.target.type === 'range') return; }
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!S.playing); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
@@ -881,8 +957,9 @@ async function deliver(blob, filename, kind){
 function showPreview(blob, filename, kind){
   const url = URL.createObjectURL(blob), m = document.createElement('div');
   m.className = 'modal';
-  m.innerHTML = `<div class="modal-box"><div class="kicker">Export pronto</div>${kind === 'video' ? `<video src="${url}" controls autoplay loop muted playsinline></video>` : kind === 'image' ? `<img src="${url}" alt="${filename}">` : ''}<p><b style="color:var(--cream)">${filename}</b> · ${(blob.size/1048576).toFixed(2)} MB. ${kind === 'zip' ? 'Il salvataggio diretto non è disponibile in questa vista: usa Contact sheet o Frame full-res, che si salvano dall’anteprima.' : 'Tasto destro (o pressione prolungata) sul file per salvarlo.'}</p><button class="btn alt" type="button">Chiudi</button></div>`;
+  m.innerHTML = `<div class="modal-box"><div class="kicker">Export pronto</div>${kind === 'video' ? `<video src="${url}" controls autoplay loop muted playsinline></video>` : kind === 'image' ? `<img src="${url}" alt="${filename}">` : kind === 'json' ? `<textarea class="txt" readonly rows="10" style="min-height:180px;padding:10px;resize:vertical"></textarea>` : ''}<p><b style="color:var(--cream)">${filename}</b> · ${(blob.size/1048576).toFixed(2)} MB. ${kind === 'json' ? 'Il salvataggio diretto non è disponibile in questa vista: copia il testo e salvalo come file .json.' : kind === 'zip' ? 'Il salvataggio diretto non è disponibile in questa vista: usa Contact sheet o Frame full-res, che si salvano dall’anteprima.' : 'Tasto destro (o pressione prolungata) sul file per salvarlo.'}</p><button class="btn alt" type="button">Chiudi</button></div>`;
   m.querySelector('button').onclick = () => { m.remove(); URL.revokeObjectURL(url); };
+  const ta = m.querySelector('textarea'); if (ta) blob.text().then(t => { ta.value = t; ta.select(); });
   m.addEventListener('click', e => { if (e.target === m) m.querySelector('button').click(); });
   document.body.appendChild(m);
 }
