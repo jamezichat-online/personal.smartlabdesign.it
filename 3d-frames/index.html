@@ -273,7 +273,7 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
             </div>
           </div>
           <p class="note" id="selNote">Nessun frame selezionato: ZIP esporta tutti i frame a piena risoluzione.</p>
-          <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click su un frame = attivo, <kbd>Shift</kbd>+click = seleziona</div>
+          <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click su un frame = sollevalo (di nuovo click o <kbd>Esc</kbd> = riabbassa), <kbd>Shift</kbd>+click = seleziona per export</div>
         </div>
       </details>
 
@@ -344,7 +344,7 @@ const S = {
   active: true, edges: true, mono: true, diff: false,
   bg: 'ink', grid: true, orbit: false, fov: 38, format: 'viewport',
   speed: 1, loop: 'loop', dir: 1, playing: !reduce, p: 0, ai: -1,
-  frames: [], selected: new Set(), building: false, buildToken: 0,
+  frames: [], selected: new Set(), focus: -1, camShift: 0, building: false, buildToken: 0,
   exporting: false, recording: false, video: null
 };
 
@@ -809,15 +809,15 @@ $('#buildBtn').onclick = build;
 
 /* ---------- transport ---------- */
 const PLAY = '<path d="M4 2l10 6-10 6z"/>', PAUSE = '<path d="M3 2h4v12H3zM9 2h4v12H9z"/>';
-function setPlaying(on){ S.playing = on; $('#playIco').innerHTML = on ? PAUSE : PLAY; }
+function setPlaying(on){ S.playing = on; if (on) S.focus = -1; $('#playIco').innerHTML = on ? PAUSE : PLAY; }
 setPlaying(S.playing);
 $('#playBtn').onclick = () => setPlaying(!S.playing);
-function step(d){ setPlaying(false); const n = S.frames.length; if (!n) return; S.p = (Math.round(S.p) + d + n) % n; }
+function step(d){ setPlaying(false); S.focus = -1; const n = S.frames.length; if (!n) return; S.p = (Math.round(S.p) + d + n) % n; }
 $('#prevBtn').onclick = () => step(-1);
 $('#nextBtn').onclick = () => step(1);
 $('#speed').onchange = e => S.speed = +e.target.value;
 $('#loopBtn').onclick = () => { S.loop = S.loop === 'loop' ? 'pingpong' : 'loop'; $('#loopBtn').setAttribute('aria-pressed', S.loop === 'pingpong'); $('#loopBtn').title = S.loop === 'loop' ? 'Loop' : 'Ping-pong'; toast(S.loop === 'loop' ? 'Loop' : 'Ping-pong'); };
-$('#scrub').addEventListener('input', e => { setPlaying(false); S.p = +e.target.value; });
+$('#scrub').addEventListener('input', e => { setPlaying(false); S.focus = -1; S.p = +e.target.value; });
 function toggleSel(i){ if (S.selected.has(i)) S.selected.delete(i); else S.selected.add(i); updateSel(); }
 $('#selBtn').onclick = () => toggleSel(Math.round(S.p));
 function updateSel(){
@@ -833,6 +833,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (e.key === 's' || e.key === 'S') toggleSel(Math.round(S.p));
+  else if (e.key === 'Escape') S.focus = -1;
   else if (/^[1-6]$/.test(e.key)) setMode(['stack','corridor','ring','scatter','mosaic','helix'][+e.key - 1]);
 });
 
@@ -848,7 +849,8 @@ frameEl.addEventListener('pointerup', e => {
   const hit = ray.intersectObjects(meshes, false)[0];
   if (!hit) return;
   const i = hit.object.userData.i;
-  if (e.shiftKey) toggleSel(i); else { setPlaying(false); S.p = i; }
+  /* click = seleziona: il frame si solleva fuori dalla pila (Stack/Corridor/Scatter); secondo click lo riabbassa */
+  if (e.shiftKey) toggleSel(i); else { setPlaying(false); S.focus = S.focus === i && Math.round(S.p) === i ? -1 : i; S.p = i; }
 });
 
 /* ---------- HUD ---------- */
@@ -891,7 +893,8 @@ function tick(now){
     /* Stack, Corridor, Scatter: il frame attivo sale lungo il proprio asse verticale, restando al suo posto
        nella sequenza (niente salto in profondità davanti ai frame precedenti). Altri layout: viene in avanti. */
     const rise = RISE_MODES.has(S.mode);
-    const liftT = S.active && isA ? (rise ? .36 * H : .32) : 0;
+    /* rise: fermo durante riproduzione/scrub; esce del tutto dalla pila solo se selezionato col click */
+    const liftT = !S.active || !isA ? 0 : rise ? (S.focus === f.i ? 1.12 * H : 0) : .32;
     f.lift += (liftT - f.lift) * Math.min(1, dt * 10);
     nrm.set(0, rise ? 1 : 0, rise ? 0 : 1).applyQuaternion(f.curQ);
     f.mesh.position.copy(f.curP).addScaledVector(nrm, f.lift);
@@ -907,13 +910,18 @@ function tick(now){
     f.op += (op - f.op) * Math.min(1, dt * 14);
     const u = f.mesh.material.uniforms;
     u.uOpacity.value = f.op; u.uSat.value = sat; u.uDiff.value = S.diff ? 1 : 0;
-    f.mesh.renderOrder = isA && !rise ? 10 : 0; /* nei layout 'rise' resta l'ordinamento per profondità */
+    f.mesh.renderOrder = isA ? 10 : 0; /* frame corrente in primo piano: il video scorre in sovrapposizione frontale */
     const sel = S.selected.has(f.i);
     f.edge.visible = S.edges || sel || (isA && S.active);
     f.edge.material.color.setHex(sel ? 0xff2d87 : (isA && S.active) ? 0xffbc42 : edgeCol);
     f.edge.material.opacity = sel || (isA && S.active) ? 1 : Math.min(.55, .12 + f.op * .5);
   }
 
+  /* pan verticale della camera che accompagna il frame sollevato (relativo, reversibile) */
+  const shiftT = S.active && S.focus >= 0 && RISE_MODES.has(S.mode) ? .62 * 1.12 * H : 0;
+  const shiftNew = S.camShift + (shiftT - S.camShift) * Math.min(1, dt * 6), dShift = shiftNew - S.camShift;
+  if (Math.abs(dShift) > 1e-5) { camera.position.y += dShift; controls.target.y += dShift; if (camAnim) { camAnim.tp.y += dShift; camAnim.tt.y += dShift; } }
+  S.camShift = shiftNew;
   if (camAnim) {
     const k = Math.min(1, (t - camAnim.t0) / camAnim.dur), e = ease(k);
     camera.position.lerpVectors(camAnim.fp, camAnim.tp, e); controls.target.lerpVectors(camAnim.ft, camAnim.tt, e);
