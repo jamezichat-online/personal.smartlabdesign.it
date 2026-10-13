@@ -12,12 +12,12 @@
 
   /* label: [x, y, anchor]; inner labels sit inside the face and are hidden on narrow screens */
   var STATIONS = [
-    { p:[200,316], route:'ring', type:'x', name:'Caltanissetta ⇄ AI line', lab:[200,338,'middle'], wide:true },
-    { p:[124,232], route:'ring', name:'Crea Comunicazione', year:'2006', lab:[110,235,'end'] },
-    { p:[104,160], route:'ring', name:'PFE · Technical bids', year:'2009', lab:[90,163,'end'] },
-    { p:[200,12],  route:'ring', name:'PFE · Graphic design', year:'2012', lab:[200,-6,'middle'] },
-    { p:[302,157], route:'ring', name:'PFE · Social media', year:'2019', lab:[316,160,'start'] },
-    { p:[292,224], route:'ring', name:'Navest', year:'2024', lab:[306,227,'start'] },
+    { p:[200,316], route:'ring', type:'x', name:'Drawing board ⇄ AI line', lab:[200,338,'middle'], wide:true },
+    { p:[124,232], route:'ring', name:'First impressions', year:'2006', lab:[110,235,'end'] },
+    { p:[104,160], route:'ring', name:'The blueprint', year:'2009', lab:[90,163,'end'] },
+    { p:[200,12],  route:'ring', name:'Visual systems', year:'2012', lab:[200,-6,'middle'] },
+    { p:[302,157], route:'ring', name:'Feed & story', year:'2019', lab:[316,160,'start'] },
+    { p:[292,224], route:'ring', name:'Brand at scale', year:'2024', lab:[306,227,'start'] },
     { p:[200,316], route:'ring', end:true, shareWith:0 },
     { p:[200,226], route:'ai', type:'x', name:'Prompt', lab:[212,262,'start'], inner:true, ai:true },
     { p:[234,124], route:'ai', type:'x', name:'Visual gen.', lab:[240,90,'middle'], inner:true, ai:true },
