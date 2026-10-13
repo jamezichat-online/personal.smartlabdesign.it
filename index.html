@@ -104,7 +104,7 @@
 
     .manifesto { padding: clamp(100px, 13vw, 190px) 0 clamp(90px, 11vw, 160px); background: var(--paper); }
     .manifesto-grid { display: grid; grid-template-columns: .44fr 1.56fr; gap: 70px; }
-    .section-label { font: 500 10px "DM Mono"; letter-spacing: .15em; text-transform: uppercase; }
+    .manifesto-grid > div { grid-column: 2; }
     .manifesto h2 { max-width: 1080px; margin: 0; font: 800 clamp(48px, 7.4vw, 110px)/.84 "Barlow Condensed"; letter-spacing: -.048em; text-transform: uppercase; }
     .manifesto h2 .hot { color: var(--pink); text-shadow: 2px 2px 0 var(--sun); }
     .manifesto-note { width: min(500px, 100%); margin: 42px 0 0; padding-left: 22px; border-left: 4px solid var(--coral); font-size: 20px; line-height: 1.45; }
@@ -152,7 +152,6 @@
     .founder-pin { position: relative; padding: clamp(80px, 9vw, 130px) 0; overflow: hidden; }
     .founder-pin::after { content: ""; position: absolute; inset: 8% -12% auto 48%; height: 72%; z-index: -1; background: radial-gradient(ellipse, rgba(255,45,135,.18), transparent 65%); filter: blur(20px); pointer-events: none; }
     .founder-grid { display: grid; grid-template-columns: minmax(0,.92fr) minmax(0,1.08fr); gap: clamp(36px, 5vw, 90px); align-items: center; }
-    .founder .section-label { color: var(--aqua); }
     .founder h2 { margin: 14px 0 0; font: 400 clamp(46px, 6vw, 92px)/.8 "Archivo Black"; letter-spacing: -.07em; text-transform: uppercase; }
     .founder h2 span { display: block; color: var(--pink); text-shadow: 3px 3px 0 var(--sun); }
     .fb { margin-top: clamp(26px, 3.4vw, 44px); }
@@ -290,6 +289,7 @@
     @media (max-width: 900px) {
       .shell { width: min(calc(100% - 38px), var(--max)); }
       .hero-copy, .manifesto-grid, .studio-grid, .contact-grid { grid-template-columns: 1fr; }
+      .manifesto-grid > div { grid-column: auto; }
       .hero-copy { gap: 35px; }
       .hero-side { justify-self: start; }
       .manifesto-grid { gap: 35px; }
@@ -427,7 +427,6 @@
   <main>
     <section class="manifesto">
       <div class="shell manifesto-grid">
-        <div class="section-label">01 / The creative practice</div>
         <div>
           <h2>Not just a portfolio.<br>A place where <span class="hot">ideas become worlds.</span></h2>
           <p class="manifesto-note">SmartLabDesign is my virtual creative studio — a space for self-initiated work, visual research and stories that deserve to exist.</p>
@@ -468,7 +467,6 @@
       <div class="shell studio-grid">
         <div class="patch-wrap"><div class="patch-frame"><video class="patch-video" id="patch-video" poster="assets/smartlab-patch-stitch-end.webp" width="900" height="900" muted playsinline preload="none" aria-label="SmartLabDesign Creative Force emblem being embroidered by a stitching machine"><source src="assets/smartlab-patch-stitch.webm" type="video/webm; codecs=vp9"><source src="assets/smartlab-patch-stitch.mp4" type="video/mp4"></video></div></div>
         <div>
-          <div class="section-label">02 / Studio DNA</div>
           <h2 id="studio-title">One studio.<br><span>Many languages.</span></h2>
           <p class="studio-intro">Each project can look and feel completely different. The constant is a hands-on approach that brings concept, visual direction and technology together.</p>
           <div class="disciplines" aria-label="Creative disciplines">
@@ -486,7 +484,6 @@
         <div class="shell founder-grid">
           <div class="founder-copy">
             <div class="founder-title">
-              <div class="section-label">03 / Founder</div>
               <h2 id="founder-title">One track.<span>One identity.</span></h2>
             </div>
             <div class="fb">
@@ -582,7 +579,6 @@
     <section class="contact" id="contact" aria-labelledby="contact-title">
       <div class="shell contact-grid">
         <div>
-          <div class="section-label">04 / Get in touch</div>
           <h2 id="contact-title">Got an idea?<br><span>Let's build it.</span></h2>
           <p>The studio is open to collaborations, commissions and experiments. Start the conversation wherever it suits you.</p>
         </div>
