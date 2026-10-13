@@ -270,6 +270,7 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
             </div>
           </div>
           <p class="note" id="selNote">Nessun frame selezionato: ZIP esporta tutti i frame a piena risoluzione.</p>
+          <div class="row" style="flex-wrap:wrap"><span class="lbl">Impostazioni salvate in questo browser</span><button class="chip" id="resetPrefs" type="button" aria-pressed="false">Ripristina impostazioni</button></div>
           <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click su un frame = attivo, <kbd>Shift</kbd>+click = seleziona</div>
         </div>
       </details>
@@ -354,6 +355,7 @@ function makeControls(target){
   c.enableDamping = true; c.dampingFactor = .08; c.autoRotateSpeed = .7;
   if (target) c.target.copy(target);
   c.addEventListener('start', () => { camAnim = null; });
+  c.addEventListener('end', () => setTimeout(savePrefs, 900)); /* attende la fine dell'inerzia (damping) */
   return c;
 }
 function reupload(){
@@ -594,7 +596,10 @@ async function build(){
     const N = S.N, a = S.dur * S.inP / 100, b = Math.max(a + .1, S.dur * S.outP / 100);
     const long = S.res, tw = S.aspect >= 1 ? long : Math.round(long * S.aspect), th = S.aspect >= 1 ? Math.round(long / S.aspect) : long;
     relayout(false); layoutBox = computeBox(); if (grid) grid.position.y = layoutBox.min.y - .5;
-    framePreset(MODE_CAM[S.mode], false);
+    if (pendingCam && pendingCam.mode === S.mode && (pendingCam.format || 'viewport') === S.format) {
+      camera.position.fromArray(pendingCam.p); controls.target.fromArray(pendingCam.t); camAnim = null; controls.update();
+    } else framePreset(MODE_CAM[S.mode], false);
+    pendingCam = null;
     S.p = 0; S.ai = -1; $('#scrub').max = N - 1;
     for (let i = 0; i < N; i++) {
       if (token !== S.buildToken) return;
@@ -652,6 +657,55 @@ function slider(id, key, fmt, after){
   el.addEventListener('input', () => { set(); after && after(); });
   set();
 }
+/* ---------- preferenze persistenti (localStorage: per browser/dispositivo, nessun server) ---------- */
+const PREF_KEY = 'smartlab.3dframes.prefs.v1';
+const PREF_SLIDERS = ['N','inP','outP','depth','surface','spread','trail','fov'];
+const PREF_CHECKS = ['active','edges','mono','diff','grid','orbit'];
+const MODES = ['stack','corridor','ring','scatter','mosaic','helix'];
+let prefs = null, pendingCam = null, noSave = false;
+try { prefs = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); } catch (e) { prefs = null; }
+if (prefs && typeof prefs === 'object') {
+  PREF_SLIDERS.forEach(k => { const el = $('#' + k); if (el && Number.isFinite(prefs[k])) el.value = prefs[k]; });
+  PREF_CHECKS.forEach(k => { const el = $('#' + k); if (el && typeof prefs[k] === 'boolean') el.checked = prefs[k]; });
+  if (['320','480','720'].includes(String(prefs.res))) S.res = +prefs.res;
+  if (MODES.includes(prefs.mode)) S.mode = prefs.mode;
+  if (BG[prefs.bg]) S.bg = prefs.bg;
+  if (prefs.format === 'viewport' || FORMATS[prefs.format]) S.format = prefs.format;
+  if (['0.25','0.5','1','2','4'].includes(String(prefs.speed))) { S.speed = +prefs.speed; $('#speed').value = String(prefs.speed); }
+  if (prefs.loop === 'pingpong') { S.loop = 'pingpong'; $('#loopBtn').setAttribute('aria-pressed', 'true'); $('#loopBtn').title = 'Ping-pong'; }
+  if (['4','6','10'].includes(String(prefs.recDur))) $('#recDur').value = String(prefs.recDur);
+  if (Array.isArray(prefs.open)) document.querySelectorAll('details.sec').forEach((d, i) => { if (typeof prefs.open[i] === 'boolean') d.open = prefs.open[i]; });
+  const c = prefs.cam;
+  if (c && Array.isArray(c.p) && Array.isArray(c.t) && [...c.p, ...c.t].length === 6 && [...c.p, ...c.t].every(Number.isFinite)) pendingCam = c;
+}
+let saveT;
+function writePrefs(){
+  if (noSave) return;
+  const p = { v: 1 };
+  PREF_SLIDERS.forEach(k => p[k] = S[k]);
+  PREF_CHECKS.forEach(k => p[k] = S[k]);
+  Object.assign(p, {
+    res: S.res, mode: S.mode, bg: S.bg, format: S.format, speed: S.speed, loop: S.loop, recDur: +$('#recDur').value,
+    open: [...document.querySelectorAll('details.sec')].map(d => d.open),
+    cam: { p: camera.position.toArray(), t: controls.target.toArray(), mode: S.mode, format: S.format }
+  });
+  try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) {}
+}
+function savePrefs(){ if (noSave) return; clearTimeout(saveT); saveT = setTimeout(writePrefs, 300); }
+['input','change','click'].forEach(ev => { $('.deck').addEventListener(ev, savePrefs); $('.transport').addEventListener(ev, savePrefs); });
+document.querySelectorAll('details.sec').forEach(d => d.addEventListener('toggle', savePrefs));
+addEventListener('keydown', savePrefs);
+addEventListener('pagehide', () => { clearTimeout(saveT); writePrefs(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(saveT); writePrefs(); } });
+$('#resetPrefs').addEventListener('click', e => {
+  e.stopPropagation();
+  const b = e.currentTarget;
+  if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Conferma reset'; b.setAttribute('aria-pressed', 'true'); setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Ripristina impostazioni'; b.setAttribute('aria-pressed', 'false'); }, 4000); return; }
+  noSave = true; clearTimeout(saveT);
+  try { localStorage.removeItem(PREF_KEY); } catch (err) {}
+  location.reload();
+});
+
 slider('N', 'N', v => `${v} frame`);
 slider('inP', 'inP', v => `${v}%`, () => { const o = $('#outP'); if (+o.value <= S.inP + 4) { o.value = S.inP + 5; o.dispatchEvent(new Event('input')); } });
 slider('outP', 'outP', v => `${v}%`, () => { const i = $('#inP'); if (+i.value >= S.outP - 4) { i.value = S.outP - 5; i.dispatchEvent(new Event('input')); } });
@@ -783,7 +837,7 @@ function tick(now){
   if (camAnim) {
     const k = Math.min(1, (t - camAnim.t0) / camAnim.dur), e = ease(k);
     camera.position.lerpVectors(camAnim.fp, camAnim.tp, e); controls.target.lerpVectors(camAnim.ft, camAnim.tt, e);
-    if (k >= 1) camAnim = null;
+    if (k >= 1) { camAnim = null; savePrefs(); }
   }
   controls.autoRotate = S.orbit || S.recording;
   controls.update();
@@ -923,7 +977,8 @@ $('#recBtn').onclick = async () => {
 };
 
 /* ---------- boot ---------- */
-setBg(S.bg); fit(); layoutBox = computeBox(); framePreset('34', false);
+setChip('res', String(S.res)); setChip('mode', S.mode); setChip('bg', S.bg); setChip('format', S.format);
+setBg(S.bg); fit(); layoutBox = computeBox(); framePreset(MODE_CAM[S.mode], false);
 requestAnimationFrame(tick);
 loadDemo();
 window.__vft = S;
