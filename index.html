@@ -181,17 +181,25 @@
     /* motion: follow-cam on the line (home only). Board overlay, night tint on the AI line, competence pictograms */
     .founder-map::before { content: ""; position: absolute; inset: 6% 4%; z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, rgba(255,45,135,.22), transparent 66%); opacity: 0; transition: opacity .8s ease; pointer-events: none; }
     .founder-map.is-night::before { opacity: 1; }
-    .fm-board { display: none; }
-    .founder.is-scrub .fm-board { position: relative; z-index: 2; width: min(100%, 640px); margin: 0 auto 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 3px 12px;
-      padding: 10px 14px 11px; background: rgba(4,33,31,.92); border: 1px solid rgba(255,240,206,.2); border-radius: 6px; }
+    /* stop ticket: pops at each station (same slot, top of the map). Ticket language from the founder page, dark palette */
+    .fm-slot { display: none; }
+    .founder.is-scrub .fm-slot { position: relative; z-index: 2; flex: none; height: 104px; margin: 0 auto 6px; width: min(100%, 640px); display: grid; place-items: center; perspective: 600px; }
     .founder.is-scrub .founder-map svg { overflow: hidden; border-radius: 6px; }
-    .fm-pill { grid-column: 1; grid-row: 1 / span 2; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--coral); color: var(--ink); font: 500 11px/1 "DM Mono"; letter-spacing: 0; transition: background .5s, color .5s; }
-    .fm-board.is-ai .fm-pill { background: var(--pink); color: var(--cream); }
-    .fm-head { grid-column: 2; grid-row: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; overflow: hidden; }
-    .fm-status { font: 500 10px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; color: var(--aqua); }
-    .fm-stop { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 20px/1.05 "Barlow Condensed"; letter-spacing: .01em; text-transform: uppercase; color: var(--cream); }
-    .fm-year { grid-column: 3; grid-row: 1 / span 2; font: 500 13px "DM Mono"; letter-spacing: .08em; color: var(--sun); font-variant-numeric: tabular-nums; }
-    .fm-theme { grid-column: 2; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.15 "Barlow Condensed"; color: rgba(255,240,206,.72); }
+    .fm-ticket { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2px 22px; width: min(100%, 440px);
+      padding: 12px 20px 13px 34px; background: #04211f; color: var(--cream); border: 2px solid var(--cream); box-shadow: 7px 7px 0 var(--coral);
+      transform: rotate(-2.5deg); transform-origin: 50% 0; will-change: transform, opacity; }
+    .fm-ticket::before { content: ""; position: absolute; left: 15px; top: 9px; bottom: 9px; border-left: 2px dashed rgba(255,240,206,.4); }
+    .fm-ticket.is-ai { box-shadow: 7px 7px 0 var(--pink); }
+    .fm-t-head { grid-column: 1; font: 500 9px "DM Mono"; letter-spacing: .14em; text-transform: uppercase; color: var(--coral); }
+    .fm-ticket.is-ai .fm-t-head { color: var(--pink); }
+    .fm-t-no { grid-column: 2; font: 500 9px "DM Mono"; letter-spacing: .1em; text-align: right; color: rgba(255,240,206,.7); font-variant-numeric: tabular-nums; }
+    .fm-t-status { grid-column: 1 / -1; margin-top: 6px; font: 500 11px "DM Mono"; letter-spacing: .16em; text-transform: uppercase; color: var(--aqua); }
+    .fm-t-name { grid-column: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 28px/1 "Archivo Black", "Arial Black", sans-serif; letter-spacing: -.04em; text-transform: uppercase; }
+    .fm-t-year { grid-column: 2; font: 500 11px "DM Mono"; letter-spacing: .1em; text-transform: uppercase; color: var(--sun); font-variant-numeric: tabular-nums; }
+    .fm-t-hole { position: absolute; right: 16px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 0 0 2px var(--cream); transform: scale(0); }
+    .fm-ticket.is-punched .fm-t-hole { animation: fm-punch .34s cubic-bezier(.2,1.6,.4,1) forwards; }
+    .fm-ticket.is-punched .fm-t-year { margin-right: 26px; transition: margin .25s ease; }
+    @keyframes fm-punch { to { transform: scale(1); } }
     #founder-svg .lm-line { stroke-width: calc(7px * var(--ls, 1)); }
     #founder-svg .lm-ghost { stroke-width: calc(7px * var(--ls, 1)); }
     #founder-svg .lm-charge { stroke-width: calc(7.4px * var(--ls, 1)); }
@@ -231,9 +239,14 @@
       .founder.is-scrub .founder-title { order: 1; }
       .founder.is-scrub .founder-map { order: 2; display: flex; flex-direction: column; justify-content: center; min-height: 0; align-self: stretch; }
       .founder.is-scrub .founder-map svg { flex: 1 1 0; min-height: 0; width: 100%; height: 100%; max-height: none; }
-      .founder.is-scrub .fm-board { flex: none; margin-bottom: 6px; padding: 7px 10px 8px; gap: 2px 10px; }
-      .fm-pill { width: 28px; height: 28px; font-size: 10px; }
-      .fm-stop { font-size: 17px; } .fm-status { font-size: 9px; } .fm-theme { font-size: 13px; } .fm-year { font-size: 11px; }
+      .founder.is-scrub .fm-slot { height: 84px; margin-bottom: 4px; }
+      .fm-ticket { width: min(100% - 12px, 340px); padding: 9px 14px 10px 28px; gap: 1px 14px; box-shadow: 5px 5px 0 var(--coral); }
+      .fm-ticket.is-ai { box-shadow: 5px 5px 0 var(--pink); }
+      .fm-ticket::before { left: 12px; }
+      .fm-t-status { margin-top: 4px; font-size: 9px; } .fm-t-name { grid-column: 1 / -1; font-size: 22px; overflow: visible; } .fm-t-year { grid-column: 1 / -1; font-size: 10px; margin-top: 3px; }
+      .fm-t-head { white-space: nowrap; font-size: 8px; letter-spacing: .1em; }
+      .founder.is-scrub .fm-slot { height: 104px; }
+      .fm-ticket.is-punched .fm-t-year { margin-right: 0; }
       .founder.is-scrub .founder-map figcaption { display: none; }
       .founder.is-scrub .fb { order: 3; margin-top: 0; min-height: 0; overflow: hidden; }
       .founder.is-scrub h2 { display: none; }
@@ -549,11 +562,15 @@
             </div>
           </div>
           <figure class="founder-map" id="founder-map">
-            <div class="fm-board" id="fm-board" aria-hidden="true">
-              <span class="fm-pill" id="fm-pill">T</span>
-              <span class="fm-head"><span class="fm-status" id="fm-status">Departing from</span><span class="fm-stop" id="fm-stop">Drawing board</span></span>
-              <span class="fm-year" id="fm-year">Origin</span>
-              <span class="fm-theme" id="fm-theme">Where precision comes first</span>
+            <div class="fm-slot" aria-hidden="true">
+              <div class="fm-ticket" id="fm-ticket">
+                <span class="fm-t-head" id="fm-t-head">SmartLab line · Skill pass</span>
+                <span class="fm-t-no" id="fm-t-no">Stop 01</span>
+                <span class="fm-t-status" id="fm-t-status">First fare · packed</span>
+                <span class="fm-t-name" id="fm-t-name">Rigour</span>
+                <span class="fm-t-year" id="fm-t-year">School years</span>
+                <span class="fm-t-hole"></span>
+              </div>
             </div>
             <svg id="founder-svg" role="img" aria-label="Transit map whose single line draws Alessio Talluto's identity as a portrait: the career line traces the head, the AI line draws the features and ends at the eye." xmlns="http://www.w3.org/2000/svg" viewBox="-58 -30 496 380"></svg>
             <figcaption>Scale 1 : 20 years · drawn entirely in code</figcaption>
@@ -688,8 +705,8 @@
     const stops = [...document.querySelectorAll('#fb-stops > li')];
     const count = document.getElementById('fb-count'), meter = document.getElementById('fb-meter');
     const prev = document.getElementById('fb-prev'), next = document.getElementById('fb-next');
-    const fig = document.getElementById('founder-map'), board = document.getElementById('fm-board');
-    const bStatus = document.getElementById('fm-status'), bStop = document.getElementById('fm-stop'), bYear = document.getElementById('fm-year'), bTheme = document.getElementById('fm-theme'), bPill = document.getElementById('fm-pill');
+    const fig = document.getElementById('founder-map'), ticket = document.getElementById('fm-ticket');
+    const tHead = document.getElementById('fm-t-head'), tNo = document.getElementById('fm-t-no'), tStatus = document.getElementById('fm-t-status'), tName = document.getElementById('fm-t-name'), tYear = document.getElementById('fm-t-year');
     const rm = matchMedia('(prefers-reduced-motion: reduce)');
     const NS = 'http://www.w3.org/2000/svg';
     const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
@@ -698,9 +715,12 @@
 
     const ring = svg.querySelector('.lm-ring'), ai = svg.querySelector('.lm-ai');
     const pointAt = (L) => { L = clamp(L, 0, map.LT); return L <= map.LR ? ring.getPointAtLength(L) : ai.getPointAtLength(L - map.LR); };
-    const names = stops.map(li => li.querySelector('h3').textContent.trim());
-    const themes = stops.map(li => li.querySelector('.fb-org').textContent.trim());
-    const YEARS = [null, 2006, 2009, 2012, 2019, 2024, 2026, 2026, 2026, 2026];
+    /* the ticket adds what the map does not say: the skill collected at each stop and the time spent on board */
+    const TICKET = [
+      ['Rigour', 'School years'], ['Impact', '2 yrs on board'], ['Logic', '3 yrs on board'], ['Consistency', '7 yrs on board'],
+      ['Rhythm', '5 yrs on board'], ['Alignment', 'On board now'], ['Curiosity', 'Change here'], ['Language', 'Every day'],
+      ['Direction', 'Every day'], ['Identity', 'All lines']
+    ];
 
     /* the dot is the "you are here" marker: ME, set in the display face */
     const train = svg.querySelector('.lm-train'); [...train.children].forEach(c => c.style.display = 'none');
@@ -754,25 +774,49 @@
       svg.setAttribute('viewBox', `${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}`);
       if (Math.abs(cam.z - lastZ) > .002) { applyDetail(cam.z); lastZ = cam.z; }
     }
-    function yearAt(L) {
-      const st = map.stations; let k = 0;
-      for (let i = 0; i < st.length - 1; i++) if (L >= st[i].L - .5) k = i;
-      const a = YEARS[k], b = YEARS[Math.min(k + 1, YEARS.length - 1)];
-      if (a == null) return 'Origin';
-      if (b == null || st[k + 1] === undefined) return String(a);
-      const f = clamp((L - st[k].L) / Math.max(1, st[k + 1].L - st[k].L));
-      return String(Math.round(a + (b - a) * f));
+    /* the ticket pops (out + in) only when the station it shows changes; arriving punches it */
+    let tKey = '', tPunched = false, tAnim = null, tOut = null, tTimer = 0;
+    function fill(show, status, isAI) {
+      tHead.textContent = 'SmartLab line · ' + (isAI ? 'AI pass' : 'Skill pass');
+      tNo.textContent = 'Stop ' + String(show + 1).padStart(2, '0');
+      tStatus.textContent = status; tName.textContent = TICKET[show][0]; tYear.textContent = TICKET[show][1];
+      ticket.classList.toggle('is-ai', isAI);
+    }
+    function popTicket(show, status, isAI, punched) {
+      clearTimeout(tTimer); if (tAnim) tAnim.cancel(); if (tOut) { tOut.cancel(); tOut = null; }
+      const swap = () => {
+        if (tOut) { tOut.cancel(); tOut = null; }
+        fill(show, status, isAI); ticket.classList.remove('is-punched');
+        if (punched) { void ticket.offsetWidth; ticket.classList.add('is-punched'); }
+        tAnim = ticket.animate([
+          { transform: 'translateY(-34px) rotate(-9deg) scale(.9)', opacity: 0 },
+          { transform: 'translateY(4px) rotate(-1deg) scale(1.02)', opacity: 1, offset: .65 },
+          { transform: 'translateY(0) rotate(-2.5deg) scale(1)', opacity: 1 }
+        ], { duration: 520, easing: 'cubic-bezier(.2,.8,.3,1)' });
+      };
+      if (!tKey) { swap(); return; }
+      tOut = ticket.animate([
+        { transform: 'rotate(-2.5deg)', opacity: 1 },
+        { transform: 'translate(26px, -22px) rotate(7deg) scale(.94)', opacity: 0 }
+      ], { duration: 170, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' });
+      tTimer = setTimeout(swap, 165);
     }
     function updateBoard(L, a) {
       if (L >= map.LT - 1) a = map.stations.length - 1;
-      const st = map.stations, hold = Math.abs(L - st[a].L) < .6 || a === st.length - 1;
-      const show = hold ? a : Math.min(a + 1, st.length - 1);
-      bStatus.textContent = a === 0 && hold ? 'Departing from' : hold ? (a === st.length - 1 ? 'Terminus' : 'Now at') : 'Next stop';
-      bStop.textContent = names[show]; bTheme.textContent = themes[show];
-      bYear.textContent = a === st.length - 1 && hold ? 'Today' : yearAt(L);
-      const isAI = L > map.LR + .5;
-      board.classList.toggle('is-ai', isAI); bPill.textContent = isAI ? 'AI' : 'T';
-      fig.classList.toggle('is-night', isAI);
+      const st = map.stations, last = st.length - 1, hold = Math.abs(L - st[a].L) < .6 || a === last;
+      const show = hold ? a : Math.min(a + 1, last);
+      const isAI = show >= 6;
+      const status = show === 0 && hold ? 'First fare · packed' : hold ? (show === last ? 'Terminus · all skills on board' : 'Skill collected') : 'Next stop collects';
+      const key = show + '|' + isAI;
+      if (key !== tKey) { popTicket(show, status, isAI, hold && show > 0); tKey = key; tPunched = hold && show > 0; }
+      else if (tStatus.textContent !== status) {
+        tStatus.textContent = status;
+        const punch = hold && show > 0;
+        if (punch && !tPunched) { ticket.classList.remove('is-punched'); void ticket.offsetWidth; ticket.classList.add('is-punched'); }
+        if (!punch) ticket.classList.remove('is-punched');
+        tPunched = punch;
+      }
+      fig.classList.toggle('is-night', L > map.LR + .5);
       icons.forEach((ic, i) => { ic.g.classList.toggle('is-now', i === a && hold); ic.g.classList.toggle('is-seen', i <= a && !(i === a && hold)); });
     }
     function frame(now) {
