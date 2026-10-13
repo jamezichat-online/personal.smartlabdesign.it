@@ -190,7 +190,8 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
           <div class="ctl"><div class="row"><span class="lbl">Range in</span><span class="val" id="vIn">0%</span></div><input id="inP" type="range" min="0" max="95" step="1" value="0"></div>
           <div class="ctl"><div class="row"><span class="lbl">Range out</span><span class="val" id="vOut">100%</span></div><input id="outP" type="range" min="5" max="100" step="1" value="100"></div>
           <div class="ctl"><span class="lbl">Texture res</span>
-            <div class="chips" data-group="res"><button class="chip" data-val="320" type="button">S · 320</button><button class="chip" data-val="480" type="button" aria-pressed="true">M · 480</button><button class="chip" data-val="720" type="button">L · 720</button></div>
+            <div class="chips" data-group="res"><button class="chip" data-val="480" type="button">S · 480p</button><button class="chip" data-val="720" type="button" aria-pressed="true">M · 720p</button><button class="chip" data-val="1080" type="button">L · 1080p</button></div>
+            <span class="val" id="texInfo" style="color:var(--muted)">Texture: —</span>
           </div>
           <button class="btn hot" id="buildBtn" type="button">Rebuild frames</button>
         </div>
@@ -339,7 +340,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const S = {
   src: null, name: '', size: 0, vw: 0, vh: 0, dur: 0, aspect: 16/9,
-  N: 72, inP: 0, outP: 100, res: 480,
+  N: 72, inP: 0, outP: 100, res: 720, tex: null,
   mode: 'stack', depth: 3, surface: .26, spread: .04, trail: 10,
   active: true, edges: true, mono: true, diff: false,
   bg: 'ink', grid: true, orbit: false, fov: 38, format: 'viewport',
@@ -543,7 +544,10 @@ function disposeFrames(){
 }
 function addFrame(i, cnv, t){
   const { W, H } = dims();
-  const tex = new THREE.CanvasTexture(cnv); tex.colorSpace = THREE.NoColorSpace; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
+  /* mipmap trilineari + filtro anisotropico: i frame lontani o inclinati restano puliti, senza seghettature */
+  const tex = new THREE.CanvasTexture(cnv); tex.colorSpace = THREE.NoColorSpace;
+  tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const geo = new THREE.PlaneGeometry(W, H);
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     uniforms: { map: { value: tex }, mapPrev: { value: tex }, uOpacity: { value: 0 }, uSat: { value: 1 }, uDiff: { value: 0 } } });
@@ -612,7 +616,17 @@ async function build(){
     S.vw = v.videoWidth; S.vh = v.videoHeight; S.dur = v.duration; S.aspect = S.vw / S.vh || 16/9;
     updateFileCard();
     const N = S.N, a = S.dur * S.inP / 100, b = Math.max(a + .1, S.dur * S.outP / 100);
-    const long = S.res, tw = S.aspect >= 1 ? long : Math.round(long * S.aspect), th = S.aspect >= 1 ? Math.round(long / S.aspect) : long;
+    /* Texture res = lato corto (convenzione video 480p/720p/1080p), mai oltre la risoluzione nativa.
+       Budget memoria GPU: se N frame × texture (+33% mipmap) lo superano, la texture viene scalata e lo si segnala. */
+    const short = Math.min(S.vw, S.vh) || S.res, want = Math.min(S.res, short), k0 = want / short;
+    let tw = Math.round(S.vw * k0), th = Math.round(S.vh * k0);
+    const budget = (matchMedia('(pointer: coarse)').matches || innerWidth < 860 ? 300 : 900) * 1048576;
+    const need = tw * th * 4 * 1.34 * N; let capped = false;
+    if (need > budget) { const k = Math.sqrt(budget / need); tw = Math.round(tw * k); th = Math.round(th * k); capped = true; }
+    tw -= tw % 2; th -= th % 2;
+    S.tex = { tw, th, want, native: want >= short && !capped, capped, mb: Math.round(tw * th * 4 * 1.34 * N / 1048576) };
+    texInfo();
+    if (capped) toast(`Memoria GPU: texture ridotte a ${tw}×${th} per ${N} frame. Riduci Sample per salire di risoluzione.`);
     relayout(false); layoutBox = computeBox(); if (grid) grid.position.y = layoutBox.min.y - .5;
     if (pendingCam && pendingCam.mode === S.mode && (pendingCam.format || 'viewport') === S.format) {
       camera.position.fromArray(pendingCam.p); controls.target.fromArray(pendingCam.t); camAnim = null; controls.update();
@@ -690,7 +704,7 @@ try { prefs = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); } catch (e) 
 if (prefs && typeof prefs === 'object') {
   PREF_SLIDERS.forEach(k => { const el = $('#' + k); if (el && Number.isFinite(prefs[k])) el.value = prefs[k]; });
   PREF_CHECKS.forEach(k => { const el = $('#' + k); if (el && typeof prefs[k] === 'boolean') el.checked = prefs[k]; });
-  if (['320','480','720'].includes(String(prefs.res))) S.res = +prefs.res;
+  if (['480','720','1080'].includes(String(prefs.res))) S.res = +prefs.res;
   if (MODES.includes(prefs.mode)) S.mode = prefs.mode;
   if (BG[prefs.bg]) S.bg = prefs.bg;
   if (prefs.format === 'viewport' || FORMATS[prefs.format]) S.format = prefs.format;
@@ -732,7 +746,7 @@ function applyPrefsLive(p){
   const num = (k, el) => { if (Number.isFinite(p[k]) && el) { const v = Math.min(+el.max, Math.max(+el.min, p[k])); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } };
   ['inP','outP','N','depth','surface','spread','trail','fov'].forEach(k => num(k, $('#' + k)));
   PREF_CHECKS.forEach(k => { const el = $('#' + k); if (el && typeof p[k] === 'boolean' && el.checked !== p[k]) { el.checked = p[k]; el.dispatchEvent(new Event('change', { bubbles: true })); } });
-  if (['320','480','720'].includes(String(p.res))) { S.res = +p.res; setChip('res', String(S.res)); }
+  if (['480','720','1080'].includes(String(p.res))) { S.res = +p.res; setChip('res', String(S.res)); }
   if (BG[p.bg]) { S.bg = p.bg; setChip('bg', S.bg); setBg(S.bg); }
   if (p.format === 'viewport' || FORMATS[p.format]) { S.format = p.format; setChip('format', S.format); fit(); }
   if (['0.25','0.5','1','2','4'].includes(String(p.speed))) { S.speed = +p.speed; $('#speed').value = String(p.speed); }
@@ -798,7 +812,7 @@ document.querySelectorAll('[data-group]').forEach(g => g.addEventListener('click
   const b = e.target.closest('.chip'); if (!b) return;
   const grp = g.dataset.group, v = b.dataset.val; setChip(grp, v);
   if (grp === 'mode') setMode(v);
-  else if (grp === 'res') S.res = +v;
+  else if (grp === 'res') { S.res = +v; if (S.built && S.built.res !== S.res) toast('Premi Rebuild frames per applicare la nuova risoluzione.'); }
   else if (grp === 'bg') { S.bg = v; setBg(v); }
   else if (grp === 'cam') framePreset(v);
   else if (grp === 'format') { S.format = v; fit(); framePreset(currentCam(), true); }
@@ -855,6 +869,10 @@ frameEl.addEventListener('pointerup', e => {
 
 /* ---------- HUD ---------- */
 const fmtTime = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2,'0')}:${r.toFixed(3).padStart(6,'0')}`; };
+function texInfo(){
+  const t = S.tex; if (!t) return;
+  $('#texInfo').textContent = `Texture: ${t.tw}×${t.th}${t.capped ? ' · limitata dalla memoria GPU' : t.native && S.res > t.want ? ' · nativa (clip a ' + t.want + 'p)' : t.native ? ' · nativa' : ''} · ~${t.mb} MB GPU`;
+}
 function hud(){ $('#hudTxt').textContent = `${S.frames.filter(Boolean).length} frames · ${S.vw}×${S.vh} · ${S.mode}`; }
 let toastT;
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
