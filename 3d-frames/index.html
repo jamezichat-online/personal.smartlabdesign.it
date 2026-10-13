@@ -911,6 +911,27 @@ frameEl.addEventListener('pointermove', e => {
   nav.vx = -dx * k; nav.vy = -dy * k;
   orbitAround(nav.pivot, nav.vx, nav.vy);
 });
+/* ---------- zoom: volo verso il punto sotto il cursore ----------
+   OrbitControls riduce in percentuale la distanza camera→target: vicino al target i passi tendono a zero
+   (zoom e pan "si bloccano"). Qui la camera trasla lungo il raggio del cursore con un passo proporzionale
+   alla distanza dal contenuto puntato (con passo minimo, quindi si può attraversare la pila); il target
+   viene poi riancorato alla profondità di quel contenuto, così anche pan e rotazioni restano proporzionati. */
+const zoom = { vec: new THREE.Vector3(), anchor: null };
+const zF = new THREE.Vector3(), zG = new THREE.Vector3();
+frameEl.addEventListener('wheel', e => {
+  e.preventDefault(); e.stopPropagation();   /* fase di capture: OrbitControls non riceve la rotella */
+  let dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+  dy = THREE.MathUtils.clamp(dy, -240, 240);
+  if (!dy) return;
+  const P = pickPivot(e.clientX, e.clientY), dir = ray.ray.direction.clone();
+  const d = Math.max(.05, camera.position.distanceTo(P));
+  const R = layoutBox ? Math.max(1, layoutBox.getBoundingSphere(new THREE.Sphere()).radius) : 3;
+  const minStep = R * .045 * Math.abs(dy) / 100;
+  const s = dy < 0 ? Math.max(d * (1 - Math.exp(dy * .0024)), minStep) : -Math.max(d * (Math.exp(dy * .0024) - 1), minStep);
+  zoom.vec.addScaledVector(dir, s); zoom.anchor = P; camAnim = null;
+  savePrefs();
+}, { capture: true, passive: false });
+
 const navEnd = e => {
   nav.pointers.delete(e.pointerId);
   if (!nav.on || e.pointerId !== nav.id) return;
@@ -1010,6 +1031,18 @@ function tick(now){
     const k = Math.min(1, (t - camAnim.t0) / camAnim.dur), e = ease(k);
     camera.position.lerpVectors(camAnim.fp, camAnim.tp, e); controls.target.lerpVectors(camAnim.ft, camAnim.tt, e);
     if (k >= 1) { camAnim = null; savePrefs(); }
+  }
+  /* zoom a volo (smorzato) + riancoraggio del target alla profondità del contenuto puntato */
+  if (zoom.vec.lengthSq() > 1e-10) {
+    const step = zG.copy(zoom.vec).multiplyScalar(Math.min(1, dt * 14));
+    camera.position.add(step); controls.target.add(step); zoom.vec.sub(step);
+    if (zoom.anchor) {
+      camera.getWorldDirection(zF);
+      const depth = zG.subVectors(zoom.anchor, camera.position).dot(zF);
+      const R = layoutBox ? Math.max(1, layoutBox.getBoundingSphere(new THREE.Sphere()).radius) : 3;
+      controls.target.copy(camera.position).addScaledVector(zF, Math.max(depth, R * .25)); /* mai troppo vicino: pan sempre reattivo */
+    }
+    if (zoom.vec.lengthSq() <= 1e-10) { zoom.vec.set(0, 0, 0); zoom.anchor = null; }
   }
   /* inerzia della rotazione a pivot */
   if (!nav.on && (Math.abs(nav.vx) + Math.abs(nav.vy) > 1e-4)) {
