@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="La strada sul mare: mappa animata del viaggio Miami → Key West sulla US-1. Concept di Alessio “Jamez” Talluto, SmartLab Design.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a3161">
+<meta property="og:title" content="La strada sul mare">
+<meta property="og:description" content="Mappa animata Miami → Key West, concept di Alessio “Jamez” Talluto">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a3161'/%3E%3Cpath d='M6 24 Q14 20 16 14 T26 8' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='8' r='3.5' fill='%23c8102e' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E">
+<title>La strada sul mare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Overpass:wght@800;900&display=swap">
+<style>
+/* Layout: fotogramma video al centro (16:9 o 9:16), barra di controllo sopra, regole di stile sotto.
+   Direzione: la Florida di giorno, colori della bandiera USA come segnatura, parole chiave in MAIUSCOLO
+   evidenziate come nei titoli del canale, schede "il bello / il brutto / falso mito / Italia vs USA".
+   Look volutamente unico (giorno), quindi niente variante scura. */
+:root{
+  --page:#eaf1f2; --ink:#0b2545; --muted:#4d6475; --rule:#c9d8dc; --paper:#ffffff;
+  --navy:#0a3161; --red:#c8102e; --sea:#7fcdd0; --sea-deep:#2b8fa3; --shallow:#b8eae6;
+  --land:#d5e3bd; --coast:#97b585; --sand:#f2e2b4; --sign:#0f7048; --good:#1b7f4b;
+  --f-key:"Anton","Impact","Arial Narrow Bold",sans-serif;
+  --f-body:"Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-sign:"Overpass","Arial Narrow",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.eyebrow{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--red)}
+.flag{display:inline-block;width:22px;height:14px;border-radius:2px;flex:none;
+  background:linear-gradient(var(--navy),var(--navy)) 0 0/45% 54% no-repeat,
+    repeating-linear-gradient(var(--red) 0 2px,#fff 2px 4px);box-shadow:0 0 0 1px rgba(11,37,69,.15)}
+h1{font-family:var(--f-key);font-weight:400;font-size:clamp(30px,4.6vw,46px);line-height:1;margin:8px 0 6px;letter-spacing:.005em;text-transform:uppercase;text-wrap:balance}
+h1 mark{background:var(--red);color:#fff;padding:0 .18em}
+.by{color:var(--muted);font-size:14px;margin:0}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:3px;background:var(--paper)}
+.seg button,.play{font:600 13px/1 var(--f-body);color:var(--muted);background:none;border:0;border-radius:999px;padding:9px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.play{background:var(--red);color:#fff;display:inline-flex;gap:8px;align-items:center}
+.play:hover{filter:brightness(1.08)}
+button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+.stage{display:flex;justify-content:center}
+.frame{position:relative;width:100%;aspect-ratio:16/9;background:var(--sea);border-radius:6px;overflow:hidden;
+  container-type:inline-size;box-shadow:0 0 0 1px var(--rule),0 24px 60px -28px rgba(10,49,97,.45);max-width:100%}
+.frame.is-vertical{aspect-ratio:9/16;width:min(100%,420px)}
+.frame > svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+.ov{position:absolute;pointer-events:none}
+/* titolo in stile miniatura: parola chiave in maiuscolo su blocco rosso */
+.title{left:3cqw;top:3cqw;display:flex;flex-direction:column;align-items:flex-start;gap:.5cqw;max-width:46cqw}
+.title .tag{display:flex;align-items:center;gap:.8cqw;background:var(--paper);color:var(--navy);font-weight:700;font-size:1.2cqw;letter-spacing:.12em;text-transform:uppercase;padding:.5cqw .9cqw;border-radius:.4cqw}
+.title .tag .flag{width:2.2cqw;height:1.4cqw}
+.title .tag .shield{width:2.6cqw;height:auto;flex:none}
+.is-vertical .title .tag .shield{width:5.6cqw}
+/* cartello "END US 1" a Key West */
+.endsign{position:absolute;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.3cqw;
+  left:3cqw;bottom:6cqw;opacity:0;transform:translateY(1cqw);transition:opacity .5s,transform .5s}
+.endsign.show{opacity:1;transform:none}
+.endsign .end{background:#fff;color:#111;font:900 1.5cqw/1 var(--f-sign);letter-spacing:.1em;padding:.4cqw .9cqw;border:.2cqw solid #111;border-radius:.3cqw}
+.endsign svg{width:5cqw;height:auto}
+.endsign .post{width:.5cqw;height:3cqw;background:#8c97a0}
+.is-vertical .endsign{left:auto;right:7cqw;bottom:auto;top:52%}
+.is-vertical .endsign .end{font-size:3.2cqw;padding:.8cqw 1.8cqw;border-width:.4cqw}
+.is-vertical .endsign svg{width:11cqw}
+.is-vertical .endsign .post{width:1cqw;height:6cqw}
+.title .l{font-family:var(--f-key);text-transform:uppercase;font-size:5.4cqw;line-height:1;color:var(--paper);background:var(--navy);padding:.35cqw 1cqw .2cqw}
+.title .l.k{background:var(--red)}
+.title .s{font-size:1.45cqw;font-weight:600;color:var(--navy);background:rgba(255,255,255,.85);padding:.4cqw .9cqw;border-radius:.3cqw;margin-top:.4cqw}
+
+.hud{right:3cqw;bottom:3cqw;display:flex;gap:1.3cqw;align-items:stretch;width:44cqw}
+.mm{background:var(--sign);border:.28cqw solid #fff;border-radius:.8cqw;padding:.8cqw 1.1cqw;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:8.4cqw;flex:none;box-shadow:0 .6cqw 1.6cqw -0.8cqw rgba(0,0,0,.4)}
+.mm .l{font:800 1.3cqw/1 var(--f-sign);letter-spacing:.12em;color:#fff}
+.mm .n{font:900 4.5cqw/1 var(--f-sign);color:#fff;font-variant-numeric:tabular-nums;margin-top:.3cqw}
+.card{background:var(--paper);border-radius:.8cqw;padding:1.2cqw 1.4cqw;display:flex;flex-direction:column;gap:.55cqw;min-width:0;flex:1;
+  box-shadow:0 .8cqw 2.4cqw -1cqw rgba(10,49,97,.45);transition:opacity .3s,transform .3s}
+.card.swap{opacity:0;transform:translateY(.8cqw)}
+.card .top{display:flex;justify-content:space-between;align-items:baseline;gap:1cqw}
+.card .place{font-family:var(--f-key);text-transform:uppercase;font-size:2.4cqw;line-height:1;color:var(--navy)}
+.card .dist{font-size:1.1cqw;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row{display:flex;gap:.8cqw;align-items:baseline;font-size:1.32cqw;line-height:1.35;color:var(--ink)}
+.chip{flex:none;font-weight:700;font-size:1cqw;letter-spacing:.1em;text-transform:uppercase;color:#fff;padding:.25cqw .6cqw;border-radius:.3cqw}
+.chip.good{background:var(--good)} .chip.bad{background:var(--red)} .chip.myth{background:var(--navy)}
+.chip.it{background:linear-gradient(90deg,#008c45 0 33%,#f4f5f0 33% 66%,#cd212a 66%);color:var(--ink)}
+.chip.us{background:var(--navy)} .chip.me{background:var(--ink)}
+.row s{color:var(--muted)}
+.credit{left:3cqw;bottom:2.4cqw;font-weight:600;font-size:1.05cqw;letter-spacing:.1em;color:rgba(11,37,69,.6);text-transform:uppercase}
+
+.is-vertical .title{left:6cqw;right:6cqw;top:6cqw;max-width:none;gap:1cqw}
+.is-vertical .title .tag{font-size:2.6cqw;padding:1cqw 1.8cqw;gap:1.6cqw;border-radius:.9cqw}
+.is-vertical .title .tag .flag{width:4.6cqw;height:3cqw}
+.is-vertical .title .l{font-size:11.5cqw;padding:.6cqw 2cqw .4cqw}
+.is-vertical .title .s{font-size:3.2cqw;padding:.9cqw 1.8cqw;border-radius:.7cqw}
+.is-vertical .hud{left:6cqw;right:6cqw;bottom:9cqw;width:auto;gap:2.6cqw}
+.is-vertical .mm{min-width:18cqw;padding:2cqw;border-width:.6cqw;border-radius:1.8cqw}
+.is-vertical .mm .l{font-size:2.8cqw}
+.is-vertical .mm .n{font-size:9.6cqw}
+.is-vertical .card{padding:2.6cqw 3cqw;border-radius:1.8cqw;gap:1.2cqw}
+.is-vertical .card .place{font-size:5.4cqw}
+.is-vertical .card .dist{font-size:2.5cqw}
+.is-vertical .row{font-size:3cqw;gap:1.6cqw}
+.is-vertical .chip{font-size:2.2cqw;padding:.5cqw 1.2cqw;border-radius:.6cqw}
+.is-vertical .credit{left:6cqw;bottom:4cqw;font-size:2.3cqw}
+
+/* regole di stile sotto il video */
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.rule{background:var(--paper);border-radius:6px;padding:16px 16px 18px;min-width:0;border-top:4px solid var(--navy)}
+.rule:nth-child(2){border-top-color:var(--red)}
+.rule h2{font-family:var(--f-key);font-weight:400;text-transform:uppercase;font-size:20px;line-height:1.1;margin:0 0 8px;letter-spacing:.01em}
+.rule p{margin:0;color:var(--muted);font-size:14.5px;max-width:42ch}
+.rule p + p{margin-top:8px}
+.rule em{font-style:normal;font-weight:600;color:var(--ink)}
+.fine{font-size:13px;color:var(--muted);margin:0;border-top:1px solid var(--rule);padding-top:14px}
+@media (max-width:760px){.rules{grid-template-columns:1fr}}
+
+/* mappa */
+.lbl{font-family:var(--f-key);text-transform:uppercase;fill:var(--navy);paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round;transition:opacity .45s;letter-spacing:.02em}
+.lbl.sub{font-family:var(--f-sign);font-weight:800;fill:var(--sign);letter-spacing:.06em}
+.stop .ring{fill:#fff;stroke:var(--navy);stroke-width:4}
+.stop .lbl{opacity:0}
+.stop.dim .ring{stroke:rgba(10,49,97,.3)}
+.stop.on .lbl{opacity:1}
+.stop.now .ring{fill:var(--red);stroke:#fff}
+.grat{stroke:rgba(10,49,97,.09);stroke-width:1.2;fill:none}
+.gratlbl{font-family:var(--f-body);font-weight:600;fill:rgba(10,49,97,.38)}
+@media (prefers-reduced-motion:reduce){.card,.lbl{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow"><span class="flag" aria-hidden="true"></span>Versione B · nello stile del canale</div>
+      <h1>La strada che <mark>finisce</mark> nel mare</h1>
+      <p class="by">Mappa animata Miami → Key West con il tono di Chris: il bello, il brutto, i falsi miti. Proposta di Alessio “Jamez” Talluto</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Formato">
+        <button id="fmt-h" type="button" aria-pressed="true">16:9 YouTube</button>
+        <button id="fmt-v" type="button" aria-pressed="false">9:16 Reel</button>
+      </div>
+      <button id="replay" class="play" type="button">
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Riproduci
+      </button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="frame" id="frame">
+      <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-label="Mappa animata del percorso da Miami Beach a Key West"></svg>
+
+      <div class="ov title">
+        <div class="tag">
+          <svg class="shield" viewBox="0 0 60 64" aria-hidden="true">
+            <rect x="0" y="0" width="60" height="64" rx="5" fill="#111"/>
+            <path d="M8 6h44c0 4 2 6 4 7-3 18-8 34-26 45C12 47 7 31 4 13c2-1 4-3 4-7z" fill="#fff"/>
+            <text x="30" y="20" text-anchor="middle" font-family="Overpass,Arial" font-weight="800" font-size="9" fill="#111">U S</text>
+            <text x="30" y="47" text-anchor="middle" font-family="Overpass,Arial" font-weight="900" font-size="26" fill="#111">1</text>
+          </svg>
+          <span class="flag" aria-hidden="true"></span>Florida Keys
+        </div>
+        <div class="l">La strada</div>
+        <div class="l k">che finisce</div>
+        <div class="l">nel mare</div>
+        <div class="s">266 km, 42 ponti, una strada sola</div>
+      </div>
+
+      <div class="ov hud">
+        <div class="mm"><span class="l" id="mm-l">US</span><span class="n" id="mm-n">1</span></div>
+        <div class="card" id="card">
+          <div class="top"><span class="place" id="place">Miami Beach</span><span class="dist" id="dist">0 km</span></div>
+          <div id="rows"></div>
+        </div>
+      </div>
+
+      <div class="endsign" id="endsign" aria-hidden="true">
+        <span class="end">END</span>
+        <svg viewBox="0 0 60 64">
+          <rect x="0" y="0" width="60" height="64" rx="5" fill="#111"/>
+          <path d="M8 6h44c0 4 2 6 4 7-3 18-8 34-26 45C12 47 7 31 4 13c2-1 4-3 4-7z" fill="#fff"/>
+          <text x="30" y="20" text-anchor="middle" font-family="Overpass,Arial" font-weight="800" font-size="9" fill="#111">U S</text>
+          <text x="30" y="47" text-anchor="middle" font-family="Overpass,Arial" font-weight="900" font-size="26" fill="#111">1</text>
+        </svg>
+        <span class="post"></span>
+      </div>
+
+      <div class="ov credit">Concept · A. Talluto</div>
+    </div>
+  </div>
+
+  <section class="rules" aria-label="Da dove vengono le scelte">
+    <div class="rule">
+      <h2>Le parole di Chris</h2>
+      <p>Prima persona, frasi brevi, niente toni da guida turistica. Una parola chiave in <em>MAIUSCOLO</em>, come nei suoi titoli.</p>
+      <p>Ogni tappa usa una delle sue formule: <em>il bello e il brutto</em>, <em>falso mito</em>, <em>Italia vs USA</em>, <em>secondo me</em>.</p>
+    </div>
+    <div class="rule">
+      <h2>Bandiera e segnaletica</h2>
+      <p>Blu e rosso della bandiera americana, la stessa che apre la sua bio. La segnaletica è quella vera della strada: lo scudo della US-1, il cartello verde del miglio e il cartello <em>END</em> che a Key West chiude la strada.</p>
+      <p>Il rosso evidenzia una sola cosa per volta: la parola chiave o la tappa in cui siamo.</p>
+    </div>
+    <div class="rule">
+      <h2>Misure da italiani</h2>
+      <p>Prima i chilometri, poi le miglia. Quando un numero non dice niente, lo traduco in qualcosa di nostro: il Seven Mile Bridge diventa <em>quasi tre Ponti della Libertà</em>.</p>
+    </div>
+  </section>
+
+  <p class="fine">Testi scritti imitando il registro del canale, da rivedere insieme a Chris. Distanze e mile marker approssimati. Concept non ufficiale, senza loghi né materiali del canale.</p>
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg";
+  const svg=document.getElementById("map"), frame=document.getElementById("frame");
+  const elN=document.getElementById("mm-n"), elL=document.getElementById("mm-l");
+  const elDist=document.getElementById("dist"), elPlace=document.getElementById("place"), elRows=document.getElementById("rows"), card=document.getElementById("card");
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // righe della scheda: [tipo, etichetta, testo]
+  const STOPS=[
+    {n:"Miami Beach",p:[25.790,-80.130],mi:0,mm:null,dx:22,dy:-10,a:"start",rows:[
+      ["good","Il bello","Si parte con l'oceano alle spalle."],
+      ["bad","Il brutto","Uscire da Miami: un'ora di traffico la mettete in conto."]]},
+    {n:"Florida City",p:[25.448,-80.479],mi:40,mm:127,dx:-20,dy:6,a:"end",rows:[
+      ["good","Il bello","Da qui i cartelli verdi contano le miglia alla rovescia."],
+      ["bad","Il brutto","Nelle Keys benzina e spesa costano di più. Il pieno fatelo qui."]]},
+    {n:"Key Largo",p:[25.086,-80.447],mi:67,mm:100,dx:22,dy:8,a:"start",rows:[
+      ["myth","Falso mito","<s>Le Keys sono tutte spiagge.</s>"],
+      ["good","La verità","Poca sabbia, tante mangrovie. Il bello qui è sott'acqua."]]},
+    {n:"Islamorada",p:[24.924,-80.628],mi:85,mm:82,dx:22,dy:22,a:"start",rows:[
+      ["good","Il bello","L'acqua bassa e chiara ai due lati della strada."],
+      ["bad","Il brutto","Spesso una corsia per senso: se c'è un incidente, si sta fermi."]]},
+    {n:"Marathon",p:[24.713,-81.090],mi:117,mm:50,dx:18,dy:36,a:"start",rows:[
+      ["good","Il bello","Siamo a metà: è la sosta giusta."],
+      ["myth","Il nome","Pare che per gli operai della ferrovia questo tratto fosse una maratona."]]},
+    {n:"Seven Mile Bridge",p:[24.690,-81.190],mi:122,mm:45,dx:0,dy:-24,a:"middle",rows:[
+      ["us","USA","Quasi 11 km di ponte sopra il mare."],
+      ["it","Italia","Quasi tre volte il Ponte della Libertà di Venezia."]]},
+    {n:"Big Pine Key",p:[24.669,-81.354],mi:137,mm:30,dx:0,dy:42,a:"middle",rows:[
+      ["good","Il bello","I Key deer: cervi grandi come un cane."],
+      ["bad","Il brutto","Di notte il limite scende e i controlli ci sono davvero."]]},
+    {n:"Key West",p:[24.555,-81.780],mi:166,mm:0,dx:0,dy:44,a:"middle",rows:[
+      ["us","Mile 0","Cuba è a 145 km. Miami, a più di 250."],
+      ["me","Secondo me","Il viaggio vale più della meta. Partite presto e fermatevi spesso."]]}
+  ];
+  const ROUTE=[
+    {p:[25.790,-80.130]},{p:[25.772,-80.175]},{p:[25.700,-80.300]},{p:[25.590,-80.375]},
+    {p:[25.448,-80.479]},{p:[25.300,-80.440]},{p:[25.180,-80.395]},
+    {p:[25.086,-80.447]},{p:[25.000,-80.530]},
+    {p:[24.924,-80.628]},{p:[24.840,-80.770]},{p:[24.765,-80.940]},
+    {p:[24.713,-81.090]},{p:[24.690,-81.190]},{p:[24.662,-81.275]},
+    {p:[24.669,-81.354]},{p:[24.625,-81.520]},{p:[24.582,-81.680]},
+    {p:[24.555,-81.780]}
+  ];
+  const MAINLAND=[[28.4,-80.6],[27.5,-80.3],[26.7,-80.03],[26.0,-80.11],[25.85,-80.15],[25.77,-80.19],[25.68,-80.25],[25.56,-80.31],
+    [25.45,-80.33],[25.35,-80.38],[25.24,-80.43],[25.15,-80.50],[25.17,-80.70],[25.14,-80.90],[25.15,-81.08],[25.30,-81.15],
+    [25.50,-81.25],[25.75,-81.45],[25.90,-81.65],[26.10,-81.80],[26.60,-82.10],[27.30,-82.55],[28.4,-82.75],[28.4,-84],[29,-84],[29,-80.6]];
+  const BEACH=[[25.765,-80.140],[25.850,-80.122],[25.960,-80.118],[26.20,-80.09]];
+  const KEYS_A=[[25.30,-80.30],[25.18,-80.38],[25.086,-80.447],[25.0,-80.53],[24.924,-80.628],[24.84,-80.77],[24.765,-80.94],[24.713,-81.09],[24.705,-81.13]];
+  const KEYS_B=[[24.664,-81.265],[24.669,-81.354],[24.625,-81.52],[24.582,-81.68],[24.555,-81.80]];
+
+  let W,H,proj,pathEl,carEl,glowEl,dashPaths,total,stopLen,timeline,T,stopEls=[],raf=0,t0=0,vertical=false,lastStop=-1;
+
+  function setup(){
+    vertical=frame.classList.contains("is-vertical");
+    W=vertical?900:1600; H=vertical?1600:900;
+    const lonMin=-81.95,lonMax=-79.80,latMin=24.35,latMax=25.95,k=Math.cos(25.1*Math.PI/180);
+    const sx=(lonMax-lonMin)*k, sy=latMax-latMin;
+    const s=Math.min(W*.96/sx,H*.96/sy);
+    const ox=(W-sx*s)/2+(vertical?0:60), oy=(H-sy*s)/2;
+    proj=([la,lo])=>[ox+(lo-lonMin)*k*s, oy+(latMax-la)*s];
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    svg.innerHTML="";
+    const fs=vertical?32:28;
+
+    svg.insertAdjacentHTML("beforeend",`
+      <defs>
+        <radialGradient id="seaG" cx="70%" cy="75%" r="85%"><stop offset="0" stop-color="#9fdcdc"/><stop offset=".6" stop-color="#6cc3c9"/><stop offset="1" stop-color="#3f9fb3"/></radialGradient>
+        <filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="12"/></filter>
+        <filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="8"/></filter>
+      </defs>
+      <rect x="-2000" y="-2000" width="${W+4000}" height="${H+4000}" fill="url(#seaG)"/>`);
+
+    const g=el("g",{class:"grat"}); svg.appendChild(g);
+    [24.5,25,25.5].forEach(la=>{const y=proj([la,-80])[1]; g.appendChild(el("line",{x1:-2000,x2:W+2000,y1:y,y2:y}));
+      const t=el("text",{x:vertical?20:24,y:y-8,class:"gratlbl","font-size":fs*.55}); t.textContent=la.toFixed(1).replace(".",",")+"° N"; svg.appendChild(t);});
+    [-81.5,-81,-80.5,-80].forEach(lo=>{const x=proj([25,lo])[0]; g.appendChild(el("line",{y1:-2000,y2:H+2000,x1:x,x2:x}));});
+
+    svg.appendChild(el("path",{d:"M"+MAINLAND.map(proj).map(p=>p.join(",")).join("L")+"Z",fill:"var(--land)",stroke:"var(--coast)","stroke-width":2.5,"stroke-linejoin":"round"}));
+    svg.appendChild(el("path",{d:smooth(BEACH.map(proj)),fill:"none",stroke:"var(--sand)","stroke-width":6,"stroke-linecap":"round"}));
+    [KEYS_A,KEYS_B].forEach(arr=>svg.appendChild(el("path",{d:smooth(arr.map(proj)),fill:"none",stroke:"var(--shallow)","stroke-width":50,"stroke-linecap":"round",opacity:.8,filter:"url(#blur)"})));
+    [KEYS_A,KEYS_B].forEach(arr=>svg.appendChild(el("path",{d:smooth(arr.map(proj)),fill:"none",stroke:"var(--sand)","stroke-width":12,"stroke-linecap":"round","stroke-dasharray":"34 9 60 7 22 10"})));
+
+    const pts=ROUTE.map(r=>proj(r.p)), d=smooth(pts);
+    svg.appendChild(el("path",{d,fill:"none",stroke:"rgba(10,49,97,.28)","stroke-width":4,"stroke-dasharray":"2 10","stroke-linecap":"round"}));
+    const casing=el("path",{d,fill:"none",stroke:"#fff","stroke-width":15,"stroke-linecap":"round"});
+    pathEl=el("path",{d,fill:"none",stroke:"var(--navy)","stroke-width":7,"stroke-linecap":"round"});
+    svg.appendChild(casing); svg.appendChild(pathEl);
+    total=pathEl.getTotalLength();
+    dashPaths=[casing,pathEl];
+    dashPaths.forEach(p=>{p.style.strokeDasharray=total; p.style.strokeDashoffset=total;});
+
+    const sp=STOPS.map(s=>proj(s.p));
+    let best=STOPS.map(()=>({d:1e9,l:0}));
+    for(let l=0;l<=total;l+=1.5){const q=pathEl.getPointAtLength(l);
+      sp.forEach((p,i)=>{const dd=(q.x-p[0])**2+(q.y-p[1])**2; if(dd<best[i].d) best[i]={d:dd,l};});}
+    stopLen=best.map(o=>o.l); stopLen[0]=0; stopLen[stopLen.length-1]=total;
+
+    stopEls=STOPS.map((s,i)=>{
+      const [x,y]=sp[i], gg=el("g",{class:"stop dim"}), last=i===STOPS.length-1;
+      gg.appendChild(el("circle",{class:"ring",cx:x,cy:y,r:last?14:10}));
+      const tx=el("text",{class:"lbl",x:x+s.dx,y:y+s.dy,"text-anchor":s.a,"font-size":last?fs*1.4:fs}); tx.textContent=s.n; gg.appendChild(tx);
+      if(s.mm!==null){const sub=el("text",{class:"lbl sub",x:x+s.dx,y:y+s.dy+fs*.9,"text-anchor":s.a,"font-size":fs*.6}); sub.textContent="MM "+s.mm; gg.appendChild(sub);}
+      svg.appendChild(gg); return gg;
+    });
+
+    glowEl=el("circle",{r:22,fill:"var(--red)",opacity:.45,filter:"url(#glow)"}); svg.appendChild(glowEl);
+    carEl=el("circle",{r:10,fill:"var(--red)",stroke:"#fff","stroke-width":4}); svg.appendChild(carEl);
+
+    timeline=[]; let t=0; const hold0=1.2, hold=2.1, speed=vertical?190:230;
+    timeline.push({t0:0,t1:hold0,l0:0,l1:0,stop:0}); t=hold0;
+    for(let i=1;i<STOPS.length;i++){
+      const dur=Math.max(.75,(stopLen[i]-stopLen[i-1])/speed);
+      timeline.push({t0:t,t1:t+dur,l0:stopLen[i-1],l1:stopLen[i],stop:i-1,move:true}); t+=dur;
+      const h=i===STOPS.length-1?3.4:hold;
+      timeline.push({t0:t,t1:t+h,l0:stopLen[i],l1:stopLen[i],stop:i}); t+=h;
+    }
+    T=t; lastStop=-1;
+  }
+
+  function el(n,a){const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e;}
+  function smooth(p){
+    let d="M"+p[0].join(",");
+    for(let i=0;i<p.length-1;i++){
+      const p0=p[i-1]||p[i],p1=p[i],p2=p[i+1],p3=p[i+2]||p2;
+      const c1=[p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6], c2=[p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6];
+      d+=`C${c1.join(",")} ${c2.join(",")} ${p2.join(",")}`;
+    }
+    return d;
+  }
+  const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  const lerp=(a,b,u)=>a+(b-a)*u;
+
+  function fill(i){
+    const s=STOPS[i];
+    elPlace.textContent=s.n;
+    elRows.innerHTML=s.rows.map(([k,lab,txt])=>`<div class="row"><span class="chip ${k}">${lab}</span><span>${txt}</span></div>`).join("");
+  }
+
+  function render(t){
+    const seg=timeline.find(s=>t<s.t1)||timeline[timeline.length-1];
+    const u=seg.t1>seg.t0?Math.min(1,Math.max(0,(t-seg.t0)/(seg.t1-seg.t0))):1;
+    const len=lerp(seg.l0,seg.l1,seg.move?ease(u):1);
+    const reached=seg.stop;
+
+    dashPaths.forEach(p=>p.style.strokeDashoffset=total-len);
+    const c=pathEl.getPointAtLength(len);
+    carEl.setAttribute("cx",c.x); carEl.setAttribute("cy",c.y);
+    glowEl.setAttribute("cx",c.x); glowEl.setAttribute("cy",c.y);
+    stopEls.forEach((g,i)=>{g.classList.toggle("on",i<=reached); g.classList.toggle("dim",i>reached); g.classList.toggle("now",i===reached&&!seg.move);});
+    document.getElementById("endsign").classList.toggle("show",reached===STOPS.length-1);
+
+    let a=0; while(a<STOPS.length-1 && stopLen[a+1]<=len) a++;
+    const b=Math.min(a+1,STOPS.length-1);
+    const f=stopLen[b]>stopLen[a]?(len-stopLen[a])/(stopLen[b]-stopLen[a]):0;
+    const mi=lerp(STOPS[a].mi,STOPS[b].mi,f);
+    elDist.textContent=Math.round(mi*1.609)+" km · "+Math.round(mi)+" mi";
+    const mmA=STOPS[a].mm, mmB=STOPS[b].mm;
+    if(mmA===null){elL.textContent="US"; elN.textContent="1";}
+    else{elL.textContent="MILE"; elN.textContent=Math.round(lerp(mmA,mmB===null?mmA:mmB,f));}
+
+    if(reached!==lastStop){
+      lastStop=reached;
+      if(reduce){fill(reached);}
+      else{const r=reached; card.classList.add("swap"); setTimeout(()=>{if(r===lastStop){fill(r);} card.classList.remove("swap");},300);}
+    }
+
+    const g=Math.sin(Math.PI*Math.min(1,t/(T-1.6)));
+    const z=1+(vertical?.95:.6)*g, vw=W/z, vh=H/z;
+    const cx=lerp(W/2,c.x,g*.9), cy=lerp(H/2,c.y,g*.9);
+    svg.setAttribute("viewBox",`${(cx-vw/2).toFixed(1)} ${(cy-vh/2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+  }
+
+  function play(){
+    cancelAnimationFrame(raf);
+    if(reduce){render(T); return;}
+    t0=performance.now();
+    const step=now=>{const t=(now-t0)/1000; render(Math.min(t,T)); if(t<T) raf=requestAnimationFrame(step);};
+    raf=requestAnimationFrame(step);
+  }
+  function setFormat(v){
+    frame.classList.toggle("is-vertical",v);
+    document.getElementById("fmt-h").setAttribute("aria-pressed",String(!v));
+    document.getElementById("fmt-v").setAttribute("aria-pressed",String(v));
+    try{localStorage.setItem("ohbFmt",v?"v":"h");}catch(e){}
+    setup(); render(T); fill(STOPS.length-1); play();
+  }
+  document.getElementById("replay").addEventListener("click",play);
+  document.getElementById("fmt-h").addEventListener("click",()=>setFormat(false));
+  document.getElementById("fmt-v").addEventListener("click",()=>setFormat(true));
+
+  let startV=false; try{startV=localStorage.getItem("ohbFmt")==="v";}catch(e){}
+  frame.classList.toggle("is-vertical",startV);
+  document.getElementById("fmt-h").setAttribute("aria-pressed",String(!startV));
+  document.getElementById("fmt-v").setAttribute("aria-pressed",String(startV));
+  setup(); render(T); fill(STOPS.length-1); card.classList.remove("swap");
+  const go=()=>setTimeout(play,600);
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(go,go);
+})();
+</script>
+
+</body>
+</html>
