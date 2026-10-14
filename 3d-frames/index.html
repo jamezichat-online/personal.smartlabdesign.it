@@ -179,7 +179,7 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
             <input id="file" type="file" accept="video/*" hidden>
           </label>
           <div class="file-card" id="fileCard"><span id="fileName">—</span><br><span class="meta" id="fileMeta">—</span></div>
-          <button class="chip" id="demoBtn" type="button" style="align-self:flex-start">Ricarica clip demo AUXCORE Catania</button>
+          <button class="chip" id="demoBtn" type="button" style="align-self:flex-start">Ricarica clip demo</button>
         </div>
       </details>
 
@@ -210,9 +210,9 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
               <button class="chip" data-val="helix" type="button">Helix<kbd>6</kbd></button>
             </div>
           </div>
-          <div class="ctl"><div class="row"><span class="lbl">Depth</span><span class="val" id="vDepth">3.00×</span></div><input id="depth" type="range" min="0" max="8" step="0.05" value="3"></div>
-          <div class="ctl"><div class="row"><span class="lbl">Surface</span><span class="val" id="vSurface">26%</span></div><input id="surface" type="range" min="0" max="1" step="0.01" value="0.26"></div>
-          <div class="ctl"><div class="row"><span class="lbl">Spread</span><span class="val" id="vSpread">4%</span></div><input id="spread" type="range" min="0" max="1" step="0.01" value="0.04"></div>
+          <div class="ctl"><div class="row"><span class="lbl">Depth</span><span class="val" id="vDepth">4.40×</span></div><input id="depth" type="range" min="0" max="8" step="0.05" value="4.4"></div>
+          <div class="ctl"><div class="row"><span class="lbl">Surface</span><span class="val" id="vSurface">6%</span></div><input id="surface" type="range" min="0" max="1" step="0.01" value="0.06"></div>
+          <div class="ctl"><div class="row"><span class="lbl">Spread</span><span class="val" id="vSpread">0%</span></div><input id="spread" type="range" min="0" max="1" step="0.01" value="0"></div>
           <div class="ctl"><div class="row"><span class="lbl">Trail</span><span class="val" id="vTrail">10 frame</span></div><input id="trail" type="range" min="0" max="40" step="1" value="10"></div>
           <div class="checks">
             <label class="check"><input id="active" type="checkbox" checked>Active</label>
@@ -334,14 +334,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 THREE.ColorManagement.enabled = false;
 
-const DEMO = { src: 'auxcore-catania-intro.mp4', name: 'auxcore-catania-intro.mp4 · demo' };
+const DEMO = { src: 'man-animating-head.mp4', name: 'man-animating-head.mp4 · demo' };
 const $ = s => document.querySelector(s);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const S = {
   src: null, name: '', size: 0, vw: 0, vh: 0, dur: 0, aspect: 16/9,
   N: 72, inP: 0, outP: 100, res: 720, tex: null,
-  mode: 'stack', depth: 3, surface: .26, spread: .04, trail: 10,
+  mode: 'stack', depth: 4.4, surface: .06, spread: 0, trail: 10,
   active: true, edges: true, mono: true, diff: false,
   bg: 'ink', grid: true, orbit: false, fov: 38, format: 'viewport',
   speed: 1, loop: 'loop', dir: 1, playing: !reduce, p: 0, ai: -1,
