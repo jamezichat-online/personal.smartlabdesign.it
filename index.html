@@ -119,6 +119,8 @@
     .project-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4,24,28,.95), rgba(4,24,28,.66) 40%, transparent 73%), linear-gradient(0deg, rgba(4,24,28,.9), transparent 58%); }
     .project-card--burger::before { background-image: url("/giggiooo-burger/assets/hero-poster.jpg"); background-position: center 48%; }
     .project-card--burger::after { background: linear-gradient(90deg, rgba(24,9,5,.96), rgba(24,9,5,.72) 39%, rgba(24,9,5,.08) 75%), linear-gradient(0deg, rgba(24,9,5,.88), transparent 58%); }
+    .project-card--frames::before { background-image: url("/3d-frames/assets/cover.jpg"); background-image: image-set(url("/3d-frames/assets/cover.webp") type("image/webp"), url("/3d-frames/assets/cover.jpg") type("image/jpeg")); background-position: 62% center; }
+    .project-card--frames::after { background: linear-gradient(90deg, rgba(4,24,28,.96), rgba(4,24,28,.7) 36%, rgba(4,24,28,.06) 70%), linear-gradient(0deg, rgba(4,24,28,.92), transparent 55%); }
     .project-card:hover::before { transform: scale(1.045); filter: saturate(1.12); }
     .project-content { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; padding: clamp(28px, 5vw, 72px); }
     .project-meta { margin-bottom: 20px; color: var(--sun); font: 500 10px "DM Mono"; letter-spacing: .13em; text-transform: uppercase; }
@@ -333,6 +335,8 @@
       .project-card::before { background-position: 59% center; }
       .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.48) 68%, rgba(4,24,28,.12)); }
       .project-card--burger::before { background-position: center center; }
+      .project-card--frames::before { background-position: 58% center; }
+      .project-card--frames::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.5) 64%, rgba(4,24,28,.1)); }
       .project-card--burger::after { background: linear-gradient(0deg, rgba(24,9,5,.97), rgba(24,9,5,.55) 60%, rgba(24,9,5,.08)); }
       .project-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 26px 20px 22px; }
       .project-meta { margin-bottom: 14px; font-size: 9px; }
@@ -456,6 +460,16 @@
               <div class="project-meta">02 / Brand experience / 2026</div>
               <h3 class="project-title">Giggiooo<i>Burger.</i></h3>
               <p class="project-description">A cinematic burger brand experience with scroll-synced film, rich food imagery and a signature gold-and-brown identity.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+        <a class="project-card project-card--frames" href="/3d-frames/" aria-label="Open 3D Video Frames tool">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">03 / Interactive tool / 2026</div>
+              <h3 class="project-title">3D Video<i>Frames.</i></h3>
+              <p class="project-description">A WebGL tool that explodes any clip into a navigable space of frames, built for temporal QA of AI video, keyframe picking and motion assets.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
