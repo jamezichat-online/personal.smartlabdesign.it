@@ -1,0 +1,41 @@
+name: Recover apartment Pages deployment
+on:
+  push:
+    paths:
+      - '.github/workflows/recover-apartment-pages.yml'
+permissions:
+  contents: read
+  actions: write
+  pages: write
+jobs:
+  cancel-stale-apartment-deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Cancel only the obsolete apartment deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.error, time
+          base = 'https://api.github.com/repos/jamezichat-online/personal.smartlabdesign.it'
+          headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
+          def call(path, method='GET', allowed=()):
+              request = urllib.request.Request(base + path, headers=headers, method=method)
+              try:
+                  response = urllib.request.urlopen(request, timeout=25)
+                  body = response.read().decode()
+                  print(method, path, response.status)
+                  return json.loads(body) if body else {}
+              except urllib.error.HTTPError as error:
+                  print(method, path, error.code, error.read().decode())
+                  if error.code not in allowed: raise
+                  return {}
+          call('/actions/runs/39436080463/cancel', 'POST', (409, 422))
+          call('/pages/deployments/a9ed78102b269b038f79b47c0d9d6f25f4748da2/cancel', 'POST', (404, 409))
+          for attempt in range(6):
+              state = call('/pages/deployments/a9ed78102b269b038f79b47c0d9d6f25f4748da2/status', allowed=(404,))
+              print('Obsolete deployment status:', state.get('status', 'not-found'))
+              if state.get('status') not in ('queued', 'pending', 'in_progress', 'updating_pages', 'deployment_in_progress'): break
+              if attempt < 5: time.sleep(5)
+          PY
