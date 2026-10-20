@@ -32,10 +32,11 @@ jobs:
                   if error.code not in allowed: raise
                   return {}
           call('/actions/runs/39436080463/cancel', 'POST', (409, 422))
+          call('/actions/runs/39436080463/force-cancel', 'POST', (409, 422))
           call('/pages/deployments/a9ed78102b269b038f79b47c0d9d6f25f4748da2/cancel', 'POST', (404, 409))
-          for attempt in range(6):
-              state = call('/pages/deployments/a9ed78102b269b038f79b47c0d9d6f25f4748da2/status', allowed=(404,))
+          for attempt in range(5):
+              state = call('/pages/deployments/a9ed78102b269b038f79b47c0d9d6f25f4748da2', allowed=(404,))
               print('Obsolete deployment status:', state.get('status', 'not-found'))
               if state.get('status') not in ('queued', 'pending', 'in_progress', 'updating_pages', 'deployment_in_progress'): break
-              if attempt < 5: time.sleep(5)
+              if attempt < 4: time.sleep(10)
           PY
