@@ -907,7 +907,7 @@ window.addEventListener('pointermove',e=>{if(e.pointerType!=='touch'||!touchPoin
 function finishCanvasPointer(e,cancel=false){if(e.pointerType!=='touch'){if(!cancel&&e.target===renderer.domElement&&desktopTap?.id===e.pointerId&&Math.hypot(e.clientX-desktopTap.x,e.clientY-desktopTap.y)<6&&!furnitureEditing){const doorId=activeTab==='edit'?pickDesignDoor(e):null,id=pickDesignWindow(e);if(doorId||id){lookDrag=null;if(doorId)selectDesignDoor(doorId);else selectDesignWindow(id);e.stopImmediatePropagation()}}desktopTap=null;return}const p=touchPointers.get(e.pointerId);if(!p)return;const furnitureOnly=furnitureEditing&&touchPointers.size===1&&!touchConsumed;touchPointers.delete(e.pointerId);if(!furnitureOnly){if(!cancel&&!touchConsumed&&p.travel<8)canvasTap(e);lookDrag=null;if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);stopTouch(e)}touchState=touchPointers.size?touchSample():null;if(!touchPointers.size)touchConsumed=false}
 window.addEventListener('pointerup',e=>finishCanvasPointer(e),true);window.addEventListener('pointercancel',e=>finishCanvasPointer(e,true),true);
 window.addEventListener('blur',()=>{touchPointers.clear();touchState=null;touchConsumed=false;lookDrag=null;desktopTap=null;clearKeys()});renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
-$('edit-design-shortcut').onclick=()=>{preserveViewEdit();refreshDesignEditors();$('design-tools').scrollIntoView({block:'start'})};
+$('edit-design-shortcut').onclick=()=>{preserveViewEdit();refreshDesignEditors();$('door-editor').scrollIntoView({block:'start'})};
 
 $('design-undo').onclick=()=>$('undo').click();
 
