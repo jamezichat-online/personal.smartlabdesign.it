@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path'),assert=require('assert');const ids=require('./original-control-ids.json'),current=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').split('<script id="real-assets"')[0];for(const id of ids)assert(current.includes('id="'+id+'"'),'Existing control retained: '+id);console.log('PASS original controls retained');
