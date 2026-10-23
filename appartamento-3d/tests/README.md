@@ -4,6 +4,7 @@ Requires Node.js, Playwright and Chromium (with WebGL support).
 
 ```sh
 node appartamento-3d/tests/controls.cjs
+CHROME_PATH=/path/to/chrome node appartamento-3d/tests/garage-access.cjs
 CHROME_PATH=/path/to/chrome node appartamento-3d/tests/tv-accessories.cjs
 CHROME_PATH=/path/to/chrome node appartamento-3d/tests/scrolling.cjs
 CHROME_PATH=/path/to/chrome node appartamento-3d/tests/workspace.cjs
