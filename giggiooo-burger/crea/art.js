@@ -295,19 +295,72 @@ window.GGArt = (() => {
 
   function sauce(P, r, v) {
     const p = SAUCE[v], R = 150, ry = R * K, h = 3;
-    const nz = harm(r, [3, 6, 11]);
-    const pool = smooth(ellPts(R * .08, -h + ry * .25, R * .62, ry * .55, nz, .12));
-    const c = curtain(r, R * .97, ry * .97, h, { drips: 7, Lmin: 10, Lmax: 32, wmin: 6, wmax: 11, base: 5 });
-    const defs = [blur(P + 'sh', 3), blur(P + 'g', 1.2), linV(P + 'f', [[0, p[0]], [.5, p[1]], [1, p[2]]], -h - ry, ry + 30)];
-    let melt = `<path d="${c.d}" fill="url(#${P}f)"/>`;
-    c.drips.forEach(d => {
-      const s = Math.sqrt(Math.max(0, 1 - (d.x / R) ** 2));
-      melt += `<ellipse cx="${f(d.x - d.w * .2)}" cy="${f(-h + ry * s + 3 + d.L * s * .75)}" rx="1.6" ry="2.8" fill="#fff" opacity=".6"/>`;
+    const nz = harm(r, [2, 3, 5, 8]);
+    // pozza: massa irregolare sulla faccia superiore, più generosa sul fronte (dove cola)
+    const blob = [];
+    for (let i = 0; i < 72; i++) {
+      const t = Math.PI * 2 * i / 72, front = Math.max(0, Math.sin(t));
+      const rho = R * (.74 + .12 * nz(t) + .16 * front);
+      blob.push([rho * Math.cos(t), -h + ry * (rho / R) * Math.sin(t)]);
+    }
+    const frontY = x => {
+      let best = null;
+      for (const [bx, by] of blob) if (by > -h && (best === null || Math.abs(bx - x) < Math.abs(best[0] - x))) best = [bx, by];
+      return best ? best[1] : 0;
+    };
+    // colature: lingue di salsa che partono dal bordo della pozza, rastremate, con goccia finale
+    const flows = [];
+    let tries = 0;
+    const n = 4 + Math.floor(r() * 3);
+    while (flows.length < n && tries++ < 60) {
+      const lobe = r() < .38;
+      const w = lobe ? lerp(15, 24, r()) : lerp(6, 13, r());
+      const x = (r() * 2 - 1) * R * (lobe ? .62 : .76);
+      if (flows.some(o => Math.abs(o.x - x) < (o.w + w) * .9)) continue;
+      const s = Math.sqrt(Math.max(0, 1 - (x / R) ** 2));
+      const L = (lobe ? lerp(4, 12, r()) : lerp(16, 48, r())) * (.5 + .5 * s);
+      flows.push({ x, w, L, y0: frontY(x) - 3, lean: (r() - .5) * (lobe ? 4 : 9) });
+    }
+    const flowPath = fl => {
+      const L = [], Rr = [];
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10, w = fl.w * (1 - .45 * Math.pow(t, .7));
+        const y = fl.y0 + fl.L * t, x = fl.x + fl.lean * t * t;
+        L.push([x - w, y]); Rr.unshift([x + w, y]);
+      }
+      const bx = fl.x + fl.lean, by = fl.y0 + fl.L, br = fl.w * .72;
+      const bulb = [];
+      for (let k = 1; k < 8; k++) { const a = Math.PI * k / 8; bulb.push([bx - br * Math.cos(a), by + br * .55 + br * .85 * Math.sin(a)]); }
+      return smooth(L.concat(bulb, Rr));
+    };
+    const blobD = smooth(blob);
+    const yTop = -h - ry, yBot = ry + 60;
+    const defs = [
+      blur(P + 'sh', 3), blur(P + 'g', 1.3), blur(P + 'g2', 3),
+      linV(P + 'f', [[0, p[0]], [.42, p[1]], [1, p[2]]], yTop, yBot),
+      linV(P + 'd', [[0, p[2]], [1, p[2]]], yTop, yBot),
+      clip(P + 'k', blobD)
+    ];
+    let melt = '';
+    flows.forEach(fl => { melt += `<path d="${flowPath(fl)}" fill="url(#${P}f)"/>`; });
+    flows.forEach(fl => {
+      const bx = fl.x + fl.lean, by = fl.y0 + fl.L + fl.w * .5;
+      melt += `<path d="M${f(fl.x - fl.w * .45)},${f(fl.y0 + 4)} Q${f(fl.x - fl.w * .4 + fl.lean * .3)},${f(fl.y0 + fl.L * .6)} ${f(bx - fl.w * .35)},${f(by - fl.w * .1)}" stroke="#fff" stroke-width="1.8" fill="none" opacity=".42" stroke-linecap="round" filter="url(#${P}g)"/>`;
+      melt += `<ellipse cx="${f(bx - fl.w * .28)}" cy="${f(by)}" rx="${f(fl.w * .2)}" ry="${f(fl.w * .14)}" fill="#fff" opacity=".7"/>`;
     });
-    let body = `<g class="melt">${melt}</g><path d="${pool}" fill="url(#${P}f)" opacity=".96"/>`;
-    body += `<path d="M${f(-R * .55)},${f(-h - ry * .45)} q${f(R * .3)},-6 ${f(R * .6)},-2" stroke="#fff" stroke-width="2.4" fill="none" opacity=".45" stroke-linecap="round" filter="url(#${P}g)"/>`;
-    if (p[3]) body += dots(r, 60, () => inEll(r, 0, -h, R * .85, ry * .85), ['#1b140f', '#3a2c20'], .6, 1.6, .6, 1);
-    return { h, top: h + ry + 10, below: ry + 40, melt: true, svg: `<defs>${defs.join('')}</defs>${body}` };
+    // massa: spessore (bordo scuro sotto) + superficie con gradiente
+    let body = `<path d="${blobD}" transform="translate(0 3.5)" fill="url(#${P}d)" opacity=".9" filter="url(#${P}g)"/>`;
+    body += `<g class="melt">${melt}</g>`;
+    body += `<path d="${blobD}" fill="url(#${P}f)"/>`;
+    // volume: ombra interna sul fronte e riflessi lucidi sulla superficie
+    body += `<g clip-path="url(#${P}k)"><path d="${blobD}" transform="translate(0 6) scale(1 .96)" fill="none" stroke="${p[2]}" stroke-width="7" opacity=".45" filter="url(#${P}g2)"/>`;
+    for (let i = 0; i < 4; i++) {
+      const cx = lerp(-R * .5, R * .35, r()), cy = -h + ry * lerp(-.45, .35, r()), len = lerp(26, 70, r());
+      body += `<path d="M${f(cx)},${f(cy)} q${f(len / 2)},${f(-3 - r() * 3)} ${f(len)},${f(-1 + r() * 2)}" stroke="#fff" stroke-width="${f(1.6 + r() * 1.6)}" fill="none" opacity="${f(.25 + r() * .3)}" stroke-linecap="round" filter="url(#${P}g)"/>`;
+    }
+    if (p[3]) body += dots(r, 70, () => inEll(r, 0, -h + ry * .1, R * .85, ry * .85), ['#1b140f', '#3a2c20'], .6, 1.7, .6, 1);
+    body += `</g>`;
+    return { h, top: h + ry + 12, below: ry + 70, melt: true, svg: `<defs>${defs.join('')}</defs>${body}` };
   }
 
   function sauceIcon(P, r, v) {
