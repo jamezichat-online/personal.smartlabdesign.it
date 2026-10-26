@@ -44,7 +44,7 @@
   const insideList = $('.inside-list'), statLayers = $('[data-stat="layers"]'), statPrice = $('[data-stat="price"]');
   const live = $('.sr-live'), status = $('.stage-status'), smoke = $('.smoke'), form = $('#order-form'), toastEl = $('.toast');
   const ticket = $('#ticket');
-  const STACK_W = 420, STACK_H = 600, FLOOR = 530, GAP = 70;
+  const STACK_W = 420, STACK_H = 600, FLOOR = 530, GAP = 70, SINK = 10; // SINK: quanto il bun chiuso affonda sugli ingredienti
 
   /* ---------------- sprite ---------------- */
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -104,8 +104,9 @@
       b += L.art.h;
     });
     totalH = b;
-    bunT.el.style.zIndex = 60;
-    bunT.target = totalH + (state.phase === 'build' ? GAP : 0);
+    // aperto: il bun sta davanti (esploso); chiuso: dietro agli strati, che ne coprono la faccia interna
+    bunT.el.style.zIndex = state.phase === 'build' ? 60 : 0;
+    bunT.target = state.phase === 'build' ? totalH + GAP : totalH - SINK;
     if (spawn && !reduced && state.phase === 'build') bunT.vy += 240;
     const need = totalH + GAP + bunT.art.top + 40;
     zoomEl.style.setProperty('--zoom', Math.min(1, (FLOOR - 30) / need).toFixed(3));
@@ -170,7 +171,7 @@
     state.phase = 'build';
     document.body.classList.remove('is-done', 'is-grilling');
     flag.classList.remove('in');
-    bunT.fall = false; bunT.vy = 380;
+    bunT.fall = false; bunT.vy = 380; bunT.el.style.zIndex = 60;
   }
 
   function add(id, silent) {
@@ -224,8 +225,9 @@
     state.phase = 'grilling';
     document.body.classList.add('is-grilling');
     update();
-    bunT.target = totalH;
-    if (!reduced) { bunT.fall = true; bunT.vy = 120; } else bunT.y = totalH;
+    bunT.target = totalH - SINK;
+    bunT.el.style.zIndex = 0;
+    if (!reduced) { bunT.fall = true; bunT.vy = 120; } else bunT.y = totalH - SINK;
     kick();
     status.textContent = 'Si chiude. Sulla piastra.';
     if (!reduced) runSmoke(2200);
@@ -366,7 +368,7 @@
 
   function burgerCanvas(scale) {
     const order = stackOrder().map(o => layers.get(o.uid)).filter(Boolean);
-    const all = [...order.map(L => ({ L, base: L.target })), { L: bunT, base: totalH }];
+    const all = [{ L: bunT, base: totalH - SINK }, ...order.map(L => ({ L, base: L.target }))];
     const top = totalH + bunT.art.top + 8, bot = 40;
     const c = document.createElement('canvas'); c.width = 460 * scale; c.height = (top + bot) * scale;
     const x = c.getContext('2d'); x.scale(scale, scale); x.translate(230, top);
