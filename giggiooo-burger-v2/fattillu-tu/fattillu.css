@@ -198,3 +198,10 @@ p{color:var(--muted)}
 .ing-head{flex-wrap:wrap;row-gap:4px}.ing-head h3{white-space:nowrap}
 .panel-head h1{font-size:clamp(48px,4.6vw,72px);margin:14px 0 14px}
 .presets{margin-top:26px}
+
+/* stage immersivo: il bancone Giggiooo (piano nitido, fondo in profondità di campo) */
+.stage{background:#120a06 url('extras/bancone.webp') center 100%/cover no-repeat}
+.stage:before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(14,8,5,.62) 0%,rgba(14,8,5,.18) 22%,rgba(14,8,5,0) 45%,rgba(14,8,5,0) 72%,rgba(14,8,5,.35) 100%),radial-gradient(ellipse 75% 60% at 50% 62%,rgba(0,0,0,0) 40%,rgba(10,5,3,.5) 100%)}
+.stage:after{display:none}
+.stage-glow{opacity:.55;mix-blend-mode:screen}
+.wrap{filter:drop-shadow(0 10px 14px rgba(0,0,0,.6)) brightness(.95)}
