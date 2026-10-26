@@ -354,17 +354,48 @@
   }
 
   /* ---------------- UI ---------------- */
-  function renderTabs() { /* tutti gli ingredienti sono visibili in un'unica griglia */ }
+  function renderTabs() {
+    tabs.innerHTML = CATS.map(c => `<button type="button" role="tab" class="tab" data-cat="${c.id}" aria-selected="${c.id === state.cat}" aria-controls="chips">${c.label}<span class="tab-count" data-tabcount="${c.id}"></span></button>`).join('');
+    syncCatNav();
+  }
+  // navigazione tra categorie: frecce, sfumature ai bordi, "Categoria n di 5", pulsante Avanti, swipe
+  const catIdx = () => CATS.findIndex(c => c.id === state.cat);
+  function goCat(i, focusTab) {
+    i = Math.max(0, Math.min(CATS.length - 1, i));
+    if (CATS[i].id === state.cat) return;
+    const dir = i > catIdx() ? 1 : -1;
+    state.cat = CATS[i].id;
+    tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.cat === state.cat)));
+    renderChips();
+    grid.classList.remove('slide-l', 'slide-r'); void grid.offsetWidth; grid.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
+    const t = tabs.querySelector(`.tab[data-cat="${state.cat}"]`);
+    if (t) { t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest', inline: 'center' }); if (focusTab) t.focus(); }
+    syncCatNav();
+  }
+  function syncCatNav() {
+    const i = catIdx(), n = CATS.length;
+    $('.cat-step').textContent = `Categoria ${i + 1} di ${n}`;
+    const next = $('.cat-next');
+    if (i < n - 1) { next.innerHTML = `Avanti: ${CATS[i + 1].label} <span aria-hidden="true">→</span>`; next.dataset.go = i + 1; }
+    else { next.innerHTML = 'Contorno e bibita <span aria-hidden="true">↓</span>'; next.dataset.go = 'extras'; }
+    $('.tab-arrow.prev').disabled = i === 0; $('.tab-arrow.next').disabled = i === n - 1;
+    $('.cat-dots').innerHTML = CATS.map((c, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+    syncFades();
+  }
+  function syncFades() {
+    const w = $('.tabs-wrap'); if (!w) return;
+    w.classList.toggle('more-l', tabs.scrollLeft > 4);
+    w.classList.toggle('more-r', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 4);
+  }
 
   function renderChips() {
-    const catLabel = id => (CATS.find(c => c.id === ING[id].cat) || {}).label || '';
-    grid.innerHTML = Object.keys(ING).map(id => {
+    grid.innerHTML = Object.keys(ING).filter(id => ING[id].cat === state.cat).map(id => {
       const ing = ING[id], s = SP[ing.v[0]];
       return `<div class="chip" data-id="${id}">
         <button type="button" class="chip-main" data-add="${id}" aria-label="Aggiungi ${esc(ing.name)}">
           <span class="chip-icon"><img src="${s.src}" alt="" draggable="false"></span>
           <span class="chip-name">${esc(ing.chip || ing.name)}</span>
-          <span class="chip-meta">${esc(catLabel(id))} · max ${ing.max}</span>
+          <span class="chip-meta">max ${ing.max}</span>
         </button>
         <span class="chip-badge" aria-hidden="true"></span>
         <button type="button" class="chip-minus" data-remove="${id}" aria-label="Rimuovi ${esc(ing.name)}">−</button>
@@ -449,7 +480,22 @@
   function fit() {
     const r = stage.getBoundingClientRect(), head = innerWidth <= 820 ? 70 : 0;
     const needW = Math.max(STACK_W, extraNeedW * zoomVal);
-    fitEl.style.setProperty('--fit', Math.min(r.width * .96 / needW, (r.height - head) * .97 / STACK_H).toFixed(4));
+    const f = Math.min(r.width * .96 / needW, (r.height - head) * .97 / STACK_H);
+    fitEl.style.setProperty('--fit', f.toFixed(4));
+    placeCounter(r, f);
+  }
+
+  // bancone agganciato alle coordinate del burger: il punto d’appoggio cade sempre al 90% dell’immagine,
+  // dentro il piano; l'immagine si allarga quanto serve per coprire lo stage
+  const counter = $('.counter'), BG_RATIO = 1340 / 2400, BG_FLOOR = .9;
+  function placeCounter(r, f) {
+    if (!counter) return;
+    const bottomPad = parseFloat(getComputedStyle(fitEl).bottom) || 0;
+    const floorY = r.height - bottomPad - (STACK_H - FLOOR) * f, cx = r.width / 2;
+    let W = Math.max(1150 * f, 2 * Math.max(cx, r.width - cx) + 4,
+      floorY / BG_FLOOR / BG_RATIO + 4, (r.height - floorY) / (1 - BG_FLOOR) / BG_RATIO + 4);
+    const wu = W / f, hu = wu * BG_RATIO;
+    counter.style.cssText = `width:${wu.toFixed(1)}px;height:${hu.toFixed(1)}px;left:${(STACK_W / 2 - wu / 2).toFixed(1)}px;top:${(FLOOR - BG_FLOOR * hu).toFixed(1)}px`;
   }
 
   /* ---------------- comanda ---------------- */
@@ -619,14 +665,11 @@
   /* ---------------- eventi ---------------- */
   tabs.addEventListener('click', e => {
     const b = e.target.closest('.tab'); if (!b) return;
-    state.cat = b.dataset.cat;
-    tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t === b)));
-    renderChips();
+    goCat(CATS.findIndex(c => c.id === b.dataset.cat));
   });
   tabs.addEventListener('keydown', e => {
     if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-    const all = [...tabs.querySelectorAll('.tab')], i = all.findIndex(t => t.dataset.cat === state.cat);
-    const n = all[(i + (e.key === 'ArrowRight' ? 1 : -1) + all.length) % all.length]; n.click(); n.focus();
+    goCat(catIdx() + (e.key === 'ArrowRight' ? 1 : -1), true);
   });
   grid.addEventListener('click', e => {
     const r = e.target.closest('[data-remove]'), a = e.target.closest('[data-add]');
@@ -638,6 +681,22 @@
     if (r) return xRemove(r.dataset.xremove);
     if (a) xAdd(a.dataset.xadd);
   });
+  $('.tab-arrow.prev').addEventListener('click', () => goCat(catIdx() - 1));
+  $('.tab-arrow.next').addEventListener('click', () => goCat(catIdx() + 1));
+  $('.cat-next').addEventListener('click', e => {
+    const g = e.currentTarget.dataset.go;
+    if (g === 'extras') $('#extras').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    else goCat(+g);
+  });
+  tabs.addEventListener('scroll', syncFades, { passive: true });
+  addEventListener('resize', syncFades, { passive: true });
+  // swipe orizzontale sui chip per cambiare categoria
+  let sx = 0, sy = 0;
+  grid.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  grid.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) goCat(catIdx() + (dx < 0 ? 1 : -1));
+  }, { passive: true });
   document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => loadPreset(b.dataset.preset)));
   $('.btn-reset').addEventListener('click', reset);
   $('.btn-edit').addEventListener('click', () => { reopen(); relayout(false); update(); $('.tabs').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); });

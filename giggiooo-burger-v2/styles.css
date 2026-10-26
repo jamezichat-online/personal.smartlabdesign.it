@@ -76,8 +76,23 @@ header.after-hero{background:#1c100bcc;border-bottom-color:#d5a95e3b}
 @media(max-width:760px){.merch-card .burger-card-copy h3{font-size:36px}.categories button{font-size:14px}.merch .section-top>div+div{margin-top:25px}}
 @media(prefers-reduced-motion:reduce){.merch-card .burger-card-photo:hover img{transform:none}}
 
-/* Fattillu tu — sezione configuratore */
-.fattillu{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(40px,6vw,100px);align-items:center;background:radial-gradient(circle at 25% 50%,#3a2014 0%,transparent 45%),#1c100b;border-top:1px solid rgba(228,174,85,.18)}
-.fattillu-image{display:flex;justify-content:center}.fattillu-image img{width:min(100%,460px);height:auto;filter:drop-shadow(0 30px 50px rgba(0,0,0,.5))}
-.fattillu-copy h2{margin-bottom:26px}.fattillu-copy p{max-width:470px;margin-bottom:32px}
-@media(max-width:900px){.fattillu{grid-template-columns:1fr}.fattillu-image img{width:min(80%,380px)}}
+
+/* Fattillu tu — sezione immersiva al bancone */
+.fattillu-hero{--h:clamp(640px,92svh,980px);position:relative;height:var(--h);overflow:hidden;background:#120a06;border-top:1px solid rgba(228,174,85,.25);border-bottom:1px solid rgba(228,174,85,.25)}
+.fh-scene{position:absolute;bottom:0;left:50%;width:max(100vw,calc(var(--h) * 1.791));aspect-ratio:2400/1340;transform:translateX(-50%)}
+.fh-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* composizione agganciata al piano: appoggio al 90% dell'immagine, come nel configuratore */
+.fh-burger{position:absolute;width:36%;left:66%;bottom:5.5%;transform:translateX(-50%);filter:drop-shadow(0 26px 30px rgba(0,0,0,.45))}
+.fh-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(18,10,6,.94) 0%,rgba(18,10,6,.78) 28%,rgba(18,10,6,.18) 52%,rgba(18,10,6,0) 70%),linear-gradient(180deg,rgba(18,10,6,.55) 0%,rgba(18,10,6,0) 30%,rgba(18,10,6,0) 80%,rgba(18,10,6,.45) 100%)}
+.fh-copy{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;max-width:620px;padding:0 max(5.5vw,24px)}
+.fh-copy h2{margin-bottom:26px}.fh-copy p{max-width:480px;margin-bottom:32px;color:#e3d2bd}
+.fattillu-hero .fh-burger{animation:fhIn 1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fhIn{from{opacity:0;transform:translate(-50%,24px)}}
+@media(max-width:900px){
+ .fattillu-hero{--h:clamp(720px,100svh,900px)}
+ .fh-scene{transform:translateX(-66%)}
+ .fh-burger{width:20%}
+ .fh-shade{background:linear-gradient(180deg,rgba(18,10,6,.95) 0%,rgba(18,10,6,.85) 38%,rgba(18,10,6,.1) 60%,rgba(18,10,6,0) 80%,rgba(18,10,6,.35) 100%)}
+ .fh-copy{justify-content:flex-start;padding-top:80px}
+}
+@media(prefers-reduced-motion:reduce){.fattillu-hero .fh-burger{animation:none}}

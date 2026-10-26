@@ -8,13 +8,13 @@
 <meta name="description" content="Fattillu tu. Componi il tuo Giggiooo strato dopo strato e invia la comanda al locale. Proposta dimostrativa.">
 <title>Fattillu tu — Giggiooo Burger</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231c100b'/%3E%3Ctext x='16' y='25' text-anchor='middle' font-family='Georgia' font-weight='bold' font-size='27' fill='%23e4ae55'%3EG%3C/text%3E%3C/svg%3E">
-<link rel="preload" as="image" href="extras/bancone.webp">
-<link rel="stylesheet" href="fattillu.css?v=20261026g">
+<link rel="preload" as="image" href="extras/bancone-wide.webp">
+<link rel="stylesheet" href="fattillu.css?v=20261026h">
 <script src="config.js?v=20261026" defer></script>
 <script src="sprites.js?v=20261026" defer></script>
 <script src="extras.js?v=20261026f" defer></script>
 <script src="../products.js?v=20261026" defer></script>
-<script src="fattillu.js?v=20261026e" defer></script>
+<script src="fattillu.js?v=20261026h" defer></script>
 </head>
 <body>
 <header class="ft-header">
@@ -26,7 +26,7 @@
 <main class="ft-main">
  <section class="stage" aria-label="Anteprima del tuo burger">
   <div class="stage-glow" aria-hidden="true"></div>
-  <div class="stack-fit"><div class="stack-zoom">
+  <div class="stack-fit"><div class="counter" aria-hidden="true"><img src="extras/bancone-wide.webp" alt="" draggable="false"></div><div class="stack-zoom">
    <img class="wrap" src="extras/incarto.webp" alt="" aria-hidden="true" draggable="false">
    <div class="flag" aria-hidden="true"><div class="flag-inner"><span class="stick"></span><span class="pennant"><img src="../assets/logo.webp" alt=""></span></div></div>
   </div></div>
@@ -51,9 +51,15 @@
    </div>
   </div>
 
-  <div class="tabs" role="tablist" aria-label="Categorie di ingredienti"></div>
-  <div class="ing-head"><h3>Gli ingredienti</h3><span>Tocca per aggiungere · − per togliere</span></div>
+  <div class="ing-head"><h3>Gli ingredienti</h3><span class="cat-step">Categoria 1 di 5</span></div>
+  <div class="tabs-wrap">
+   <button type="button" class="tab-arrow prev" aria-label="Categoria precedente">‹</button>
+   <div class="tabs" role="tablist" aria-label="Categorie di ingredienti"></div>
+   <button type="button" class="tab-arrow next" aria-label="Categoria successiva">›</button>
+  </div>
   <div class="chips" id="chips" role="tabpanel"></div>
+  <div class="cat-nav"><span class="cat-dots" aria-hidden="true"></span><button type="button" class="cat-next"></button></div>
+  <p class="cat-hint">Tocca per aggiungere · − per togliere · scorri le categorie con ‹ › o con uno swipe</p>
 
   <div class="inside">
    <div class="inside-head"><h3>Dentro il tuo burger</h3><span>DALL’ALTO VERSO IL BASSO</span></div>
