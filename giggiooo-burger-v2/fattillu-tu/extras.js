@@ -3,41 +3,41 @@ window.FT_EXTRAS = {
  "patatine": {
   "src": "extras/patatine.webp",
   "w": 700,
-  "h": 662
+  "h": 825
  },
  "onion-rings": {
   "src": "extras/onion-rings.webp",
   "w": 700,
-  "h": 831
+  "h": 889
  },
  "coca-cola-original": {
   "src": "extras/coca-cola-original.webp",
-  "w": 360,
-  "h": 900
+  "w": 346,
+  "h": 924
  },
  "ceres-premium-lager": {
   "src": "extras/ceres-premium-lager.webp",
-  "w": 269,
-  "h": 900
+  "w": 332,
+  "h": 1100
  },
  "lemonsoda-mojito": {
   "src": "extras/lemonsoda-mojito.webp",
-  "w": 345,
-  "h": 889
+  "w": 413,
+  "h": 1100
  },
  "fontalba-naturale": {
   "src": "extras/fontalba-naturale.webp",
-  "w": 336,
-  "h": 900
+  "w": 365,
+  "h": 1100
  },
  "fuze-tea-limone": {
   "src": "extras/fuze-tea-limone.webp",
-  "w": 347,
-  "h": 900
+  "w": 430,
+  "h": 1100
  },
  "lemonsoda-spritz": {
   "src": "extras/lemonsoda-spritz.webp",
-  "w": 347,
-  "h": 900
+  "w": 410,
+  "h": 1100
  }
 };

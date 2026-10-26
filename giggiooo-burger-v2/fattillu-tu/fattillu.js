@@ -63,6 +63,7 @@
   const loadInto = (key, src) => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.decoding = 'async'; i.src = src; IMG[key] = i; });
   const preload = Promise.all(Object.entries(SP).map(([k, s]) => loadInto(k, s.src)));
   const preloadX = () => Promise.all(Object.entries(XS).map(([k, s]) => IMG['x:' + k] ? null : loadInto('x:' + k, s.src)));
+  const preloadWrap = () => IMG.wrap ? Promise.resolve() : loadInto('wrap', 'extras/incarto.webp');
 
   function artFor(key, seed) {
     const d = ING[key] || BUN[key], r = rng(seed);
@@ -121,9 +122,16 @@
     bunT.el.style.zIndex = state.phase === 'build' ? 60 : 0;
     bunT.target = state.phase === 'build' ? totalH + GAP : totalH - SINK;
     if (spawn && !reduced && state.phase === 'build') bunT.vy += 240;
-    const need = totalH + GAP + bunT.art.top + 40;
-    zoomEl.style.setProperty('--zoom', Math.min(1, (FLOOR - 30) / need).toFixed(3));
+    setZoom();
     kick();
+  }
+
+  let zoomVal = 1;
+  function setZoom() {
+    const need = Math.max(totalH + GAP + bunT.art.top + 40, extraNeedH);
+    zoomVal = Math.min(1, (FLOOR - 30) / need);
+    zoomEl.style.setProperty('--zoom', zoomVal.toFixed(3));
+    if (typeof fit === 'function') fit();
   }
 
   function remove(L) {
@@ -308,8 +316,19 @@
     });
   }
 
-  // sul piano: l'ultimo contorno a sinistra, l'ultima bibita a destra
-  const XPOS = { side: { x: -238, h: 168 }, drink: { x: 232, h: 196 } };
+  // misure reali tarate sul bun (≈ 12 cm = 312 u → 26 u/cm); fry box ≈ 0,78 × bun come nella hero
+  const UCM = 26, BURGER_HALF = 185;
+  const REAL = { patatine: { wcm: 9.4 }, 'onion-rings': { wcm: 9.4 }, 'ceres-premium-lager': { hcm: 22.5 }, 'fontalba-naturale': { hcm: 21 } };
+  function xDims(id) {
+    const s = XS[id], r = REAL[id] || { hcm: s.h / s.w > 2.15 ? 14.6 : 11.5 }; // lattine: sleek 33 cl o standard
+    if (r.wcm) { const w = r.wcm * UCM; return { w, h: w * s.h / s.w }; }
+    const h = r.hcm * UCM; return { w: h * s.w / s.h, h };
+  }
+  function xPlace(kind, id) {
+    const d = xDims(id), sign = kind === 'side' ? -1 : 1;
+    return { ...d, x: sign * (BURGER_HALF + d.w / 2 + 4) };
+  }
+  let extraNeedH = 0, extraNeedW = STACK_W;
   const stageX = {};
   function renderStageExtras(animate) {
     ['side', 'drink'].forEach(kind => {
@@ -318,7 +337,7 @@
       if (cur && cur.id === id) { cur.badge.textContent = xCount(id) > 1 ? '×' + xCount(id) : ''; return; }
       if (cur) { const el = cur.el; el.classList.add('leave'); setTimeout(() => el.remove(), 320); delete stageX[kind]; }
       if (!id) return;
-      const s = XS[id], p = XPOS[kind], h = p.h, w = Math.round(h * s.w / s.h);
+      const s = XS[id], p = xPlace(kind, id), h = Math.round(p.h), w = Math.round(p.w);
       const el = document.createElement('div');
       el.className = 'xitem ' + kind + (animate && !reduced ? ' drop' : '');
       el.style.cssText = `width:${w}px;height:${h}px;left:${210 + p.x - w / 2}px;top:${FLOOR - 16 - h}px`;
@@ -328,22 +347,24 @@
       stageX[kind] = { id, el, badge };
     });
     document.body.classList.toggle('has-extras', !!(state.lastSide || state.lastDrink));
-    fit();
+    const ps = ['side', 'drink'].map(k => { const id = k === 'side' ? state.lastSide : state.lastDrink; return id ? xPlace(k, id) : null; });
+    extraNeedH = Math.max(0, ...ps.filter(Boolean).map(p => p.h + 56));
+    extraNeedW = 2 * Math.max(STACK_W / 2, ...ps.filter(Boolean).map(p => Math.abs(p.x) + p.w / 2)) + 20;
+    setZoom(); fit();
   }
 
   /* ---------------- UI ---------------- */
-  function renderTabs() {
-    tabs.innerHTML = CATS.map(c => `<button type="button" role="tab" class="tab" data-cat="${c.id}" aria-selected="${c.id === state.cat}" aria-controls="chips">${c.label}<span class="tab-count" data-tabcount="${c.id}"></span></button>`).join('');
-  }
+  function renderTabs() { /* tutti gli ingredienti sono visibili in un'unica griglia */ }
 
   function renderChips() {
-    grid.innerHTML = Object.keys(ING).filter(id => ING[id].cat === state.cat).map(id => {
+    const catLabel = id => (CATS.find(c => c.id === ING[id].cat) || {}).label || '';
+    grid.innerHTML = Object.keys(ING).map(id => {
       const ing = ING[id], s = SP[ing.v[0]];
       return `<div class="chip" data-id="${id}">
         <button type="button" class="chip-main" data-add="${id}" aria-label="Aggiungi ${esc(ing.name)}">
           <span class="chip-icon"><img src="${s.src}" alt="" draggable="false"></span>
           <span class="chip-name">${esc(ing.chip || ing.name)}</span>
-          <span class="chip-meta">max ${ing.max}</span>
+          <span class="chip-meta">${esc(catLabel(id))} · max ${ing.max}</span>
         </button>
         <span class="chip-badge" aria-hidden="true"></span>
         <button type="button" class="chip-minus" data-remove="${id}" aria-label="Rimuovi ${esc(ing.name)}">−</button>
@@ -427,7 +448,7 @@
 
   function fit() {
     const r = stage.getBoundingClientRect(), head = innerWidth <= 820 ? 70 : 0;
-    const needW = document.body.classList.contains('has-extras') ? 760 : STACK_W;
+    const needW = Math.max(STACK_W, extraNeedW * zoomVal);
     fitEl.style.setProperty('--fit', Math.min(r.width * .96 / needW, (r.height - head) * .97 / STACK_H).toFixed(4));
   }
 
@@ -449,14 +470,27 @@
     };
   }
 
-  function burgerCanvas(scale) {
+  // scena della comanda: burger + contorno + bibita nelle stesse proporzioni dello stage
+  function sceneCanvas(scale, d) {
     const order = stackOrder().map(o => layers.get(o.uid)).filter(Boolean);
     const all = [{ L: bunT, base: totalH - SINK }, ...order.map(L => ({ L, base: L.target }))];
-    const top = totalH + bunT.art.top + 8, bot = 40;
-    const c = document.createElement('canvas'); c.width = 460 * scale; c.height = (top + bot) * scale;
-    const x = c.getContext('2d'); x.scale(scale, scale); x.translate(230, top);
-    all.forEach(({ L, base }) => {
-      const a = L.art, y = -base - a.top;
+    const side = d.extras.find(e => e.id === state.lastSide) || d.extras.find(e => e.kind === 'side');
+    const drink = d.extras.find(e => e.id === state.lastDrink) || d.extras.find(e => e.kind === 'drink');
+    const xs = [side && { e: side, ...xPlace('side', side.id) }, drink && { e: drink, ...xPlace('drink', drink.id) }].filter(Boolean);
+    const L = Math.max(330, ...xs.map(p => -p.x + p.w / 2 + 10)), Rr = Math.max(330, ...xs.map(p => p.x + p.w / 2 + 10));
+    const top = Math.max(totalH + bunT.art.top + 8, ...xs.map(p => p.h + 30)), bot = 90;
+    const c = document.createElement('canvas'); c.width = Math.round((L + Rr) * scale); c.height = Math.round((top + bot) * scale);
+    const x = c.getContext('2d'); x.scale(scale, scale); x.translate(L, top);
+    const wi = IMG.wrap; if (wi && wi.width) { const ww = Math.min(640, L + Rr - 20), wh = ww * wi.height / wi.width; x.drawImage(wi, -ww / 2, 6 - wh / 2, ww, wh); }
+    xs.forEach(p => {
+      const im = IMG['x:' + p.e.id]; if (!im || !im.width) return;
+      x.save(); x.translate(p.x, -14); x.scale(1, .1);
+      const g = x.createRadialGradient(0, 0, 0, 0, 0, p.w * .5); g.addColorStop(0, 'rgba(10,4,2,.5)'); g.addColorStop(1, 'rgba(10,4,2,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(0, 0, p.w * .5, 0, Math.PI * 2); x.fill(); x.restore();
+      x.drawImage(im, p.x - p.w / 2, -16 - p.h, p.w, p.h);
+    });
+    all.forEach(({ L: Ly, base }) => {
+      const a = Ly.art, y = -base - a.top;
       x.save(); x.translate(0, -base); x.scale(1, .08);
       const g = x.createRadialGradient(0, 0, 0, 0, 0, a.s.w * .46);
       g.addColorStop(0, `rgba(10,4,2,${a.drape ? .28 : .45})`); g.addColorStop(1, 'rgba(10,4,2,0)');
@@ -474,7 +508,7 @@
     const W = 1080, rowH = 46, listH = d.layers.length * rowH;
     const xH = d.extras.length ? 70 + d.extras.length * rowH : 0;
     const H = 1240 + listH + xH + (d.notes ? 90 : 0);
-    await preloadX();
+    await preloadX(); await preloadWrap();
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const x = c.getContext('2d');
     const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2a170f'); bg.addColorStop(1, '#160c08');
@@ -487,17 +521,10 @@
     x.fillStyle = '#c7b7a5'; x.font = '400 22px Arial, Helvetica, sans-serif';
     x.fillText(d.when.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), W - 70, 184);
     // burger
-    const b = burgerCanvas(2), maxW = 760, maxH = 560, sc = Math.min(maxW / b.width, maxH / b.height);
+    const b = sceneCanvas(2, d), maxW = 940, maxH = 560, sc = Math.min(maxW / b.width, maxH / b.height);
     const bw = b.width * sc, bh = b.height * sc;
     const glow = x.createRadialGradient(W / 2, 560, 20, W / 2, 560, 420); glow.addColorStop(0, 'rgba(255,170,80,.16)'); glow.addColorStop(1, 'rgba(255,170,80,0)');
     x.fillStyle = glow; x.fillRect(0, 220, W, 680);
-    const sideX = d.extras.find(e => e.id === state.lastSide) || d.extras.find(e => e.kind === 'side');
-    const drinkX = d.extras.find(e => e.id === state.lastDrink) || d.extras.find(e => e.kind === 'drink');
-    const baseY = 230 + maxH;
-    [[sideX, 170, 250], [drinkX, W - 170, 300]].forEach(([e, cx, hh]) => {
-      if (!e) return; const im = IMG['x:' + e.id]; if (!im || !im.width) return;
-      const ww = hh * im.width / im.height; x.drawImage(im, cx - ww / 2, baseY - hh - 6, ww, hh);
-    });
     x.drawImage(b, (W - bw) / 2, 230 + (maxH - bh), bw, bh);
     // titolo
     x.textAlign = 'left'; x.fillStyle = '#fff5e5'; x.font = '800 58px Arial, Helvetica, sans-serif';
