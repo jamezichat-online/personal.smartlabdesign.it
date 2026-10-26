@@ -75,3 +75,9 @@ header.after-hero{background:#1c100bcc;border-bottom-color:#d5a95e3b}
 .categories{flex-wrap:wrap}.merch-card .burger-card-photo img{object-position:center;object-fit:contain}.merch-card .burger-card-copy h3{font-size:32px;line-height:1.12;overflow-wrap:anywhere}.merch-card .price-row{margin-bottom:20px}.merch-card .price-row small{display:block;font-size:12px;color:#ad8d67;letter-spacing:.06em;margin-top:5px}.merch-size{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:16px;margin-bottom:18px}.merch-size select{min-width:110px;max-width:65%;background:#160c06;color:#fff5e5;border:1px solid #755034;padding:11px 15px;border-radius:3px;font:inherit}.merch-card .button{margin-top:auto}.merch-cart-link{margin-top:25px}.merch-demo-note{margin-top:24px}.merch .section-top .text-button{margin-top:20px}.merch-card .burger-card-photo:hover img{transform:scale(1.02)}
 @media(max-width:760px){.merch-card .burger-card-copy h3{font-size:36px}.categories button{font-size:14px}.merch .section-top>div+div{margin-top:25px}}
 @media(prefers-reduced-motion:reduce){.merch-card .burger-card-photo:hover img{transform:none}}
+
+/* Fattillu tu — sezione configuratore */
+.fattillu{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(40px,6vw,100px);align-items:center;background:radial-gradient(circle at 25% 50%,#3a2014 0%,transparent 45%),#1c100b;border-top:1px solid rgba(228,174,85,.18)}
+.fattillu-image{display:flex;justify-content:center}.fattillu-image img{width:min(100%,460px);height:auto;filter:drop-shadow(0 30px 50px rgba(0,0,0,.5))}
+.fattillu-copy h2{margin-bottom:26px}.fattillu-copy p{max-width:470px;margin-bottom:32px}
+@media(max-width:900px){.fattillu{grid-template-columns:1fr}.fattillu-image img{width:min(80%,380px)}}

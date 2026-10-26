@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1c100b">
+<meta name="description" content="Fattillu tu. Componi il tuo Giggiooo strato dopo strato e invia la comanda al locale. Proposta dimostrativa.">
+<title>Fattillu tu — Giggiooo Burger</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231c100b'/%3E%3Ctext x='16' y='25' text-anchor='middle' font-family='Georgia' font-weight='bold' font-size='27' fill='%23e4ae55'%3EG%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="fattillu.css?v=20261026">
+<script src="config.js?v=20261026" defer></script>
+<script src="sprites.js?v=20261026" defer></script>
+<script src="fattillu.js?v=20261026" defer></script>
+</head>
+<body>
+<header class="ft-header">
+ <a class="back" href="../#menu"><span aria-hidden="true">←</span> MENÙ</a>
+ <a class="ft-brand" href="../" aria-label="Giggiooo Burger, home"><img src="../assets/logo.webp" width="480" height="321" alt="Giggiooo Burger"></a>
+ <span class="ft-tag">FATTILLU TU</span>
+</header>
+
+<main class="ft-main">
+ <section class="stage" aria-label="Anteprima del tuo burger">
+  <div class="stage-glow" aria-hidden="true"></div>
+  <div class="stack-fit"><div class="stack-zoom">
+   <div class="board" aria-hidden="true"></div>
+   <div class="flag" aria-hidden="true"><div class="flag-inner"><span class="stick"></span><span class="pennant"><img src="../assets/logo.webp" alt=""></span></div></div>
+  </div></div>
+  <canvas class="smoke" aria-hidden="true"></canvas>
+  <p class="stage-status"></p>
+ </section>
+
+ <section class="panel" aria-label="Componi il burger">
+  <div class="panel-head">
+   <span class="eyebrow">GIGGIOOO / CONFIGURATORE</span>
+   <h1>Fattillu<br><em>tu.</em></h1>
+   <p>Parti da un signature e cambialo come vuoi: aggiungi, togli, raddoppia. Poi chiudi il panino e invia la comanda al locale.</p>
+  </div>
+
+  <div class="presets">
+   <span class="label">PARTI DA UN SIGNATURE</span>
+   <div class="preset-row">
+    <button type="button" class="preset" data-preset="neon-bacon" aria-pressed="false">Neon <em>Bacon</em></button>
+    <button type="button" class="preset" data-preset="double-melt" aria-pressed="false">Double <em>Melt</em></button>
+    <button type="button" class="preset" data-preset="golden-double" aria-pressed="false">Golden <em>Burger</em></button>
+    <button type="button" class="btn-reset">Da zero <span aria-hidden="true">↺</span></button>
+   </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Categorie di ingredienti"></div>
+  <div class="chips" id="chips" role="tabpanel"></div>
+
+  <div class="inside">
+   <div class="inside-head"><h3>Dentro il tuo burger</h3><span>DALL’ALTO VERSO IL BASSO</span></div>
+   <ol class="inside-list"></ol>
+   <div class="inside-foot"><span data-stat="layers">—</span><span data-stat="price">—</span></div>
+   <p class="note">Il pane brioche è sempre incluso. Ingredienti dei signature Giggiooo; allergeni da validare con il locale.</p>
+  </div>
+
+  <form class="order-panel" id="order-form" novalidate>
+   <span class="label">LA TUA COMANDA</span>
+   <h2>Pronto per<br><em>la cucina.</em></h2>
+   <label class="field">Nome del tuo burger <span class="opt">facoltativo</span><input name="burger" maxlength="28" placeholder="Il mio Giggiooo" autocomplete="off"></label>
+   <label class="field">Il tuo nome<input name="client" maxlength="40" required autocomplete="given-name" placeholder="Nome"></label>
+   <div class="field-row">
+    <label class="field">Sede<select name="location"></select></label>
+    <label class="field">Servizio<select name="service"><option value="asporto">Asporto</option><option value="sala">Al tavolo</option></select></label>
+   </div>
+   <label class="field">Note per la cucina <span class="opt">facoltativo</span><textarea name="notes" maxlength="160" rows="2" placeholder="Es. salsa a parte"></textarea></label>
+   <p class="form-error" role="alert"></p>
+   <div class="order-actions"><button type="button" class="text-button btn-edit">Modifica il burger</button></div>
+  </form>
+
+  <p class="fine">Demo dimostrativa · ordine e invio simulati finché la sede non è collegata.</p>
+ </section>
+</main>
+
+<div class="cta-bar">
+ <span class="delta" aria-hidden="true"></span>
+ <button type="button" class="cta"><span class="cta-label">Chiudi il panino</span><span class="cta-meta">—</span></button>
+</div>
+
+<dialog id="ticket" aria-labelledby="ticket-title">
+ <button class="dialog-close" aria-label="Chiudi">×</button>
+ <div class="ticket-wrap">
+  <div class="ticket-preview"><img id="ticket-img" alt="Comanda con il burger composto e gli ingredienti scelti"></div>
+  <div class="ticket-info">
+   <span class="eyebrow">COMANDA / <span id="ticket-code"></span></span>
+   <h2 id="ticket-title">Così arriva<br><em>in cucina.</em></h2>
+   <p id="ticket-text"></p>
+   <div class="demo-banner" id="ticket-demo">Invio simulato: la sede demo non ha un canale collegato. Nella versione definitiva la comanda arriva su WhatsApp o sul sistema ordini del locale.</div>
+   <div class="ticket-actions">
+    <button class="button gold" id="ticket-send">Invia al locale</button>
+    <button class="text-button" id="ticket-download">Scarica la comanda</button>
+   </div>
+  </div>
+ </div>
+</dialog>
+<div class="toast" role="status"></div>
+<div class="sr-live" aria-live="polite"></div>
+</body>
+</html>
