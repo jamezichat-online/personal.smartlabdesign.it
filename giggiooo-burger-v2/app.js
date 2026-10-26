@@ -92,6 +92,18 @@ function seekHero(){
 heroVideo.addEventListener('loadedmetadata',updateHero);
 heroVideo.addEventListener('loadeddata',()=>{heroAvailable=true;updateHero();});
 heroVideo.addEventListener('seeked',()=>{updateHeroCaption(heroVideo.currentTime);if(!heroFrame&&!reduceHero()&&Math.abs(heroTarget-heroVideo.currentTime)>.018)heroFrame=requestAnimationFrame(seekHero);});
+// Mobile (iOS Safari e molti Android): il browser non decodifica i fotogrammi di un video mai avviato e ignora preload,
+// quindi loadeddata non arriva e lo scrub resta fermo sul poster. Un play() muto seguito da pause() sblocca la decodifica.
+let heroPrimed=false;
+function primeHero(){
+ if(heroPrimed||reduceHero())return;heroPrimed=true;heroVideo.muted=true;heroVideo.playsInline=true;
+ let pr;try{pr=heroVideo.play();}catch{heroPrimed=false;return;}
+ if(pr&&pr.then)pr.then(()=>{heroVideo.pause();if(heroVideo.readyState>=2)heroAvailable=true;updateHero();}).catch(()=>{heroPrimed=false;});
+}
+heroVideo.addEventListener('canplay',()=>{heroAvailable=true;updateHero();});
+['touchstart','pointerdown','keydown'].forEach(ev=>addEventListener(ev,primeHero,{passive:true}));
+addEventListener('scroll',primeHero,{passive:true});
+primeHero();
 heroVideo.addEventListener('error',()=>{heroAvailable=false;heroVideo.hidden=true;hero.classList.add('media-failed');updateHeroCaption(0);});
 $('#hero-motion').addEventListener('click',()=>{manualReduced=!reduceHero();if(motionQuery.matches&&!manualReduced)toast('Il movimento resta ridotto secondo le preferenze del dispositivo.');updateHero();});
 addEventListener('scroll',updateHero,{passive:true});addEventListener('resize',updateHero);motionQuery.addEventListener('change',updateHero);document.addEventListener('visibilitychange',updateHero);updateHero();
