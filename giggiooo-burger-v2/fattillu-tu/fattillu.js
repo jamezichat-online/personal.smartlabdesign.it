@@ -36,11 +36,22 @@
   };
   const MAX_LAYERS = 13;
 
-  const state = { items: [], seq: 0, phase: 'build', cat: 'carne', preset: null, code: '' };
+  /* ---------------- contorni e bibite (catalogo V2) ---------------- */
+  const XS = window.FT_EXTRAS || {};
+  const catalogDrinks = (window.GB_CATALOG && window.GB_CATALOG.drinks) || [];
+  const fact = (d, k) => ((d.facts || []).find(f => f[0] === k) || [])[1] || '';
+  const EXTRAS = [
+    { id: 'patatine', kind: 'side', name: 'Patatine', sub: 'Fry box Giggiooo', max: 3 },
+    { id: 'onion-rings', kind: 'side', name: 'Onion rings', sub: 'Fry box Giggiooo', max: 3 },
+    ...catalogDrinks.filter(d => XS[d.id]).map(d => ({ id: d.id, kind: 'drink', name: d.name, sub: fact(d, 'Formato'), max: 4 }))
+  ].filter(x => XS[x.id]);
+  const XBY = Object.fromEntries(EXTRAS.map(x => [x.id, x]));
+
+  const state = { items: [], seq: 0, phase: 'build', cat: 'carne', preset: null, code: '', extras: {}, lastSide: null, lastDrink: null };
 
   /* ---------------- DOM ---------------- */
   const stage = $('.stage'), fitEl = $('.stack-fit'), zoomEl = $('.stack-zoom'), flag = $('.flag');
-  const tabs = $('.tabs'), grid = $('.chips'), cta = $('.cta'), ctaLabel = $('.cta-label'), ctaMeta = $('.cta-meta'), delta = $('.delta');
+  const tabs = $('.tabs'), grid = $('#chips'), cta = $('.cta'), ctaLabel = $('.cta-label'), ctaMeta = $('.cta-meta'), delta = $('.delta');
   const insideList = $('.inside-list'), statLayers = $('[data-stat="layers"]'), statPrice = $('[data-stat="price"]');
   const live = $('.sr-live'), status = $('.stage-status'), smoke = $('.smoke'), form = $('#order-form'), toastEl = $('.toast');
   const ticket = $('#ticket');
@@ -49,7 +60,9 @@
   /* ---------------- sprite ---------------- */
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   const IMG = {};
-  const preload = Promise.all(Object.entries(SP).map(([k, s]) => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.decoding = 'async'; i.src = s.src; IMG[k] = i; })));
+  const loadInto = (key, src) => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.decoding = 'async'; i.src = src; IMG[key] = i; });
+  const preload = Promise.all(Object.entries(SP).map(([k, s]) => loadInto(k, s.src)));
+  const preloadX = () => Promise.all(Object.entries(XS).map(([k, s]) => IMG['x:' + k] ? null : loadInto('x:' + k, s.src)));
 
   function artFor(key, seed) {
     const d = ING[key] || BUN[key], r = rng(seed);
@@ -249,6 +262,75 @@
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
+  /* ---------------- contorni e bibite ---------------- */
+  const xCount = id => state.extras[id] || 0;
+  const xList = kind => EXTRAS.filter(x => x.kind === kind && xCount(x.id));
+  const xTotal = () => Object.values(state.extras).reduce((a, b) => a + b, 0);
+
+  function xAdd(id) {
+    const x = XBY[id]; if (!x) return;
+    if (xCount(id) >= x.max) { shakeEl(document.querySelector(`.xchip[data-id="${id}"]`)); say(`${x.name}: massimo ${x.max}`); return; }
+    state.extras[id] = xCount(id) + 1;
+    if (x.kind === 'side') state.lastSide = id; else state.lastDrink = id;
+    pulse('+ ' + x.name); say(`${x.name} aggiunto all’ordine`);
+    renderStageExtras(true); update();
+  }
+  function xRemove(id) {
+    const x = XBY[id]; if (!x || !xCount(id)) return;
+    state.extras[id]--; if (!state.extras[id]) delete state.extras[id];
+    if (state.lastSide === id && !xCount(id)) state.lastSide = (xList('side')[0] || {}).id || null;
+    if (state.lastDrink === id && !xCount(id)) state.lastDrink = (xList('drink')[0] || {}).id || null;
+    pulse('− ' + x.name); say(`${x.name} rimosso`);
+    renderStageExtras(false); update();
+  }
+
+  function xChip(x) {
+    const s = XS[x.id];
+    return `<div class="chip xchip ${x.kind}" data-id="${x.id}">
+      <button type="button" class="chip-main" data-xadd="${x.id}" aria-label="Aggiungi ${esc(x.name)}">
+        <span class="chip-icon"><img src="${s.src}" alt="" draggable="false" loading="lazy"></span>
+        <span class="chip-name">${esc(x.name)}</span>
+        <span class="chip-meta">${esc(x.sub)}</span>
+      </button>
+      <span class="chip-badge" aria-hidden="true"></span>
+      <button type="button" class="chip-minus" data-xremove="${x.id}" aria-label="Rimuovi ${esc(x.name)}">−</button>
+    </div>`;
+  }
+  function renderExtras() {
+    $('.extras-sides').innerHTML = EXTRAS.filter(x => x.kind === 'side').map(xChip).join('');
+    $('.extras-drinks').innerHTML = EXTRAS.filter(x => x.kind === 'drink').map(xChip).join('');
+  }
+  function syncExtras() {
+    document.querySelectorAll('.xchip').forEach(c => {
+      const n = xCount(c.dataset.id);
+      c.classList.toggle('active', n > 0);
+      c.querySelector('.chip-badge').textContent = n > 1 ? '×' + n : n ? '✓' : '';
+    });
+  }
+
+  // sul piano: l'ultimo contorno a sinistra, l'ultima bibita a destra
+  const XPOS = { side: { x: -238, h: 168 }, drink: { x: 232, h: 196 } };
+  const stageX = {};
+  function renderStageExtras(animate) {
+    ['side', 'drink'].forEach(kind => {
+      const id = kind === 'side' ? state.lastSide : state.lastDrink;
+      const cur = stageX[kind];
+      if (cur && cur.id === id) { cur.badge.textContent = xCount(id) > 1 ? '×' + xCount(id) : ''; return; }
+      if (cur) { const el = cur.el; el.classList.add('leave'); setTimeout(() => el.remove(), 320); delete stageX[kind]; }
+      if (!id) return;
+      const s = XS[id], p = XPOS[kind], h = p.h, w = Math.round(h * s.w / s.h);
+      const el = document.createElement('div');
+      el.className = 'xitem ' + kind + (animate && !reduced ? ' drop' : '');
+      el.style.cssText = `width:${w}px;height:${h}px;left:${210 + p.x - w / 2}px;top:${FLOOR - 16 - h}px`;
+      el.innerHTML = `<span class="xshadow"></span><img src="${s.src}" alt="" draggable="false"><b class="xbadge"></b>`;
+      zoomEl.appendChild(el);
+      const badge = el.querySelector('.xbadge'); badge.textContent = xCount(id) > 1 ? '×' + xCount(id) : '';
+      stageX[kind] = { id, el, badge };
+    });
+    document.body.classList.toggle('has-extras', !!(state.lastSide || state.lastDrink));
+    fit();
+  }
+
   /* ---------------- UI ---------------- */
   function renderTabs() {
     tabs.innerHTML = CATS.map(c => `<button type="button" role="tab" class="tab" data-cat="${c.id}" aria-selected="${c.id === state.cat}" aria-controls="chips">${c.label}<span class="tab-count" data-tabcount="${c.id}"></span></button>`).join('');
@@ -297,7 +379,9 @@
     statLayers.textContent = `${names.length} livelli`;
     const p = price();
     statPrice.innerHTML = p == null ? '<span class="pending">Prezzo da definire</span>' : `${eur.format(p)} <small>PREZZO DEMO</small>`;
-    ctaMeta.textContent = p == null ? `${names.length} livelli` : eur.format(p);
+    const xt = xTotal();
+    ctaMeta.textContent = (p == null ? `${names.length} livelli` : eur.format(p)) + (xt ? ` · ${xt} extra` : '');
+    syncExtras();
     if (state.phase === 'build') ctaLabel.textContent = proteins() ? 'Chiudi il panino' : 'Scegli una carne';
     if (state.phase === 'grilling') ctaLabel.textContent = 'Sulla piastra…';
     if (state.phase === 'done') ctaLabel.textContent = 'Invia al locale';
@@ -312,11 +396,8 @@
     delta.classList.remove('show'); void delta.offsetWidth; delta.classList.add('show');
     clearTimeout(deltaT); deltaT = setTimeout(() => delta.classList.remove('show'), 1100);
   }
-  function shake(id) {
-    const el = id ? grid.querySelector(`.chip[data-id="${id}"]`) : cta;
-    if (!el) return;
-    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
-  }
+  function shake(id) { shakeEl(id ? grid.querySelector(`.chip[data-id="${id}"]`) : cta); }
+  function shakeEl(el) { if (!el) return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
   function say(msg) { live.textContent = ''; setTimeout(() => (live.textContent = msg), 30); }
   let toastT;
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('visible'), 3200); }
@@ -346,7 +427,8 @@
 
   function fit() {
     const r = stage.getBoundingClientRect(), head = innerWidth <= 820 ? 70 : 0;
-    fitEl.style.setProperty('--fit', Math.min(r.width * .96 / STACK_W, (r.height - head) * .97 / STACK_H).toFixed(4));
+    const needW = document.body.classList.contains('has-extras') ? 760 : STACK_W;
+    fitEl.style.setProperty('--fit', Math.min(r.width * .96 / needW, (r.height - head) * .97 / STACK_H).toFixed(4));
   }
 
   /* ---------------- comanda ---------------- */
@@ -362,7 +444,8 @@
     return {
       burger: f.burger.value.trim() || 'Il mio Giggiooo', client: f.client.value.trim(), location: f.location.value, loc,
       service: f.service.value === 'sala' ? 'Al tavolo' : 'Asporto', notes: f.notes.value.trim(),
-      layers: layerNames(), price: price(), code: state.code, when: new Date()
+      layers: layerNames(), price: price(), code: state.code, when: new Date(),
+      extras: EXTRAS.filter(x => xCount(x.id)).map(x => ({ ...x, qty: xCount(x.id) }))
     };
   }
 
@@ -389,7 +472,9 @@
     await document.fonts.ready;
     const logo = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = '../assets/logo.webp'; });
     const W = 1080, rowH = 46, listH = d.layers.length * rowH;
-    const H = 1240 + listH + (d.notes ? 90 : 0);
+    const xH = d.extras.length ? 70 + d.extras.length * rowH : 0;
+    const H = 1240 + listH + xH + (d.notes ? 90 : 0);
+    await preloadX();
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const x = c.getContext('2d');
     const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2a170f'); bg.addColorStop(1, '#160c08');
@@ -406,6 +491,13 @@
     const bw = b.width * sc, bh = b.height * sc;
     const glow = x.createRadialGradient(W / 2, 560, 20, W / 2, 560, 420); glow.addColorStop(0, 'rgba(255,170,80,.16)'); glow.addColorStop(1, 'rgba(255,170,80,0)');
     x.fillStyle = glow; x.fillRect(0, 220, W, 680);
+    const sideX = d.extras.find(e => e.id === state.lastSide) || d.extras.find(e => e.kind === 'side');
+    const drinkX = d.extras.find(e => e.id === state.lastDrink) || d.extras.find(e => e.kind === 'drink');
+    const baseY = 230 + maxH;
+    [[sideX, 170, 250], [drinkX, W - 170, 300]].forEach(([e, cx, hh]) => {
+      if (!e) return; const im = IMG['x:' + e.id]; if (!im || !im.width) return;
+      const ww = hh * im.width / im.height; x.drawImage(im, cx - ww / 2, baseY - hh - 6, ww, hh);
+    });
     x.drawImage(b, (W - bw) / 2, 230 + (maxH - bh), bw, bh);
     // titolo
     x.textAlign = 'left'; x.fillStyle = '#fff5e5'; x.font = '800 58px Arial, Helvetica, sans-serif';
@@ -422,6 +514,17 @@
       x.strokeStyle = 'rgba(228,174,85,.14)'; x.beginPath(); x.moveTo(70, y + 16); x.lineTo(W - 70, y + 16); x.stroke();
     });
     let y = 1050 + listH + 20;
+    if (d.extras.length) {
+      x.fillStyle = '#dca655'; x.font = '700 20px Arial, Helvetica, sans-serif'; x.fillText('CONTORNI E BIBITE', 70, y + 14);
+      d.extras.forEach((e, i) => {
+        const yy = y + 64 + i * rowH;
+        x.fillStyle = '#e4ae55'; x.font = '700 22px Arial, Helvetica, sans-serif'; x.fillText('×' + e.qty, 70, yy);
+        x.fillStyle = '#fff5e5'; x.font = '400 28px Arial, Helvetica, sans-serif'; x.fillText(e.name, 130, yy);
+        x.fillStyle = '#c7b7a5'; x.font = '400 20px Arial, Helvetica, sans-serif'; x.textAlign = 'right'; x.fillText(e.sub, W - 70, yy); x.textAlign = 'left';
+        x.strokeStyle = 'rgba(228,174,85,.14)'; x.beginPath(); x.moveTo(70, yy + 16); x.lineTo(W - 70, yy + 16); x.stroke();
+      });
+      y += xH;
+    }
     if (d.notes) {
       x.fillStyle = '#dca655'; x.font = '700 20px Arial, Helvetica, sans-serif'; x.fillText('NOTE PER LA CUCINA', 70, y + 10);
       x.fillStyle = '#fff5e5'; x.font = 'italic 28px Georgia, serif'; x.fillText(d.notes.slice(0, 60), 70, y + 52); y += 90;
@@ -434,7 +537,9 @@
 
   function ticketText(d) {
     return [`*Comanda ${d.code} · Fattillu tu*`, `${d.burger} — ${d.client}`, `${d.loc.name} · ${d.service}`, '', 'Dall’alto verso il basso:',
-      ...d.layers.map((n, i) => `${String(i + 1).padStart(2, '0')}. ${n}`), d.notes ? `\nNote: ${d.notes}` : '',
+      ...d.layers.map((n, i) => `${String(i + 1).padStart(2, '0')}. ${n}`),
+      d.extras.length ? '\nContorni e bibite:' : '', ...d.extras.map(e => `×${e.qty} ${e.name}${e.sub ? ' (' + e.sub + ')' : ''}`),
+      d.notes ? `\nNote: ${d.notes}` : '',
       d.price == null ? 'Prezzo da definire' : `Totale ${eur.format(d.price)}`].filter(l => l !== '').join('\n');
   }
 
@@ -453,7 +558,8 @@
       lastData = d;
       $('#ticket-img').src = URL.createObjectURL(lastBlob);
       $('#ticket-code').textContent = d.code;
-      $('#ticket-text').textContent = `${d.layers.length} livelli · ${d.loc.name} · ${d.service}. La cucina riceve l’immagine del burger e gli ingredienti nell’ordine di montaggio.`;
+      const xt = d.extras.reduce((a, e) => a + e.qty, 0);
+      $('#ticket-text').textContent = `${d.layers.length} livelli${xt ? ` + ${xt} tra contorni e bibite` : ''} · ${d.loc.name} · ${d.service}. La cucina riceve l’immagine del burger e gli ingredienti nell’ordine di montaggio.`;
       const live = !!d.loc.whatsapp;
       $('#ticket-demo').hidden = live;
       $('#ticket-send').textContent = live ? 'Invia su WhatsApp' : 'Simula l’invio';
@@ -500,6 +606,11 @@
     if (r) return removeOne(r.dataset.remove);
     if (a) add(a.dataset.add);
   });
+  $('#extras').addEventListener('click', e => {
+    const r = e.target.closest('[data-xremove]'), a = e.target.closest('[data-xadd]');
+    if (r) return xRemove(r.dataset.xremove);
+    if (a) xAdd(a.dataset.xadd);
+  });
   document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => loadPreset(b.dataset.preset)));
   $('.btn-reset').addEventListener('click', reset);
   $('.btn-edit').addEventListener('click', () => { reopen(); relayout(false); update(); $('.tabs').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); });
@@ -516,7 +627,7 @@
   bunB = makeLayer('bunB', 'bunB', 3);
   bunT = makeLayer('bunT', 'bunT', 5);
   bunT.y = GAP;
-  fillLocations(); renderTabs(); renderChips(); fit(); relayout(false); update();
+  fillLocations(); renderTabs(); renderChips(); renderExtras(); fit(); relayout(false); update();
   const q = new URLSearchParams(location.search).get('burger');
   preload.then(() => setTimeout(() => loadPreset(PRESETS[q] ? q : 'neon-bacon'), reduced ? 0 : 350));
 })();
