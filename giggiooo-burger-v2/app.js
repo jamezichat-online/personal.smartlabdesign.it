@@ -36,8 +36,8 @@ $('#location').addEventListener('change',e=>{state.location=e.target.value;safeS
 renderCatalog();
 renderMerch();
 const navToggle=$('#nav-toggle');
-function closeNav(){ $('#header').classList.remove('menu-open');navToggle.setAttribute('aria-expanded','false');navToggle.setAttribute('aria-label','Apri navigazione'); }
-navToggle.addEventListener('click',()=>{const open=$('#header').classList.toggle('menu-open');navToggle.setAttribute('aria-expanded',String(open));navToggle.setAttribute('aria-label',open?'Chiudi navigazione':'Apri navigazione');});
+function closeNav(){ document.body.classList.remove('nav-open');$('#header').classList.remove('menu-open');navToggle.setAttribute('aria-expanded','false');navToggle.setAttribute('aria-label','Apri navigazione'); }
+navToggle.addEventListener('click',()=>{const open=$('#header').classList.toggle('menu-open');document.body.classList.toggle('nav-open',open);navToggle.setAttribute('aria-expanded',String(open));navToggle.setAttribute('aria-label',open?'Chiudi navigazione':'Apri navigazione');});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeNav();});
 document.addEventListener('click',e=>{
  const productButton=e.target.closest('[data-product]');if(productButton){openBurger(productButton.dataset.product);return;}

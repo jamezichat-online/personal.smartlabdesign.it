@@ -250,9 +250,9 @@
     bunT.el.style.zIndex = 0;
     if (!reduced) { bunT.fall = true; bunT.vy = 120; } else bunT.y = totalH - SINK;
     kick();
-    status.textContent = 'Si chiude. Sulla piastra.';
-    if (!reduced) runSmoke(2200);
-    await wait(reduced ? 150 : 2200);
+    status.textContent = 'Sulla piastra · fuoco vivo';
+    if (!reduced) runGrill(GRILL_MS);
+    await wait(reduced ? 150 : GRILL_MS);
     flag.classList.add('in');
     state.phase = 'done';
     document.body.classList.remove('is-grilling');
@@ -269,6 +269,7 @@
   }
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  const GRILL_MS = 3000;
 
   /* ---------------- contorni e bibite ---------------- */
   const xCount = id => state.extras[id] || 0;
@@ -455,25 +456,54 @@
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('visible'), 3200); }
 
   /* ---------------- fumo ---------------- */
-  function runSmoke(ms) {
+  // cottura: bagliore sotto il burger, fumo che sale dai bordi, braci e sfrigolio delle carni
+  function runGrill(ms) {
     const ctx = smoke.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
     const w = smoke.clientWidth, h = smoke.clientHeight;
     smoke.width = w * dpr; smoke.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const parts = [], start = performance.now(), cx = w / 2, cy = h * .55, k = Math.max(.45, Math.min(1, w / 900)), rate = Math.min(1, w / 700);
+    const sr = stage.getBoundingClientRect(), tr = bunT.el.getBoundingClientRect(), br = bunB.el.getBoundingClientRect();
+    const cx = w / 2, top = tr.top - sr.top + tr.height * .35, base = br.top - sr.top + br.height * .2, half = Math.max(60, tr.width * .36);
+    const k = Math.max(.5, Math.min(1.1, half / 160));
+    const smokeP = [], embers = [], start = performance.now();
+    const sizzle = setInterval(() => layers.forEach(L => { if (ING[L.key] && ING[L.key].kind === 'protein') L.vsq += .35 + Math.random() * .35; }), 260);
+    setTimeout(() => clearInterval(sizzle), ms * .8);
     (function frame(now) {
-      const el = now - start;
-      if (el < ms * .75 && Math.random() < rate) parts.push({ x: cx + (Math.random() - .5) * w * .3, y: cy + Math.random() * 20, r: (12 + Math.random() * 18) * k, vx: (Math.random() - .5) * 14 * k, vy: -(30 + Math.random() * 40) * k, life: 0, max: 1.6 + Math.random() * 1.4 });
+      const el = now - start, active = el < ms * .85;
+      if (active) {
+        for (let i = 0; i < 2; i++) {
+          const side = Math.random();
+          const x = side < .7 ? cx + (Math.random() - .5) * half * 1.8 : cx + (Math.random() < .5 ? -1 : 1) * half * (1 + Math.random() * .2);
+          const y = side < .7 ? top + Math.random() * 20 : top + Math.random() * (base - top);
+          smokeP.push({ x, y, r: (22 + Math.random() * 28) * k, vx: (Math.random() - .5) * 16 * k, vy: -(36 + Math.random() * 46) * k, life: 0, max: 1.8 + Math.random() * 1.4, seed: Math.random() * 6 });
+        }
+        for (let q = 0; q < 2; q++) if (Math.random() < .8) embers.push({ x: cx + (Math.random() - .5) * half * 2.4, y: base + Math.random() * 18, vx: (Math.random() - .5) * 40 * k, vy: -(90 + Math.random() * 120) * k, life: 0, max: .8 + Math.random() * 1, r: 1.6 + Math.random() * 2.4 });
+      }
       ctx.clearRect(0, 0, w, h);
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const p = parts[i];
-        p.life += 1 / 60; p.x += p.vx / 60 + Math.sin(p.life * 3 + i) * .3; p.y += p.vy / 60; p.r += .4 * k;
-        if (p.life > p.max) { parts.splice(i, 1); continue; }
-        const a = Math.sin(Math.PI * Math.min(1, p.life / p.max)) * .1;
+      ctx.globalCompositeOperation = 'source-over';
+      for (let i = smokeP.length - 1; i >= 0; i--) {
+        const p = smokeP[i]; p.life += 1 / 60;
+        if (p.life > p.max) { smokeP.splice(i, 1); continue; }
+        p.x += p.vx / 60 + Math.sin(p.life * 2.4 + p.seed) * .5; p.y += p.vy / 60; p.r += .55 * k;
+        const a = Math.sin(Math.PI * Math.min(1, p.life / p.max)) * .38;
+        // nucleo scuro sotto + velo chiaro sopra: il fumo si legge anche sulle luci del bancone
+        const d = ctx.createRadialGradient(p.x + 4, p.y + 6, 0, p.x + 4, p.y + 6, p.r * 1.1);
+        d.addColorStop(0, `rgba(40,28,20,${a * .35})`); d.addColorStop(1, 'rgba(40,28,20,0)');
+        ctx.fillStyle = d; ctx.beginPath(); ctx.arc(p.x + 4, p.y + 6, p.r * 1.1, 0, Math.PI * 2); ctx.fill();
         const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        g.addColorStop(0, `rgba(255,245,229,${a})`); g.addColorStop(1, 'rgba(255,245,229,0)');
+        g.addColorStop(0, `rgba(245,238,226,${a})`); g.addColorStop(.55, `rgba(222,212,198,${a * .5})`); g.addColorStop(1, 'rgba(222,212,198,0)');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
       }
-      if (el < ms + 2600 || parts.length) requestAnimationFrame(frame); else ctx.clearRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = embers.length - 1; i >= 0; i--) {
+        const e = embers[i]; e.life += 1 / 60;
+        if (e.life > e.max) { embers.splice(i, 1); continue; }
+        e.x += e.vx / 60 + Math.sin(e.life * 14) * .4; e.y += e.vy / 60; e.vy *= .985;
+        const a = (1 - e.life / e.max) * (.6 + Math.random() * .4);
+        ctx.fillStyle = `rgba(255,${150 + Math.random() * 60 | 0},60,${a})`; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,140,40,${a * .25})`; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 4, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      if (el < ms + 3200 || smokeP.length || embers.length) requestAnimationFrame(frame); else ctx.clearRect(0, 0, w, h);
     })(start);
   }
 
@@ -617,18 +647,42 @@
   }
 
   let lastBlob = null, lastData = null;
-  async function openTicket() {
+  let lastKey = '';
+  async function buildTicket(requireName) {
     const f = form.elements, err = $('.form-error', form);
-    if (!f.client.value.trim()) { err.textContent = 'Inserisci il tuo nome per la comanda.'; f.client.focus(); shake(null); return; }
+    if (requireName && !f.client.value.trim()) { err.textContent = 'Inserisci il tuo nome per la comanda.'; f.client.focus(); shake(null); return null; }
     err.textContent = '';
     store.set('gb-concept-location', f.location.value);
     if (!state.code) state.code = 'FT-' + Math.random().toString(36).slice(2, 6).toUpperCase();
     const d = orderData();
+    if (!d.client) d.client = 'Cliente';
+    const key = JSON.stringify({ ...d, when: 0 });
+    if (lastBlob && key === lastKey) return lastData;
+    const c = await ticketImage(d);
+    lastBlob = await new Promise(r => c.toBlob(r, 'image/png'));
+    lastData = d; lastKey = key;
+    return d;
+  }
+  const ticketFile = () => new File([lastBlob], `comanda-${lastData.code}.png`, { type: 'image/png' });
+  const canShareFiles = (() => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.png', { type: 'image/png' })] })); } catch { return false; } })();
+
+  async function downloadNow(btn) {
+    btn.disabled = true;
+    try { if (await buildTicket(false)) { downloadTicket(); toast(`Comanda ${lastData.code} scaricata · puoi inviarla tu al locale`); } }
+    finally { btn.disabled = false; }
+  }
+  async function shareNow(btn) {
+    btn.disabled = true;
+    try {
+      const d = await buildTicket(false); if (!d) return;
+      try { await navigator.share({ files: [ticketFile()], text: ticketText(d), title: `Comanda ${d.code}` }); } catch (_) {}
+    } finally { btn.disabled = false; }
+  }
+
+  async function openTicket() {
     cta.disabled = true;
     try {
-      const c = await ticketImage(d);
-      lastBlob = await new Promise(r => c.toBlob(r, 'image/png'));
-      lastData = d;
+      const d = await buildTicket(true); if (!d) return;
       $('#ticket-img').src = URL.createObjectURL(lastBlob);
       $('#ticket-code').textContent = d.code;
       const xt = d.extras.reduce((a, e) => a + e.qty, 0);
@@ -649,7 +703,7 @@
       say('Invio simulato completato');
       return;
     }
-    const file = new File([lastBlob], `comanda-${d.code}.png`, { type: 'image/png' });
+    const file = ticketFile();
     if (navigator.canShare && navigator.canShare({ files: [file] }) && matchMedia('(pointer: coarse)').matches) {
       try { await navigator.share({ files: [file], text }); return; } catch (_) {}
     }
@@ -704,6 +758,9 @@
   form.addEventListener('submit', e => { e.preventDefault(); onCta(); });
   $('#ticket-send').addEventListener('click', sendTicket);
   $('#ticket-download').addEventListener('click', downloadTicket);
+  $('.btn-download').addEventListener('click', e => downloadNow(e.currentTarget));
+  const shareBtn = $('.btn-share');
+  if (canShareFiles) { shareBtn.hidden = false; shareBtn.addEventListener('click', e => shareNow(e.currentTarget)); }
   $('.dialog-close', ticket).addEventListener('click', () => ticket.close());
   ticket.addEventListener('click', e => { if (e.target === ticket) ticket.close(); });
   addEventListener('resize', fit, { passive: true });

@@ -78,21 +78,33 @@ header.after-hero{background:#1c100bcc;border-bottom-color:#d5a95e3b}
 
 
 /* Fattillu tu — sezione immersiva al bancone */
-.fattillu-hero{--h:clamp(640px,92svh,980px);position:relative;height:var(--h);overflow:hidden;background:#120a06;border-top:1px solid rgba(228,174,85,.25);border-bottom:1px solid rgba(228,174,85,.25)}
-.fh-scene{position:absolute;bottom:0;left:50%;width:max(100vw,calc(var(--h) * 1.791));aspect-ratio:2400/1340;transform:translateX(-50%)}
+.fattillu-hero{--h:clamp(640px,90vh,980px);position:relative;height:var(--h);overflow:hidden;background:#120a06;border-top:1px solid rgba(228,174,85,.25);border-bottom:1px solid rgba(228,174,85,.25)}
+.fh-scene{position:absolute;bottom:0;left:50%;width:max(100%,calc(var(--h) * 1.791));aspect-ratio:2400/1340;transform:translateX(-50%)}
 .fh-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* composizione agganciata al piano: appoggio al 90% dell'immagine, come nel configuratore */
 .fh-burger{position:absolute;width:36%;left:66%;bottom:5.5%;transform:translateX(-50%);filter:drop-shadow(0 26px 30px rgba(0,0,0,.45))}
 .fh-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(18,10,6,.94) 0%,rgba(18,10,6,.78) 28%,rgba(18,10,6,.18) 52%,rgba(18,10,6,0) 70%),linear-gradient(180deg,rgba(18,10,6,.55) 0%,rgba(18,10,6,0) 30%,rgba(18,10,6,0) 80%,rgba(18,10,6,.45) 100%)}
 .fh-copy{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;max-width:620px;padding:0 max(5.5vw,24px)}
 .fh-copy h2{margin-bottom:26px}.fh-copy p{max-width:480px;margin-bottom:32px;color:#e3d2bd}
-.fattillu-hero .fh-burger{animation:fhIn 1s cubic-bezier(.2,.8,.2,1) both}
-@keyframes fhIn{from{opacity:0;transform:translate(-50%,24px)}}
 @media(max-width:900px){
- .fattillu-hero{--h:clamp(720px,100svh,900px)}
+ .fattillu-hero{--h:820px}
  .fh-scene{transform:translateX(-66%)}
  .fh-burger{width:20%}
  .fh-shade{background:linear-gradient(180deg,rgba(18,10,6,.95) 0%,rgba(18,10,6,.85) 38%,rgba(18,10,6,.1) 60%,rgba(18,10,6,0) 80%,rgba(18,10,6,.35) 100%)}
  .fh-copy{justify-content:flex-start;padding-top:80px}
 }
-@media(prefers-reduced-motion:reduce){.fattillu-hero .fh-burger{animation:none}}
+
+/* menù mobile come nella prima versione: overlay a tutto schermo e pulsante bordato oro */
+@media(max-width:760px){
+ .nav-toggle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:46px;height:46px;border:1px solid #e4ae55;background:rgba(30,13,8,.45);border-radius:0;position:relative;z-index:2}
+ .nav-toggle span{width:20px;height:1px;margin:0;background:#f4c478;transition:transform .25s}
+ header.menu-open .nav-toggle span:first-child{transform:translateY(4px) rotate(45deg)}
+ header.menu-open .nav-toggle span:last-child{transform:translateY(-4px) rotate(-45deg)}
+ header.menu-open{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:transparent!important}
+ header .brand,header .header-actions{position:relative;z-index:2}
+ nav{display:flex!important;position:fixed;inset:0;top:0;left:0;right:0;height:100svh;z-index:1;flex-direction:column;gap:25px;padding:130px 28px;background:#1c100b;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
+ header.menu-open nav{opacity:1;visibility:visible}
+ nav a{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:2.4rem;letter-spacing:-.025em;line-height:1.1;padding:0 0 19px;border-bottom:1px solid rgba(228,174,85,.23)}
+ nav a:hover{color:#e4ae55}
+ body.nav-open{overflow:hidden}
+}

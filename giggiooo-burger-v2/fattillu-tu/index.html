@@ -9,12 +9,12 @@
 <title>Fattillu tu — Giggiooo Burger</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231c100b'/%3E%3Ctext x='16' y='25' text-anchor='middle' font-family='Georgia' font-weight='bold' font-size='27' fill='%23e4ae55'%3EG%3C/text%3E%3C/svg%3E">
 <link rel="preload" as="image" href="extras/bancone-wide.webp">
-<link rel="stylesheet" href="fattillu.css?v=20261026h">
+<link rel="stylesheet" href="fattillu.css?v=20261026k">
 <script src="config.js?v=20261026" defer></script>
 <script src="sprites.js?v=20261026" defer></script>
 <script src="extras.js?v=20261026f" defer></script>
 <script src="../products.js?v=20261026" defer></script>
-<script src="fattillu.js?v=20261026h" defer></script>
+<script src="fattillu.js?v=20261026k" defer></script>
 </head>
 <body>
 <header class="ft-header">
@@ -26,10 +26,10 @@
 <main class="ft-main">
  <section class="stage" aria-label="Anteprima del tuo burger">
   <div class="stage-glow" aria-hidden="true"></div>
-  <div class="stack-fit"><div class="counter" aria-hidden="true"><img src="extras/bancone-wide.webp" alt="" draggable="false"></div><div class="stack-zoom">
+  <div class="stack-fit"><div class="counter" aria-hidden="true"><img src="extras/bancone-wide.webp" alt="" draggable="false"></div><div class="grill-fx" aria-hidden="true"></div><div class="stack-zoom">
    <img class="wrap" src="extras/incarto.webp" alt="" aria-hidden="true" draggable="false">
    <div class="flag" aria-hidden="true"><div class="flag-inner"><span class="stick"></span><span class="pennant"><img src="../assets/logo.webp" alt=""></span></div></div>
-  </div></div>
+  </div><div class="grill-tint" aria-hidden="true"></div></div>
   <canvas class="smoke" aria-hidden="true"></canvas>
   <p class="stage-status"></p>
  </section>
@@ -87,7 +87,8 @@
    </div>
    <label class="field">Note per la cucina <span class="opt">facoltativo</span><textarea name="notes" maxlength="160" rows="2" placeholder="Es. salsa a parte"></textarea></label>
    <p class="form-error" role="alert"></p>
-   <div class="order-actions"><button type="button" class="text-button btn-edit">Modifica il burger</button></div>
+   <div class="order-actions"><button type="button" class="button ghost btn-download">Scarica la comanda <span aria-hidden="true">↓</span></button><button type="button" class="button ghost btn-share" hidden>Condividi</button><button type="button" class="text-button btn-edit">Modifica il burger</button></div>
+   <p class="order-note">Puoi scaricare la comanda e inviarla tu al locale, oppure usare <strong>Invia al locale</strong>.</p>
   </form>
 
   <p class="fine">Demo dimostrativa · ordine e invio simulati finché la sede non è collegata.</p>
