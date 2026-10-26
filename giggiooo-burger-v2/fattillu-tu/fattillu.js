@@ -507,8 +507,11 @@
     })(start);
   }
 
+  // layout impilato: smartphone e tablet in verticale (stesso criterio del CSS)
+  const STACKED = matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)');
+  STACKED.addEventListener?.('change', () => requestAnimationFrame(fit));
   function fit() {
-    const r = stage.getBoundingClientRect(), head = innerWidth <= 820 ? 70 : 0;
+    const r = stage.getBoundingClientRect(), head = STACKED.matches ? 70 : 0;
     const needW = Math.max(STACK_W, extraNeedW * zoomVal);
     const f = Math.min(r.width * .96 / needW, (r.height - head) * .97 / STACK_H);
     fitEl.style.setProperty('--fit', f.toFixed(4));
