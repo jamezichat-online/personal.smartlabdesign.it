@@ -117,8 +117,6 @@
     .project-card { min-height: min(78vh, 810px); position: relative; display: grid; align-items: end; margin-top: 32px; overflow: hidden; isolation: isolate; text-decoration: none; border: 2px solid rgba(255,240,206,.42); border-radius: 6px 44px 6px 44px; box-shadow: 15px 15px 0 var(--pink); }
     .project-card::before { content: ""; position: absolute; inset: 0; z-index: -2; background: url("https://d2ol7oe51mr4n9.cloudfront.net/user_37u4BdIWLdxIKRnNlGRqjLjMgTw/46aa4109-9f74-4251-8837-866468284918.png") center 43% / cover no-repeat; transition: transform .9s cubic-bezier(.2,.7,.2,1), filter .7s; }
     .project-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(4,24,28,.95), rgba(4,24,28,.66) 40%, transparent 73%), linear-gradient(0deg, rgba(4,24,28,.9), transparent 58%); }
-    .project-card--burger::before { background-image: url("/giggiooo-burger/assets/hero-poster.jpg"); background-position: center 48%; }
-    .project-card--burger::after { background: linear-gradient(90deg, rgba(24,9,5,.96), rgba(24,9,5,.72) 39%, rgba(24,9,5,.08) 75%), linear-gradient(0deg, rgba(24,9,5,.88), transparent 58%); }
     .project-card--burger-v2::before { background-image: url("/giggiooo-burger-v2/assets/hero-packaging-poster.webp"); background-position: center; }
     .project-card--burger-v2::after { background: linear-gradient(90deg, rgba(24,9,5,.96), rgba(24,9,5,.72) 39%, rgba(24,9,5,.08) 75%), linear-gradient(0deg, rgba(24,9,5,.88), transparent 58%); }
     .project-card--frames::before { background-image: url("/3d-frames/assets/cover.jpg"); background-image: image-set(url("/3d-frames/assets/cover.webp") type("image/webp"), url("/3d-frames/assets/cover.jpg") type("image/jpeg")); background-position: 62% center; }
@@ -339,11 +337,9 @@
       .project-card { min-height: min(680px, 82svh); margin-top: 24px; margin-right: 8px; border-radius: 5px 26px 5px 26px; box-shadow: 8px 8px 0 var(--pink); }
       .project-card::before { background-position: 59% center; }
       .project-card::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.48) 68%, rgba(4,24,28,.12)); }
-      .project-card--burger::before { background-position: center center; }
-      .project-card--frames::before { background-position: 58% center; }
+        .project-card--frames::before { background-position: 58% center; }
       .project-card--frames::after { background: linear-gradient(0deg, rgba(4,24,28,.97), rgba(4,24,28,.5) 64%, rgba(4,24,28,.1)); }
-      .project-card--burger::after { background: linear-gradient(0deg, rgba(24,9,5,.97), rgba(24,9,5,.55) 60%, rgba(24,9,5,.08)); }
-      .project-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 26px 20px 22px; }
+        .project-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 26px 20px 22px; }
       .project-meta { margin-bottom: 14px; font-size: 9px; }
       .project-title { max-width: 100%; font-size: clamp(48px, 15.5vw, 58px); line-height: .8; }
       .project-description { margin-top: 18px; font-size: 16px; }
@@ -459,22 +455,12 @@
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
         </a>
-        <a class="project-card project-card--burger" href="/giggiooo-burger/" aria-label="Open Giggiooo Burger project">
+        <a class="project-card project-card--burger-v2" href="/giggiooo-burger-v2/" aria-label="Open Giggiooo Burger project">
           <div class="project-content">
             <div>
               <div class="project-meta">02 / Brand experience / 2026</div>
               <h3 class="project-title">Giggiooo<i>Burger.</i></h3>
-              <p class="project-description">A cinematic burger brand experience with scroll-synced film, rich food imagery and a signature gold-and-brown identity.</p>
-            </div>
-            <span class="project-arrow" aria-hidden="true">↗</span>
-          </div>
-        </a>
-        <a class="project-card project-card--burger-v2" href="/giggiooo-burger-v2/" aria-label="Open Giggiooo Burger V2 project">
-          <div class="project-content">
-            <div>
-              <div class="project-meta">Brand experience / V2 / 2026</div>
-              <h3 class="project-title">Giggiooo<i>Burger V2.</i></h3>
-              <p class="project-description">An expanded burger experience with interactive ingredient reveals, six drinks and a custom merchandise collection.</p>
+              <p class="project-description">A cinematic burger brand experience with interactive ingredient reveals, six drinks and a custom merchandise collection.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
