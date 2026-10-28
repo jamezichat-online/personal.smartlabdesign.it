@@ -388,6 +388,11 @@
     /* Founder title: "ONE TRACK." / "ONE IDENTITY." stay on one line each, sized to the column (container query units) */
     .founder-title { container-type: inline-size; }
     @supports (font-size: 1cqi) { .founder h2 { white-space: nowrap; font-size: min(13.2cqi, 92px); } }
+  
+    .project-card--creative { box-shadow: 15px 15px 0 var(--aqua); }
+    .project-card--creative::before { background-image: url("/type-lens/assets/ocean.webp"); background-position: 58% center; }
+    .project-card--creative .project-title { font-size: clamp(44px, 7.2vw, 110px); }
+
   </style>
 <script defer src="https://smartlab-analytics.smartlabdesign-tools.workers.dev/tracker.js" referrerpolicy="no-referrer"></script>
 </head>
@@ -481,6 +486,16 @@
               <div class="project-meta">04 / Brand · Visual · Shop · Web · Social / 2026</div>
               <h3 class="project-title">Void<i>Signal.</i></h3>
               <p class="project-description">A streetwear label built end to end: a myth of three tribes, seven marks, a storefront, a scroll-tuned website and a participatory Instagram.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+        <a class="project-card project-card--creative" href="/type-lens/" aria-label="Explore Creative development — Type Lab and Hidden Stories">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">05 / Creative coding · Interactive experiences / 2026</div>
+              <h3 class="project-title">Creative<i>development</i></h3>
+              <p class="project-description">Typography to transform. Images to explore. Two interactive experiments with a real-time glass lens, three illustrated worlds and hidden messages waiting to be discovered.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>

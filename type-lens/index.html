@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#062d31">
+<title>Creative development — Type Lens / SmartLabDesign</title>
+<meta name="description" content="Type Lab e Hidden Stories: tipografia e tre illustrazioni da esplorare attraverso una lente di vetro. Un esperimento SmartLabDesign di creative development.">
+<meta property="og:title" content="Creative development — Type Lens / SmartLabDesign"><meta property="og:description" content="Tipografia, colore e interazione. Un esperimento di creative development firmato SmartLabDesign."><meta property="og:type" content="website"><meta property="og:image" content="cover.jpg">
+<link rel="stylesheet" href="fonts.css"><link rel="stylesheet" href="styles.css">
+</head>
+<body data-mode="type">
+<a href="#controls" class="skip">Vai ai controlli</a>
+<header class="site-header shell"><a href="https://sites.smartlabdesign.it/" class="brand" aria-label="SmartLabDesign, torna al portfolio"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle cx="18" cy="18" r="15" stroke="currentColor" stroke-width="1.5"/><path d="M18 7L10 26l8-4 8 4-8-19Zm0 0v15M12 18h12" stroke="currentColor" stroke-width="1.5"/></svg><span>SMARTLAB<span class="brand-accent">DESIGN</span></span></a><span class="header-project">Creative development</span><a class="back-link" href="https://sites.smartlabdesign.it/">Portfolio <span>↗</span></a></header>
+<main class="shell">
+<div class="project-intro"><h1>TYPE LENS</h1><p>Le idee cambiano.<br><span>Dipende da come le guardi.</span></p></div>
+<div class="experience-switch" role="tablist" aria-label="Scegli esperienza"><button id="type-tab" role="tab" aria-selected="true" aria-controls="lab-panel" data-mode="type">Type Lab<span>Gioca con le parole</span></button><button id="stories-tab" role="tab" aria-selected="false" aria-controls="lab-panel" data-mode="stories" tabindex="-1">Hidden Stories<span>Trova ciò che non vedi</span></button><span class="experience-note">Due modi di guardare più da vicino.</span></div>
+<div class="lab-layout" id="lab-panel" role="tabpanel" aria-labelledby="type-tab">
+<section id="scene" aria-describedby="story-status" aria-label="Tavola tipografica interattiva" data-theme="cream">
+<canvas id="light" aria-hidden="true"></canvas>
+<div class="artboard-top" data-type-only><span class="stage-brand">SMARTLABDESIGN</span><span class="stage-edition">An experiment in seeing.</span></div>
+<div class="specimen-wrap" data-type-only><div id="specimen" aria-label="CREATIVE FORCE."><span>CREATIVE</span><span>FORCE.</span></div><p class="specimen-caption" data-snapshot>Design is in the details.<br>Take a closer look.</p></div>
+<div class="type-strip" data-snapshot data-type-only><span>Aa Bb Cc Dd Ee Ff Gg</span><span>0123456789 &amp;?!</span></div>
+<div class="artboard-bottom" data-type-only><span data-snapshot>Trascina la lente. Cambia prospettiva.</span><span class="stage-sign" data-snapshot>Made of curiosity.</span></div>
+<span id="story-status" class="stage-status" role="status" hidden></span><div id="lens-shadow" aria-hidden="true"></div><canvas id="optics" aria-hidden="true"></canvas><button id="stone" aria-label="Lente interattiva. Trascina oppure usa i tasti freccia." title="Trascina la lente · Frecce per spostarla · Home per ricentrarla"></button>
+</section>
+<aside class="controls" id="controls" aria-label="Controlli Type Lens">
+<div class="panel-heading"><h2 id="panel-title">Fai spazio alle idee.</h2><button id="reset" title="Ripristina tutti i valori" aria-label="Ripristina esperimento">↺</button></div>
+<div class="control-group" data-type-only><div class="label-row"><label for="text-input">Il tuo testo</label><span id="text-count">14 / 48</span></div><textarea id="text-input" rows="2" spellcheck="false" aria-describedby="text-help">CREATIVE
+FORCE.</textarea><span id="text-help" class="field-hint">Fino a 2 righe. Il resto è immaginazione.</span></div>
+<div class="control-group" data-type-only><span class="control-label" id="font-label">Carattere</span><div class="font-options" role="group" aria-labelledby="font-label"><button data-font="archivo" aria-pressed="true">Archivo</button><button data-font="barlow" aria-pressed="false">Barlow</button><button data-font="mono" aria-pressed="false">DM Mono</button></div></div>
+<div class="story-controls" hidden>
+<div class="discovery-summary"><span>Scoperte</span><strong id="discovery-count">0 / 3</strong></div>
+<div class="story-choices" role="group" aria-label="Scegli una scena">
+<button class="story-choice" data-story="playground" aria-pressed="true"><img src="assets/playground.webp" alt="" width="84" height="56"><span><strong>Playground</strong><small>Beach court / Golden hour</small></span><span class="discovery-mark" aria-hidden="true">○</span></button>
+<button class="story-choice" data-story="ocean" aria-pressed="false"><img src="assets/ocean.webp" alt="" width="84" height="56" loading="lazy"><span><strong>Ocean Drive</strong><small>Palm avenue / Neon dreams</small></span><span class="discovery-mark" aria-hidden="true">○</span></button>
+<button class="story-choice" data-story="rooftop" aria-pressed="false"><img src="assets/rooftop.webp" alt="" width="84" height="56" loading="lazy"><span><strong>Rooftop Studio</strong><small>Above the city / Creative hours</small></span><span class="discovery-mark" aria-hidden="true">○</span></button>
+</div>
+<p class="story-instruction">Tre scene. Tre messaggi nascosti.<br>Porta la lente sui dettagli e soffermati un istante.</p>
+<div id="story-live" class="story-live" role="status" aria-live="polite">Un segreto ti aspetta.</div>
+<button id="hint" class="hint-button" aria-expanded="false">Mi dai un indizio? <span>↗</span></button><p id="hint-text" class="hint-text" hidden></p>
+</div>
+<div class="control-group"><div class="label-row"><span id="glass-label">Vetro</span><span id="glass-name">Clear</span></div><div class="swatches" role="group" aria-labelledby="glass-label"><button class="swatch" data-colour="0" style="--swatch:#d8e6dc" aria-label="Vetro Clear" aria-pressed="true"></button><button class="swatch" data-colour="1" style="--swatch:#00bfc4" aria-label="Vetro Aqua" aria-pressed="false"></button><button class="swatch" data-colour="2" style="--swatch:#ff6848" aria-label="Vetro Coral" aria-pressed="false"></button><button class="swatch" data-colour="3" style="--swatch:#ff2d87" aria-label="Vetro Pink" aria-pressed="false"></button><button class="swatch" data-colour="4" style="--swatch:#ffbc42" aria-label="Vetro Sun" aria-pressed="false"></button></div></div>
+<div class="control-group compact"><div class="label-row"><label for="magnify">Ingrandimento</label><output for="magnify" id="magnify-value">1.5×</output></div><input id="magnify" type="range" min="1.2" max="2.2" step="0.1" value="1.5"></div>
+<div class="control-group compact"><div class="label-row"><label for="diameter">Dimensione lente</label><output for="diameter" id="diameter-value">260 px</output></div><input id="diameter" type="range" min="140" max="360" step="10" value="260"></div>
+<div class="control-group" data-type-only><span class="control-label" id="theme-label">Fondo</span><div class="theme-options" role="group" aria-labelledby="theme-label"><button data-theme="cream" aria-pressed="true"><i style="background:#fff0ce"></i>Crema</button><button data-theme="petrol" aria-pressed="false"><i style="background:#062d31"></i>Petrolio</button><button data-theme="coral" aria-pressed="false"><i style="background:#ff6848"></i>Corallo</button></div></div>
+<div class="lab-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg><p>Trascina la lente sulla tavola.<br>I dettagli fanno il resto.</p><button id="help" aria-label="Istruzioni e comandi da tastiera">?</button></div>
+</aside>
+</div>
+<section class="project-context" id="project"><div><span class="project-category">Creative development</span><h2>Il design<br>prende vita.</h2></div><div class="project-description"><p>Parole da trasformare. Immagini da esplorare. Una lente per guardare oltre la superficie: Type Lab sperimenta con la tipografia, Hidden Stories racconta tre scene e nasconde tre messaggi. La curiosità è parte del progetto.</p><div class="disciplines"><span>Art direction</span><span>Interaction design</span><span>Creative coding</span></div><p class="project-credit">Concept e direzione creativa: Alessio Talluto / SmartLabDesign.<br>Sviluppo con strumenti AI. Vetro e rifrazione generati in tempo reale.</p></div></section>
+</main>
+<footer class="site-footer shell"><a class="footer-brand" href="https://sites.smartlabdesign.it/">SMARTLABDESIGN<span>CREATIVE FORCE.</span></a><span>Curiosity is our favourite tool.</span><a href="https://sites.smartlabdesign.it/">Torna ai progetti ↗</a></footer>
+<dialog id="help-dialog"><div class="dialog-head"><h2>Guarda più da vicino.</h2><button id="close-help" aria-label="Chiudi istruzioni">×</button></div><p>Trascina la lente con il mouse o con un dito. Puoi anche toccare un punto della tavola per spostarla lì.</p><p>Da tastiera: seleziona la lente con Tab e usa le frecce. Tieni premuto Shift per spostamenti più ampi; Home la riporta al centro.</p><p>In Type Lab scrivi fino a due righe, scegli un carattere e cambia vetro o fondo. In Hidden Stories esplora le tre scene: quando un messaggio entra al centro della lente, soffermati un istante per registrare la scoperta. Puoi chiedere un indizio. Il pulsante ↺ riavvia l’esperienza attiva.</p><span class="dialog-credit">Type Lens / SmartLabDesign — Creative development</span></dialog>
+<script type="module" src="lab.js"></script>
+</body></html>
