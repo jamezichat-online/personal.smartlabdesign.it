@@ -4,7 +4,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function goToSection(id){if(detailOpen)closeDetail(false);document.getElementById(id)?.scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'start'})}
 function retailForLook(id){return catalog.products.find(p=>p.look===id)}
 function renderEditorialProducts(kind='all'){
- const products=catalog.products.filter(p=>kind==='all'||p.kind===kind);
+ const products=catalog.products.filter(p=>kind==='all'||p.gender===kind);
  const grid=document.getElementById('editorialProducts');
  grid.replaceChildren(...products.map(p=>{
   const article=document.createElement('article');article.className=`editorial-product${p.kind==='more'?' retail':''}`;

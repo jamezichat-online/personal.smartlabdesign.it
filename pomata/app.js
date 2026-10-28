@@ -6,7 +6,12 @@ const looks = [
  {id:3,name:'Class is forever',short:'Class is forever.',gender:'uomo',mood:'Le cose belle restano.',color:'Bianco',hex:'#f8f7f0',price:39,description:'La t-shirt con la tasca disegnata e una dichiarazione di stile.',story:'Il tempo passa. Certe attitudini restano: un dettaglio da osservare da vicino, senza guardare l’ora.'},
  {id:4,name:'Bedda e spavalda',short:'Bedda e spavalda.',gender:'donna',mood:'Sole in faccia. Testa alta.',color:'Bianco',hex:'#f8f7f0',price:36,description:'Il limone con gli occhiali e tutta la sfacciataggine dell’estate.',story:'La luce bianca della costa, il blu del mare e quell’aria di chi si sente esattamente al posto giusto.'},
  {id:5,name:'Mai senza POMATA',short:'Mai senza.',gender:'uomo',mood:'Un carattere un po’ pungente.',color:'Rosa',hex:'#eebacb',price:39,description:'La t-shirt rosa con il fico d’India. Dolce, ma con carattere.',story:'Le piazze si riempiono, le ombre si allungano. Il fico d’India ha già scelto cosa mettersi.'},
- {id:6,name:'Struscio mode ON',short:'Struscio mode ON.',gender:'uomo',mood:'La notte è appena cominciata.',color:'Blu notte',hex:'#252b41',price:39,description:'Un interruttore acceso sulla t-shirt. E sulla tua prossima serata.',story:'Una passeggiata che non finisce mai, gli amici fuori dal bar e nessuna fretta di tornare.'}
+ {id:6,name:'Struscio mode ON',short:'Struscio mode ON.',gender:'uomo',mood:'La notte è appena cominciata.',color:'Blu notte',hex:'#252b41',price:39,description:'Un interruttore acceso sulla t-shirt. E sulla tua prossima serata.',story:'Una passeggiata che non finisce mai, gli amici fuori dal bar e nessuna fretta di tornare.'},
+ {"id": 7, "name": "Granita e spavalderia", "short": "Granita e spavalderia", "gender": "donna", "mood": "La giornata comincia così.", "color": "Rosa", "hex": "#eab6c6", "price": 0, "description": "Una granita con gli occhiali, una brioche e tutta la voglia di prendersela comoda.", "story": "Una pausa in pasticceria, gli amici al tavolo e la Sicilia che si gusta un cucchiaino alla volta."},
+ {"id": 8, "name": "POMATA H24", "short": "POMATA H24", "gender": "donna", "mood": "Sempre nell’umore giusto.", "color": "Nero", "hex": "#171719", "price": 0, "description": "La luna, un cocktail e una sveglia: l’attitudine POMATA non guarda l’ora.", "story": "Le luci della città si accendono. La terrazza è quella giusta, il primo brindisi arriva adesso."},
+ {"id": 9, "name": "POMATA Club", "short": "POMATA Club", "gender": "uomo", "mood": "La compagnia giusta.", "color": "Bianco", "hex": "#f8f7f0", "price": 0, "description": "Granita, arancina, cannolo e limone. La compagnia più siciliana del guardaroba.", "story": "Un giro al mare con gli amici. Si comincia con una granita, poi si vede: il club è già al completo."},
+ {"id": 10, "name": "The Gold Rush", "short": "The Gold Rush", "gender": "uomo", "mood": "Il tempo è dalla tua parte.", "color": "Bianco", "hex": "#f8f7f0", "price": 0, "description": "Un orologio d’oro nel taschino disegnato. Il tuo tempo, a modo tuo.", "story": "La luce calda sulle facciate barocche e una passeggiata senza fretta. Certe ore meritano di essere indossate."},
+ {"id": 11, "name": "Cu nesci, arrinesci", "short": "Cu nesci, arrinesci", "gender": "uomo", "mood": "Esci. Il bello è fuori.", "color": "Nero", "hex": "#171719", "price": 0, "description": "Una porta aperta, la luce della serata e un invito tutto siciliano: Cu nesci, arrinesci.", "story": "Tra i vicoli, una Vespa e i panni stesi, ogni uscita può diventare una storia. Basta aprire la porta."}
 ];
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
 function readStorage(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
@@ -29,7 +34,12 @@ const sceneInfo=[
  ['Noto','La bellezza, senza fretta.'],
  ['Scala dei Turchi','Il blu che ti porti addosso.'],
  ['Noto al tramonto','Ancora cinque minuti.'],
- ['Catania, di notte','La serata è tutta da scrivere.']
+ ['Catania, di notte','La serata è tutta da scrivere.'],
+ ['Palermo, in pasticceria','Il buongiorno ha un altro sapore.'],
+ ['Sicilia, rooftop','La città accende la serata.'],
+ ['Sicilia, al mare','La compagnia giusta.'],
+ ['Barocco siciliano','La luce si prende il suo tempo.'],
+ ['Sicilia, tra i vicoli','Esci. Il bello è fuori.']
 ];
 let orbitItems=[],orbitKey='',phase=1,target=1,orbitVelocity=0,frame=0,lastFrame=0;
 let dragging=null,suppressClick=false,stageWidth=1,stageHeight=1;
@@ -127,7 +137,12 @@ const bodyBounds=[
  [1024,1536,278,20,827,1498],[1024,1536,280,18,784,1503],
  [1024,1536,294,19,739,1502],[1024,1536,262,5,784,1508],
  [1024,1536,307,16,714,1459],[949,1658,223,13,748,1589],
- [1024,1536,256,34,762,1489]
+ [1024,1536,256,34,762,1489],
+ [1024, 1536, 317, 11, 720, 1519],
+ [1024, 1536, 269, 26, 835, 1520],
+ [1024, 1536, 278, 11, 797, 1517],
+ [1024, 1536, 254, 10, 766, 1493],
+ [1020, 1541, 264, 20, 812, 1492]
 ];
 const orbitNodes=[];
 looks.forEach(l=>{

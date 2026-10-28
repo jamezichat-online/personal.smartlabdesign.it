@@ -9,3 +9,9 @@ html{scroll-behavior:smooth;scroll-padding-top:100px}body{overflow-x:hidden} [hi
 .runway-experience .look-caption h2,#detailHeading{font-family:var(--logo);font-weight:400;font-style:normal;color:var(--red);letter-spacing:-.045em}
 .runway-experience .look-caption h2{font-size:clamp(18px,1.6vw,24px);line-height:1.2}#detailHeading{font-size:28px;line-height:1.15}
 @media(max-width:700px){.runway-experience .look-caption h2{font-size:18px}#detailHeading{font-size:26px}}
+
+/* Twelve looks keep their controls inside the stage at every width. */
+.runway-experience .progress{gap:5px}.runway-experience .progress button{width:15px}
+@media(max-width:1100px){.runway-experience .progress{gap:3px}.runway-experience .progress button{width:10px}.runway-experience .carousel-controls{gap:4px}}
+@media(max-width:700px){.runway-experience .bottom-bar{grid-template-columns:1fr}.runway-experience .carousel-controls{justify-content:center;gap:12px}.runway-experience .progress{gap:5px}.runway-experience .progress button{width:13px}.runway-experience .look-caption{display:block}.runway-experience .look-caption h2{max-width:none}.runway-experience{height:790px}}
+@media(min-width:701px) and (max-width:1100px){.detail-open .runway-experience .bottom-bar{grid-template-columns:1fr}.detail-open .runway-experience .carousel-controls{justify-content:center}}
