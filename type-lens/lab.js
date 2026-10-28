@@ -148,10 +148,10 @@ function drawSecret(c){
  const story=STORIES[storyIndex];if(!storyImages.has(story.id)||!artReady(story.id))return;
  if(story.id==='playground'){warpArt(c,secretArt.get(story.id),[[1190/1536,65/1024],[1360/1536,13/1024],[1361/1536,87/1024],[1191/1536,132/1024]]);return}
  if(story.id==='rooftop'){warpArt(c,secretArt.get(story.id),[[1058/1536,446/1024],[1405/1536,453/1024],[1370/1536,730/1024],[1018/1536,677/1024]]);return}
- const neon=document.createElement('canvas');neon.width=1200;neon.height=260;const n=neon.getContext('2d');n.textAlign='center';n.textBaseline='middle';let fs=130;n.font=`600 ${fs}px 'Barlow Condensed'`;fs*=Math.min(1,1000/n.measureText('SMARTLABDESIGN').width);n.font=`600 ${fs}px 'Barlow Condensed'`;n.lineJoin='round';
- n.shadowColor='#ff2d87';n.shadowBlur=35;n.strokeStyle='#ff2d87';n.lineWidth=fs*.11;n.strokeText('SMARTLABDESIGN',600,130);
- n.shadowColor='#00bfc4';n.shadowBlur=17;n.strokeStyle='#00bfc4';n.lineWidth=fs*.065;n.strokeText('SMARTLABDESIGN',600,130);
- n.shadowBlur=3;n.fillStyle='#fff0ce';n.fillText('SMARTLABDESIGN',600,130);n.strokeStyle='#ffffff';n.lineWidth=fs*.015;n.strokeText('SMARTLABDESIGN',600,130);
+ const neon=document.createElement('canvas');neon.width=1200;neon.height=220;const n=neon.getContext('2d');n.textAlign='center';n.textBaseline='middle';let fs=260;n.font=`600 ${fs}px 'Barlow Condensed'`;fs*=Math.min(1,1100/n.measureText('SMARTLABDESIGN').width);n.font=`600 ${fs}px 'Barlow Condensed'`;n.lineJoin='round';
+ n.shadowColor='#ff2d87';n.shadowBlur=35;n.strokeStyle='#ff2d87';n.lineWidth=fs*.11;n.strokeText('SMARTLABDESIGN',600,110);
+ n.shadowColor='#00bfc4';n.shadowBlur=17;n.strokeStyle='#00bfc4';n.lineWidth=fs*.065;n.strokeText('SMARTLABDESIGN',600,110);
+ n.shadowBlur=3;n.fillStyle='#fff0ce';n.fillText('SMARTLABDESIGN',600,110);n.strokeStyle='#ffffff';n.lineWidth=fs*.015;n.strokeText('SMARTLABDESIGN',600,110);
  warpArt(c,neon,[[1180/1536,271/1024],[1449/1536,187/1024],[1449/1536,247/1024],[1180/1536,309/1024]]);
 }
 function cancelDiscovery(){clearTimeout(discoveryTimer);discoveryTimer=0;discoveryCandidate=null}
