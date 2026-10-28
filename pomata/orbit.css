@@ -6,7 +6,7 @@
 .runway{isolation:isolate;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .runway:before{content:'';position:absolute;bottom:-12px;left:0;right:0;height:80px;background:linear-gradient(transparent,#faf7f07a);z-index:-1;pointer-events:none}
 .background-word{color:#fff;opacity:.18;top:43%;font-size:21vw;z-index:-1;mix-blend-mode:soft-light}
-.model{width:auto;aspect-ratio:var(--body-ratio,.34);height:calc(100% - 12px);min-height:0;max-height:66dvh;bottom:8px;transform-origin:50% 100%;transition:none;will-change:transform,filter,opacity;filter:none;opacity:1;z-index:1;cursor:grab;outline-offset:5px!important}
+.model{width:auto;aspect-ratio:var(--body-ratio,.34);height:calc(100% - 12px);min-height:0;max-height:66dvh;bottom:8px;transform-origin:50% 100%;transition:none;will-change:auto;filter:none;opacity:1;z-index:1;cursor:grab;outline-offset:5px!important}
 .model img{height:calc(100% * var(--image-scale,1));width:auto;max-width:none;object-fit:initial;position:absolute;left:50%;bottom:var(--image-bottom,0%);transform:translateX(var(--image-center,-50%));pointer-events:none;user-select:none;-webkit-user-drag:none}
 .model:after{display:none}
 .model[aria-current=true]:hover{filter:inherit}

@@ -14,7 +14,7 @@ let favorites=readStorage('pomata-favorites',[]);if(!Array.isArray(favorites))fa
 let bag=readStorage('pomata-bag',[]);if(!Array.isArray(bag))bag=[];bag=bag.filter(x=>looks.some(l=>l.id===x.id)&&['XS','S','M','L','XL'].includes(x.size)&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99);
 let selected=1,filter='all',size=null,detailOpen=false,toastTimer,lastTrigger=null;
 const money=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n);
-const original=l=>`assets/original-${l.id}.webp`;const model=l=>`assets/model-${l.id}.webp`;
+const original=l=>`assets/original-${l.id}.webp`;const model=l=>`assets/model-hq-${l.id}.webp`;
 const visible=()=>looks.filter(l=>filter==='all'||filter==='favorites'&&favorites.includes(l.id)||l.gender===filter);
 function persist(){try{localStorage.setItem('pomata-favorites',JSON.stringify(favorites));localStorage.setItem('pomata-bag',JSON.stringify(bag))}catch{}updateCounts()}
 function updateCounts(){$('#bagCount').textContent=bag.reduce((n,x)=>n+x.qty,0);$('#favCount').textContent=favorites.length||'';$('#favoritesButton').setAttribute('aria-label',`Mostra ${favorites.length} look preferiti`)}
@@ -65,7 +65,7 @@ function drawOrbit(){
   const i=orbitItems.findIndex(l=>l.id===id);el.hidden=i<0;shadow.hidden=i<0;if(i<0)continue;
   const p=Orbit.pose(i,phase,count,stageWidth,stageHeight);
   el.style.transform=`translate3d(calc(-50% + ${p.x.toFixed(3)}px),${p.y.toFixed(3)}px,0) scale(${p.scale.toFixed(5)})`;
-  el.style.filter=`blur(${p.blur.toFixed(2)}px) saturate(${(1-p.depth*.18).toFixed(3)})`;
+  el.style.filter=p.blur<.01?'none':`blur(${p.blur.toFixed(2)}px) saturate(${(1-p.depth*.18).toFixed(3)})`;
   el.style.opacity=p.opacity.toFixed(3);el.style.zIndex=p.z;
   el.style.pointerEvents=p.opacity<.02?'none':'';el.setAttribute('aria-hidden',String(p.opacity<.02));
   shadow.style.transform=`translate3d(calc(-50% + ${p.x.toFixed(3)}px),${p.shadowY.toFixed(3)}px,0) scale(${p.scale.toFixed(5)})`;
