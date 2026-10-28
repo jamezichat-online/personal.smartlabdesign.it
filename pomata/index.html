@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#faf7f0">
+  <title>POMATA — Spavalderia siciliana da indossare.</title>
+  <meta name="description" content="T-shirt illustrate, sole e spavalderia siciliana. Scopri la collezione POMATA, esplora la passerella e acquista nello shop ufficiale.">
+  <link rel="icon" type="image/png" href="assets/favicon-pomata.png"><link rel="icon" sizes="any" href="favicon.ico"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="orbit.css"><link rel="stylesheet" href="site.css"><script src="catalog.js" defer></script><script src="carousel-math.js" defer></script><script src="app.js" defer></script><script src="site.js" defer></script>
+</head>
+<body>
+  <a href="#site-content" class="skip-link">Vai al contenuto</a>
+  <header class="header">
+    <button class="wordmark" id="home" aria-label="POMATA, torna alla home">POMATA</button>
+    <nav aria-label="Navigazione principale"><button class="nav-link" id="runwayNav">Passerella</button><button class="nav-link" id="collectionNav">La collezione</button><button class="nav-link" id="worldNav">Mondo POMATA</button></nav>
+    <div class="header-actions"><button class="icon-button" id="favoritesButton" aria-label="Mostra i look preferiti"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg><span class="fav-count" id="favCount"></span></button><button class="bag-button" id="bagButton" aria-label="Apri lo shop ufficiale POMATA">Shop <span id="bagCount" hidden>0</span><svg viewBox="0 0 24 24"><path d="M5 7h14l1 14H4L5 7Z M8 7V5a4 4 0 0 1 8 0v2"/></svg></button></div>
+  </header>
+
+  <main class="site-main" id="site-content">
+    <section class="campaign-hero" aria-labelledby="hero-heading">
+      <div class="campaign-image"><img src="assets/pomata-campaign.webp" width="1983" height="793" fetchpriority="high" alt="Il collage POMATA: granita, t-shirt illustrate, limoni e giornate di sole tra le piazze e il mare di Sicilia."></div>
+      <div class="hero-copy page-frame"><h1 id="hero-heading">Spavalderia<br>da indossare.</h1><div><p>T-shirt illustrate. Ironia siciliana.<br>Un’attitudine che ti porti addosso.</p><a class="site-button" href="#collezione">Trova la tua POMATA <span aria-hidden="true">↗</span></a><a class="quiet-link" href="#passerella">Oppure, fai un giro in passerella ↓</a></div></div>
+    </section>
+    <section class="collection-section page-frame" id="collezione" aria-labelledby="collection-heading">
+      <div class="section-opening"><h2 id="collection-heading">La collezione.</h2><p>Una battuta sulla maglietta.<br>Il resto lo metti tu.</p></div>
+      <div class="catalog-toolbar" data-ui><div class="catalog-filters" role="group" aria-label="Filtra la collezione"><button data-catalog-filter="all" aria-pressed="true">Tutte</button><button data-catalog-filter="runway" aria-pressed="false">In passerella</button><button data-catalog-filter="more" aria-pressed="false">Altre grafiche</button></div><a href="https://pomata.myspreadshop.it/all" target="_blank" rel="noopener noreferrer">Lo shop completo ↗</a></div>
+      <div class="editorial-products" id="editorialProducts" data-ui></div>
+      <noscript><p><a href="https://pomata.myspreadshop.it/all">Scopri tutte le t-shirt nello shop POMATA ↗</a></p></noscript>
+      <p class="shop-handoff">Ogni t-shirt si acquista nello shop ufficiale POMATA su Spreadshop. Lì trovi prezzi aggiornati, taglie e colori disponibili.</p>
+    </section>
+    <div id="passerella" class="runway-anchor"></div>
+  <section id="main" class="runway-experience" aria-label="La passerella interattiva POMATA" data-ui>
+    <div class="scene-backdrop" id="sceneBackdrop" aria-hidden="true"></div>
+    <div class="intro"><div><h2>La vita è una <em>passerella.</em></h2><p>Un po’ di Sicilia. Molto POMATA.</p></div><div class="intro-right"><div class="scene-caption"><span id="scenePlace">Ortigia, Siracusa</span><span id="sceneTime">L’ora d’oro.</span></div><div class="filters" role="group" aria-label="Filtra i look"><button data-filter="all" aria-pressed="true">Tutti</button><button data-filter="donna" aria-pressed="false">Lei</button><button data-filter="uomo" aria-pressed="false">Lui</button></div></div></div>
+    <section class="runway" id="runway" aria-label="Passerella dei look POMATA" aria-roledescription="carosello" tabindex="0">
+      <div class="background-word" aria-hidden="true">POMATA</div><div class="models" id="models"></div>
+      
+      <div class="empty-state" id="emptyState" hidden><h2>Il tuo primo colpo di cuore.</h2><p>Salva un look con il cuore e lo ritroverai qui.</p><button class="text-button" id="resetFilter">Esplora tutti i look ↗</button></div>
+      <button class="save-look icon-button" id="saveLook" aria-label="Salva questo look" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+      <div class="stage-instruction"><span>Trascina. La Sicilia gira con te.</span><svg viewBox="0 0 56 16"><path d="M1 8h54M7 2 1 8l6 6M49 2l6 6-6 6"/></svg></div>
+      <button class="look-hotspot" id="hotspot" aria-label="Scopri la t-shirt di questo look"><span>+</span><span class="hotspot-label">Scopri il capo</span></button>
+    </section>
+    <div class="bottom-bar"><div class="look-caption"><span class="caption-prefix" id="lookIndex">01 / 07</span><h2 id="lookName">Fari, POMATA</h2><span class="look-mood" id="lookMood">L’ora dell’aperitivo.</span></div><div class="carousel-controls"><button class="arrow" id="prev" aria-label="Look precedente">←</button><div class="progress" id="progress" aria-label="Scegli un look"></div><button class="arrow" id="next" aria-label="Look successivo">→</button></div><button class="discover" id="discover">Questo è il mio mood <span>↗</span></button></div>
+    <footer class="footer"><span>Scegli il look. Scopri la t-shirt.</span><button id="photoButton">La foto originale ↗</button></footer>
+  </section>
+    <section class="brand-section" id="mondo" aria-labelledby="brand-heading">
+      <div class="brand-image"><img src="assets/original-4.webp" alt="Bedda e spavalda, il limone POMATA davanti al mare della Scala dei Turchi" width="1024" height="1024" loading="lazy"></div>
+      <div class="brand-copy"><h2 id="brand-heading">Stessa isola.<br>Altra attitudine.</h2><p>POMATA è un modo di stare al mondo: un po’ dolce, un po’ pungente. Come un fico d’India. Come una battuta detta al momento giusto.</p><p>Ci trovi il limone con gli occhiali, l’aperitivo che si allunga e quella voglia di uscire anche senza una scusa. Piccole storie siciliane, da indossare a modo tuo.</p><a class="site-button light-button" href="#passerella">Scegli il tuo mood <span aria-hidden="true">↗</span></a></div>
+    </section>
+    <section class="journal-section page-frame" aria-labelledby="journal-heading">
+      <div class="section-opening"><h2 id="journal-heading">Fuori, fino a tardi.</h2><p>Dal primo sole all’ultimo giro.<br>La Sicilia fa da sfondo. Tu fai il resto.</p></div>
+      <div class="journal-layout"><figure class="journal-large"><img src="assets/original-0.webp" alt="La t-shirt gialla POMATA e una Vespa sul mare al tramonto" width="1024" height="1024" loading="lazy"><figcaption>Il tramonto non aspetta.</figcaption></figure><figure class="journal-small"><img src="assets/original-6.webp" alt="Struscio mode ON nella notte siciliana, tra amici e luci dei bar" width="1024" height="1024" loading="lazy"><figcaption>Nessuna fretta di tornare.</figcaption></figure></div>
+    </section>
+    <section class="purchase-section page-frame" id="acquisti" aria-labelledby="purchase-heading">
+      <h2 id="purchase-heading">La vuoi? È tua.</h2>
+      <div class="purchase-content"><p class="purchase-intro">Tu scegli la tua POMATA.<br>Al resto pensa lo shop.</p><div class="purchase-questions">
+        <details><summary>Come acquisto una t-shirt?<span aria-hidden="true">+</span></summary><p>Scegli una grafica dalla collezione o apri un look in passerella. Il pulsante “Acquista nello shop” ti porta a POMATA su Spreadshop: lì scegli il modello, il colore e la taglia e completi il pagamento.</p></details>
+        <details><summary>Quale taglia scelgo?<span aria-hidden="true">+</span></summary><p>Ogni modello ha la propria vestibilità. Nella pagina prodotto dello shop trovi la tabella delle misure e le taglie disponibili: consultala prima di completare l’ordine.</p></details>
+        <details><summary>Spedizioni, cambi e resi?<span aria-hidden="true">+</span></summary><p>Stampa, ordine e spedizione sono gestiti da Spreadshirt. Consulta le informazioni aggiornate su <a href="https://service.spreadshirt.com/hc/it/articles/115000993925" target="_blank" rel="noopener noreferrer">tempi e costi di consegna</a> e su <a href="https://service.spreadshirt.com/hc/it/articles/115000984869" target="_blank" rel="noopener noreferrer">cambi e resi</a>.</p></details>
+        <details><summary>Posso comprare tutto il look?<span aria-hidden="true">+</span></summary><p>Il capo POMATA è la t-shirt. Pantaloni, scarpe e accessori dei look sono abbinamenti di styling. Le immagini di campagna mostrano il mood; per stampa, vestibilità e colori fa riferimento la scheda prodotto nello shop.</p></details>
+        <a class="site-button" href="https://pomata.myspreadshop.it/all" target="_blank" rel="noopener noreferrer">Vai allo shop ufficiale <span aria-hidden="true">↗</span></a>
+      </div></div>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-top page-frame"><p>Un po’ di Sicilia.<br>Molto POMATA.</p><div><a href="#collezione">La collezione</a><a href="#passerella">La passerella</a><a href="#mondo">Mondo POMATA</a><a href="https://pomata.myspreadshop.it/all" target="_blank" rel="noopener noreferrer">Shop ufficiale ↗</a></div></div><div class="footer-wordmark" aria-hidden="true">POMATA</div><div class="footer-bottom page-frame"><span>© 2026 POMATA</span><span>T-shirt con spavalderia siciliana.</span><button id="privacyButton">Privacy</button><a href="https://pomata.myspreadshop.it/imprint" target="_blank" rel="noopener noreferrer">Informazioni legali shop ↗</a></div></footer>
+  <dialog class="privacy-dialog" id="privacyDialog"><div class="dialog-top"><h2>La tua privacy.</h2><button class="icon-button close" data-close aria-label="Chiudi privacy">×</button></div><p>Questo sito salva i look preferiti nella memoria locale del browser. Puoi rimuoverli con il pulsante qui sotto. Non è necessario creare un account POMATA.</p><p>Quando apri lo shop, lasci questo sito e prosegui su Spreadshop, che gestisce dati di acquisto, pagamento e spedizione secondo la propria <a href="https://service.spreadshirt.com/hc/it/articles/115000978409" target="_blank" rel="noopener noreferrer">informativa sulla privacy</a>.</p><button class="text-button" id="clearPreferences">Cancella i preferiti salvati</button></dialog>
+  <div class="panel-scrim" id="panelScrim" hidden></div>
+  <aside class="detail-panel" id="detailPanel" aria-labelledby="detailHeading" aria-hidden="true" inert><div class="panel-top"><span>Dentro questo look</span><button class="icon-button close" id="closeDetail" aria-label="Chiudi dettaglio">×</button></div><div class="detail-scroll"><div class="product-image"><img id="detailPhoto" alt=""><button id="expandPhoto" aria-label="Ingrandisci foto originale">↗</button></div><div class="product-title"><h2 id="detailHeading"></h2><span id="detailPrice"></span></div><p class="product-description" id="detailDescription"></p><div class="color-line" hidden><span>Colore</span><span><i id="colorSwatch"></i><span id="detailColor"></span></span></div><div class="size-heading" hidden><span>Scegli la taglia</span><button id="sizeGuide">Guida taglie ↗</button></div><div class="sizes" hidden id="sizes" role="group" aria-label="Taglia della t-shirt"></div><p class="size-error" id="sizeError" role="alert"></p><a class="add-button" id="addBag" href="https://pomata.myspreadshop.it/all" target="_blank" rel="noopener noreferrer">Acquista nello shop <span>↗</span></a><p class="demo-note">Taglia, colore e prezzo sono nella scheda dello shop. Gli altri capi del look sono abbinamenti di styling.</p><details><summary>Il mood di questo capo <span>+</span></summary><p id="detailStory"></p></details><details><summary>Prima di acquistare <span>+</span></summary><p>La foto di campagna racconta il look. Per i dettagli della stampa, i materiali, la vestibilità e i colori disponibili consulta la scheda prodotto nello shop ufficiale.</p></details></div></aside>
+  <dialog class="overlay-dialog" id="collectionDialog"><div class="dialog-top"><h2 id="collectionTitle">La collezione.</h2><button class="icon-button close" data-close aria-label="Chiudi collezione">×</button></div><p class="dialog-description" id="collectionDescription">Sette personalità. Una sola attitudine.</p><div class="collection-grid" id="collectionGrid"></div></dialog>
+  <dialog class="photo-dialog" id="photoDialog"><button class="photo-close icon-button" data-close aria-label="Chiudi fotografia">×</button><img id="originalPhoto" alt=""><div class="photo-caption"><span id="photoCaption"></span><span>La campagna POMATA</span></div></dialog>
+  <dialog class="size-dialog" id="sizeDialog"><div class="dialog-top"><h2>Trova la tua taglia.</h2><button class="icon-button close" data-close aria-label="Chiudi guida taglie">×</button></div><p>La selezione XS–XL è dimostrativa. Le misure ufficiali del capo verranno aggiunte con il catalogo POMATA.</p><p>Per questa anteprima puoi selezionare liberamente una taglia e provare la bag.</p></dialog>
+  <dialog class="bag-dialog" id="bagDialog"><div class="dialog-top"><h2>La tua bag.</h2><button class="icon-button close" data-close aria-label="Chiudi bag">×</button></div><div id="bagItems"></div><div class="bag-summary" id="bagSummary"></div><p class="demo-note" id="checkout">Bag dimostrativa. Gli acquisti non sono ancora attivi.</p></dialog>
+  <dialog class="world-dialog" id="worldDialog"><div class="dialog-top"><span>Il mondo POMATA</span><button class="icon-button close" data-close aria-label="Chiudi mondo POMATA">×</button></div><div class="world-content"><div><h2>Prendila<br>con <em>POMATA.</em></h2><p>Una battuta sulla maglietta. Il sole sulla pelle. L’aperitivo che diventa serata.</p><p>Questo guardaroba parte da qui: sette piccoli modi di portare addosso il buon vivere.</p><button class="text-button" id="worldExplore">Trova il tuo mood ↗</button></div><img src="assets/original-0.webp" alt="La campagna POMATA al tramonto, vicino al mare" loading="lazy"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div><div class="sr-only" id="announcement" aria-live="polite"></div>
+</body></html>

@@ -1,0 +1,62 @@
+/* The approved composition remains; only the stage, projection and atmosphere change. */
+.runway-experience{isolation:isolate}
+.scene-backdrop{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#e1ddd3}
+.scene-layer{position:absolute;inset:-36px;width:calc(100% + 72px);height:calc(100% + 72px);object-fit:cover;object-position:center 52%;filter:blur(4.5px) saturate(.9);transform:translate3d(var(--scene-drift,0px),0,0) scale(1.025);opacity:0;will-change:opacity,transform;pointer-events:none}
+.scene-backdrop:after{content:'';position:absolute;inset:0;z-index:2;background:linear-gradient(to bottom,#faf7f0 0%,#faf7f0da 12%,#faf7f05c 31%,#faf7f020 52%,#faf7f077 72%,#faf7f0ef 86%,#faf7f0 96%);pointer-events:none}
+.runway{isolation:isolate;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.runway:before{content:'';position:absolute;bottom:-12px;left:0;right:0;height:80px;background:linear-gradient(transparent,#faf7f07a);z-index:-1;pointer-events:none}
+.background-word{color:#fff;opacity:.18;top:43%;font-size:21vw;z-index:-1;mix-blend-mode:soft-light}
+.model{width:auto;aspect-ratio:var(--body-ratio,.34);height:calc(100% - 12px);min-height:0;max-height:66dvh;bottom:8px;transform-origin:50% 100%;transition:none;will-change:transform,filter,opacity;filter:none;opacity:1;z-index:1;cursor:grab;outline-offset:5px!important}
+.model img{height:calc(100% * var(--image-scale,1));width:auto;max-width:none;object-fit:initial;position:absolute;left:50%;bottom:var(--image-bottom,0%);transform:translateX(var(--image-center,-50%));pointer-events:none;user-select:none;-webkit-user-drag:none}
+.model:after{display:none}
+.model[aria-current=true]:hover{filter:inherit}
+.model-shadow{position:absolute;left:50%;bottom:5px;width:clamp(75px,12.5vw,175px);height:28px;background:radial-gradient(ellipse at center,#2a20164d 0%,#2a201630 28%,#2a201617 48%,transparent 72%);transform-origin:50% 50%;pointer-events:none;will-change:transform,opacity}
+.model-shadow:after{content:'';position:absolute;left:26%;right:26%;top:8px;height:9px;border-radius:50%;background:#261c1955;filter:blur(3px)}
+.save-look,.stage-instruction,.scene-caption,.look-hotspot{z-index:1100}
+.save-look{background:#faf7f094;border-radius:50%}
+.stage-instruction{bottom:20px;font-size:11px;color:#514d43;text-shadow:0 1px 10px #faf7f0}
+.stage-instruction span{max-width:130px;line-height:1.5}
+.scene-caption{position:absolute;right:var(--pad);bottom:22px;display:flex;flex-direction:column;gap:5px;max-width:230px;text-align:right;pointer-events:none;color:#514d43;text-shadow:0 1px 10px #faf7f0}
+.scene-caption>span:first-child{font-size:12px;font-weight:500}
+.scene-caption>span+span{font-family:var(--serif);font-size:15px;font-style:italic}
+.look-hotspot{left:calc(50% + 52px);top:39%;transition:opacity .18s}
+.is-dragging,.is-dragging .model,.is-dragging .runway{cursor:grabbing}
+.is-dragging .scene-caption{opacity:.7}
+.bottom-bar{border-top-color:#c9c2b6}
+.footer{position:relative;z-index:15}
+.classic-link{color:var(--muted);text-decoration:none;font-size:11px;padding:10px 0}
+.classic-link:hover{color:var(--red);text-decoration:underline;text-underline-offset:3px}
+.detail-open .scene-caption{max-width:160px}
+.detail-open .scene-caption>span+span{display:none}
+@media(min-height:1000px){.model{height:calc(100% - 16px);max-height:690px}}
+@media(min-width:701px) and (max-width:1100px){.model{width:auto;height:calc(100% - 12px);max-height:66dvh}.detail-open .model{max-height:62dvh}.scene-caption{max-width:170px}.detail-open .scene-caption{display:none}}
+@media(max-width:700px){
+ .model{width:auto;height:calc(100% - 20px);min-height:0;max-height:52dvh;bottom:8px}
+ .scene-layer{filter:blur(3px) saturate(.88);object-position:53% 52%}
+ .scene-backdrop:after{background:linear-gradient(to bottom,#faf7f0 0%,#faf7f0ec 19%,#faf7f066 32%,#faf7f01f 49%,#faf7f060 68%,#faf7f0ef 80%,#faf7f0 91%)}
+ .scene-caption{right:20px;bottom:6px;max-width:125px;gap:3px}
+ .scene-caption>span:first-child{font-size:10px}.scene-caption>span+span{font-size:11px;line-height:1.3}
+ .stage-instruction{bottom:5px;font-size:9px;left:var(--pad)}.stage-instruction span{max-width:80px}
+ .background-word{font-size:31vw;opacity:.21}
+ .model-shadow{width:105px;height:23px}
+ .look-hotspot{left:calc(50% + 29px);top:38%}
+ .footer #photoButton{display:none}.footer .classic-link{font-size:10px;white-space:nowrap}
+ .footer{gap:10px}.footer>span{font-size:8px}
+ .save-look{top:12%}
+ .detail-open .scene-caption{display:none}
+}
+@media(prefers-reduced-motion:reduce){.scene-layer{transform:scale(1.025);will-change:auto}.model,.model-shadow{will-change:auto}}
+
+/* The caption belongs to the quiet header; the virtual floor stays clear. */
+.scene-caption{position:static;max-width:none;min-height:15px;display:block;pointer-events:none;text-shadow:none}
+.scene-caption>span:first-child{font-size:12px;font-weight:400;color:var(--muted)}
+.scene-caption>span+span{display:none}
+.model-shadow{bottom:-6px}
+@media(max-width:700px){.intro-right .scene-caption{display:none}.model-shadow{bottom:-4px}}
+/* Let the full-scene fade define the floor, without a rectangular stage edge. */
+.runway:before{display:none}
+@media(max-width:700px){.stage-instruction{display:none}}
+
+/* Extra foreground scale keeps its feet anchored; reserve headroom on smaller screens. */
+@media(min-width:701px) and (max-width:1100px){.model{height:calc(100% - 48px)}}
+@media(max-width:700px){.model{height:calc(100% - 42px)}}

@@ -393,6 +393,12 @@
     .project-card--creative::before { background-image: url("/type-lens/assets/ocean.webp"); background-position: 58% center; }
     .project-card--creative .project-title { font-size: clamp(44px, 7.2vw, 110px); }
 
+
+    .project-card--pomata { box-shadow: 15px 15px 0 #b73225; }
+    .project-card--pomata::before { background-image: url("/pomata/assets/pomata-campaign.webp"); background-position: 60% center; }
+    .project-card--pomata::after { background: linear-gradient(90deg, rgba(26,18,12,.94), rgba(26,18,12,.58) 44%, rgba(26,18,12,.05) 78%), linear-gradient(0deg, rgba(26,18,12,.88), transparent 68%); }
+    .project-card--pomata .project-title { font-style: normal; letter-spacing: -.085em; }
+    @media(max-width:700px) { .project-card--pomata { box-shadow: 8px 8px 0 #b73225; } .project-card--pomata::before { background-position: 53% center; } }
   </style>
 <script defer src="https://smartlab-analytics.smartlabdesign-tools.workers.dev/tracker.js" referrerpolicy="no-referrer"></script>
 </head>
@@ -496,6 +502,17 @@
               <div class="project-meta">05 / Creative coding · Interactive experiences / 2026</div>
               <h3 class="project-title">Creative<i>development</i></h3>
               <p class="project-description">Typography to transform. Images to explore. Two interactive experiments with a real-time glass lens, three illustrated worlds and hidden messages waiting to be discovered.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+
+        <a class="project-card project-card--pomata" href="/pomata/" aria-label="Explore POMATA, Sicilian fashion and interactive runway">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">06 / Brand experience · Fashion · Interactive shop / 2026</div>
+              <h3 class="project-title">POMATA</h3>
+              <p class="project-description">Sicilian attitude, illustrated t-shirts and a rotating runway. An editorial brand website where each look moves through the island’s landscapes, connected to the official shop.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
