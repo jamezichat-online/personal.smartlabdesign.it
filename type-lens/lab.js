@@ -1,3 +1,4 @@
+import {projectQuad} from './surface-model.mjs';
 import {STORIES,secretInFocus,readDiscoveries,discoveryAnnouncement} from './story-model.mjs';
 import {specimenLines,safeMagnification,lensRadius,DEFAULT_TEXT} from './lab-model.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -8,6 +9,7 @@ const fonts={archivo:{family:'Archivo Black',weight:400,tracking:-.055},barlow:{
 let w=1,h=1,dpr=1,colour=0,theme='cream',font='archivo',magnification=1.5,diameter=260,x=0,y=0,tx=0,ty=0,r=130,targetR=130,vx=0,vy=0,dragging=false,down=null,dirty=true,texDirty=true,ready=false,lastTime=0,frame=0,started=false;
 let tint=[...colours[0].tint],offset={x:0,y:0};
 let mode='type',storyIndex=0,discoveryTimer=0,discoveryCandidate=null;const storyImages=new Map(),storyLoads=new Map();let discovered=new Set();try{discovered=new Set(readDiscoveries(localStorage.getItem('smartlab-type-lens-discoveries-v1')))}catch{}
+const secretArt=new Map(),secretLoads=new Map();const artSources={playground:'assets/secret-graffiti.webp',rooftop:'assets/secret-curious.webp'};
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const source=document.createElement('canvas'),ctx=source.getContext('2d'),bg=light.getContext('2d');
 let gl=lens.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false,preserveDrawingBuffer:true}),program,texture,uniforms={};
@@ -134,7 +136,24 @@ $('#reset').onclick=()=>{font='archivo';colour=0;theme='cream';magnification=1.5
 const help=$('#help-dialog');$('#help').onclick=()=>help.showModal();$('#close-help').onclick=()=>help.close();help.onclick=e=>{if(e.target===help){const b=help.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)help.close()}};
 lens.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;lens.hidden=true;cpuCanvas.hidden=false;invalidate(true)});lens.addEventListener('webglcontextrestored',()=>{ready=initGL();lens.hidden=!ready;cpuCanvas.hidden=ready;invalidate(true)});
 await document.fonts.ready;started=true;updateText();resize();new ResizeObserver(()=>resize()).observe(scene);updateDiscoveries();
-function drawSecret(c){const story=STORIES[storyIndex];if(!storyImages.has(story.id))return;c.save();c.translate(story.target.x*w,story.target.y*h);c.rotate(story.rotation);c.textAlign='center';c.textBaseline='middle';if('letterSpacing'in c)c.letterSpacing='0px';const fs=w*story.fontScale;c.font=`400 ${fs}px 'Archivo Black',sans-serif`;c.fillStyle=story.ink;story.message.forEach((line,i)=>c.fillText(line,0,(i-(story.message.length-1)/2)*fs*1.06));c.restore()}
+function artReady(id){return !artSources[id]||secretArt.has(id)}
+function loadSecret(id){if(!artSources[id])return Promise.resolve();if(!secretLoads.has(id))secretLoads.set(id,new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{secretArt.set(id,img);resolve(img)};img.onerror=()=>{secretLoads.delete(id);reject(new Error('Artwork unavailable'))};img.src=artSources[id]}));return secretLoads.get(id)}
+function warpArt(c,img,points){
+ const p=points.map(([x,y])=>[x*w,y*h]),iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+ const at=(u,v)=>projectQuad(p,u,v);
+ const tri=(uv)=>{const src=uv.map(([u,v])=>[u*iw,v*ih]),dst=uv.map(([u,v])=>at(u,v));const [[x0,y0],[x1,y1],[x2,y2]]=src,[[X0,Y0],[X1,Y1],[X2,Y2]]=dst;const den=x0*(y1-y2)+x1*(y2-y0)+x2*(y0-y1);const coeff=(z0,z1,z2)=>[(z0*(y1-y2)+z1*(y2-y0)+z2*(y0-y1))/den,(z0*(x2-x1)+z1*(x0-x2)+z2*(x1-x0))/den,(z0*(x1*y2-x2*y1)+z1*(x2*y0-x0*y2)+z2*(x0*y1-x1*y0))/den];const a=coeff(X0,X1,X2),b=coeff(Y0,Y1,Y2);c.save();c.beginPath();c.moveTo(X0,Y0);c.lineTo(X1,Y1);c.lineTo(X2,Y2);c.closePath();c.clip();c.transform(a[0],b[0],a[1],b[1],a[2],b[2]);c.drawImage(img,0,0);c.restore()};
+ for(let j=0;j<12;j++)for(let i=0;i<12;i++){const u=i/12,v=j/12,U=(i+1)/12,V=(j+1)/12;tri([[u,v],[U,v],[U,V]]);tri([[u,v],[U,V],[u,V]])}
+}
+function drawSecret(c){
+ const story=STORIES[storyIndex];if(!storyImages.has(story.id)||!artReady(story.id))return;
+ if(story.id==='playground'){warpArt(c,secretArt.get(story.id),[[1190/1536,65/1024],[1360/1536,13/1024],[1361/1536,87/1024],[1191/1536,132/1024]]);return}
+ if(story.id==='rooftop'){warpArt(c,secretArt.get(story.id),[[1058/1536,446/1024],[1405/1536,453/1024],[1370/1536,730/1024],[1018/1536,677/1024]]);return}
+ const neon=document.createElement('canvas');neon.width=1200;neon.height=260;const n=neon.getContext('2d');n.textAlign='center';n.textBaseline='middle';let fs=130;n.font=`600 ${fs}px 'Barlow Condensed'`;fs*=Math.min(1,1000/n.measureText('SMARTLABDESIGN').width);n.font=`600 ${fs}px 'Barlow Condensed'`;n.lineJoin='round';
+ n.shadowColor='#ff2d87';n.shadowBlur=35;n.strokeStyle='#ff2d87';n.lineWidth=fs*.11;n.strokeText('SMARTLABDESIGN',600,130);
+ n.shadowColor='#00bfc4';n.shadowBlur=17;n.strokeStyle='#00bfc4';n.lineWidth=fs*.065;n.strokeText('SMARTLABDESIGN',600,130);
+ n.shadowBlur=3;n.fillStyle='#fff0ce';n.fillText('SMARTLABDESIGN',600,130);n.strokeStyle='#ffffff';n.lineWidth=fs*.015;n.strokeText('SMARTLABDESIGN',600,130);
+ warpArt(c,neon,[[1180/1536,271/1024],[1449/1536,187/1024],[1449/1536,247/1024],[1180/1536,309/1024]]);
+}
 function cancelDiscovery(){clearTimeout(discoveryTimer);discoveryTimer=0;discoveryCandidate=null}
 function saveDiscoveries(){try{localStorage.setItem('smartlab-type-lens-discoveries-v1',JSON.stringify([...discovered]))}catch{}}
 function updateDiscoveries(){
@@ -143,14 +162,14 @@ function updateDiscoveries(){
  const story=STORIES[storyIndex];$('#story-live').textContent=discoveryAnnouncement(story,discovered);
 }
 function checkDiscovery(){
- const story=STORIES[storyIndex];if(mode!=='stories'||!storyImages.has(story.id)||discovered.has(story.id)||!secretInFocus({x,y},{x:story.target.x*w,y:story.target.y*h},r)){cancelDiscovery();return}
+ const story=STORIES[storyIndex];if(mode!=='stories'||!storyImages.has(story.id)||!artReady(story.id)||discovered.has(story.id)||!secretInFocus({x,y},{x:story.target.x*w,y:story.target.y*h},r)){cancelDiscovery();return}
  if(discoveryCandidate===story.id)return;cancelDiscovery();discoveryCandidate=story.id;
  discoveryTimer=setTimeout(()=>{discoveryTimer=0;discoveryCandidate=null;if(mode!=='stories'||STORIES[storyIndex].id!==story.id||!secretInFocus({x,y},{x:story.target.x*w,y:story.target.y*h},r))return;discovered.add(story.id);saveDiscoveries();updateDiscoveries()},650);
 }
 async function loadStory(index){
  const story=STORIES[index];if(!storyLoads.has(story.id))storyLoads.set(story.id,new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>{storyImages.set(story.id,image);resolve(image)};image.onerror=()=>{storyLoads.delete(story.id);reject(new Error('Scena non disponibile'))};image.src=story.src}));
  if(mode==='stories'&&storyIndex===index){$('#story-status').textContent='Caricamento della scena…';$('#story-status').classList.remove('error');$('#story-status').hidden=false}
- try{const image=await storyLoads.get(story.id);if(mode==='stories'&&storyIndex===index){scene.style.setProperty('--story-ratio',image.naturalWidth/image.naturalHeight);$('#story-status').hidden=true;resize();invalidate(true)}}catch{if(mode==='stories'&&storyIndex===index){$('#story-status').textContent='La scena non si è caricata. Selezionala di nuovo per riprovare.';$('#story-status').classList.add('error');$('#story-status').hidden=false}}
+ try{const [image]=await Promise.all([storyLoads.get(story.id),loadSecret(story.id)]);if(mode==='stories'&&storyIndex===index){scene.style.setProperty('--story-ratio',image.naturalWidth/image.naturalHeight);$('#story-status').hidden=true;resize();invalidate(true)}}catch{if(mode==='stories'&&storyIndex===index){$('#story-status').textContent='La scena non si è caricata. Selezionala di nuovo per riprovare.';$('#story-status').classList.add('error');$('#story-status').hidden=false}}
 }
 function selectStory(index){cancelDiscovery();storyIndex=index;const story=STORIES[index];$$('.story-choice').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.story===story.id)));scene.setAttribute('aria-label',story.name+'. '+story.description);$('#hint').setAttribute('aria-expanded','false');$('#hint-text').hidden=true;$('#hint-text').textContent=story.hint;updateDiscoveries();const p=home();move(p.x,p.y);loadStory(index);invalidate(true)}
 let storiesVisited=false;
