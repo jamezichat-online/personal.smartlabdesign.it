@@ -29,7 +29,7 @@ window.PomataCatalog={
    "kind": "runway",
    "note": "Le cose belle restano.",
    "image": "assets/original-3.webp",
-   "url": "https://pomata.myspreadshop.it/pomata+class+is+forever-A3273a5f6ecd67488?sellable=rmbx0qx4h3m0-6&appearance=1",
+   "url": "https://pomata.myspreadshop.it/pomata+class+is+forever-A3273a5f6ecd67488",
    "gender": "uomo"
   },
   {
