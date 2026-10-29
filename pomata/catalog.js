@@ -57,7 +57,7 @@ window.PomataCatalog={
    "title": "The Gold Rush",
    "kind": "runway",
    "note": "Il tempo è dalla tua parte.",
-   "image": "assets/original-10.webp",
+   "image": "assets/original-10-cefalu.webp",
    "url": "https://pomata.myspreadshop.it/pomata+the+gold+rush-A3273a6efc57b7346?sellable=rmbxedwwerly-6&appearance=1",
    "look": 10,
    "gender": "uomo"

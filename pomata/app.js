@@ -10,7 +10,7 @@ const looks = [
  {"id": 7, "name": "Granita e spavalderia", "short": "Granita e spavalderia", "gender": "donna", "mood": "La giornata comincia così.", "color": "Rosa", "hex": "#eab6c6", "price": 0, "description": "Una granita con gli occhiali, una brioche e tutta la voglia di prendersela comoda.", "story": "Una pausa in pasticceria, gli amici al tavolo e la Sicilia che si gusta un cucchiaino alla volta."},
  {"id": 8, "name": "POMATA H24", "short": "POMATA H24", "gender": "donna", "mood": "Sempre nell’umore giusto.", "color": "Nero", "hex": "#171719", "price": 0, "description": "La luna, un cocktail e una sveglia: l’attitudine POMATA non guarda l’ora.", "story": "Le luci della città si accendono. La terrazza è quella giusta, il primo brindisi arriva adesso."},
  {"id": 9, "name": "POMATA Club", "short": "POMATA Club", "gender": "uomo", "mood": "La compagnia giusta.", "color": "Bianco", "hex": "#f8f7f0", "price": 0, "description": "Granita, arancina, cannolo e limone. La compagnia più siciliana del guardaroba.", "story": "Un giro al mare con gli amici. Si comincia con una granita, poi si vede: il club è già al completo."},
- {"id": 10, "name": "The Gold Rush", "short": "The Gold Rush", "gender": "uomo", "mood": "Il tempo è dalla tua parte.", "color": "Bianco", "hex": "#f8f7f0", "price": 0, "description": "Un orologio d’oro nel taschino disegnato. Il tuo tempo, a modo tuo.", "story": "La luce calda sulle facciate barocche e una passeggiata senza fretta. Certe ore meritano di essere indossate."},
+ {"id": 10, "name": "The Gold Rush", "short": "The Gold Rush", "gender": "uomo", "mood": "Il tempo è dalla tua parte.", "color": "Bianco", "hex": "#f8f7f0", "price": 0, "description": "Un orologio d’oro nel taschino disegnato. Il tuo tempo, a modo tuo.", "story": "Il mare di Cefalù, la luce del tramonto e una passeggiata senza fretta. Certe ore meritano di essere indossate."},
  {"id": 11, "name": "Cu nesci, arrinesci", "short": "Cu nesci, arrinesci", "gender": "uomo", "mood": "Esci. Il bello è fuori.", "color": "Nero", "hex": "#171719", "price": 0, "description": "Una porta aperta, la luce della serata e un invito tutto siciliano: Cu nesci, arrinesci.", "story": "Tra i vicoli, una Vespa e i panni stesi, ogni uscita può diventare una storia. Basta aprire la porta."}
 ];
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
@@ -19,7 +19,7 @@ let favorites=readStorage('pomata-favorites',[]);if(!Array.isArray(favorites))fa
 let bag=readStorage('pomata-bag',[]);if(!Array.isArray(bag))bag=[];bag=bag.filter(x=>looks.some(l=>l.id===x.id)&&['XS','S','M','L','XL'].includes(x.size)&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99);
 let selected=1,filter='all',size=null,detailOpen=false,toastTimer,lastTrigger=null;
 const money=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n);
-const original=l=>`assets/original-${l.id}.webp`;const model=l=>`assets/model-hq-${l.id}.webp`;
+const original=l=>`assets/original-${l.id}${l.id===10?'-cefalu':''}.webp`;const model=l=>`assets/model-hq-${l.id}${l.id===10?'-cefalu':''}.webp`;
 const visible=()=>looks.filter(l=>filter==='all'||filter==='favorites'&&favorites.includes(l.id)||l.gender===filter);
 function persist(){try{localStorage.setItem('pomata-favorites',JSON.stringify(favorites));localStorage.setItem('pomata-bag',JSON.stringify(bag))}catch{}updateCounts()}
 function updateCounts(){$('#bagCount').textContent=bag.reduce((n,x)=>n+x.qty,0);$('#favCount').textContent=favorites.length||'';$('#favoritesButton').setAttribute('aria-label',`Mostra ${favorites.length} look preferiti`)}
@@ -141,7 +141,7 @@ const bodyBounds=[
  [1024, 1536, 317, 11, 720, 1519],
  [1024, 1536, 269, 26, 835, 1520],
  [1024, 1536, 278, 11, 797, 1517],
- [1024, 1536, 254, 10, 766, 1493],
+ [1024, 1536, 251, 14, 790, 1503],
  [1020, 1541, 264, 20, 812, 1492]
 ];
 const orbitNodes=[];
@@ -156,7 +156,7 @@ looks.forEach(l=>{
  b.onclick=e=>{if(suppressClick||e.detail!==0)return;if(selected===l.id)openDetail();else select(l.id)};
  const shadow=document.createElement('div');shadow.className='model-shadow';shadow.setAttribute('aria-hidden','true');shadow.dataset.id=l.id;
  modelElements[l.id]=b;shadowElements[l.id]=shadow;orbitNodes.push(shadow,b);
- const scene=document.createElement('img');scene.src=`assets/scene-${l.id}.webp`;scene.alt='';scene.className='scene-layer';scene.decoding='async';scene.draggable=false;sceneElements[l.id]=scene;
+ const scene=document.createElement('img');scene.src=`assets/scene-${l.id}${l.id===10?'-cefalu':''}.webp`;scene.alt='';scene.className='scene-layer';scene.decoding='async';scene.draggable=false;sceneElements[l.id]=scene;
 });
 $('#models').replaceChildren(...orbitNodes);$('#sceneBackdrop').replaceChildren(...sceneElements);
 $('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);$('#discover').onclick=openDetail;$('#hotspot').onclick=openDetail;$('#closeDetail').onclick=()=>closeDetail();$('#panelScrim').onclick=()=>closeDetail();$('#photoButton').onclick=photo;$('#expandPhoto').onclick=photo;$('#sizeGuide').onclick=()=>showDialog('#sizeDialog');$('#collectionNav').onclick=()=>collection();$('#worldNav').onclick=()=>showDialog('#worldDialog');$('#worldExplore').onclick=()=>{$('#worldDialog').close();changeFilter('all')};$('#favoritesButton').onclick=()=>collection(true);$('#resetFilter').onclick=()=>changeFilter('all');
