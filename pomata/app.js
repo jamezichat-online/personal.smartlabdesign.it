@@ -38,7 +38,7 @@ const sceneInfo=[
  ['Palermo, in pasticceria','Il buongiorno ha un altro sapore.'],
  ['Sicilia, rooftop','La città accende la serata.'],
  ['Sicilia, al mare','La compagnia giusta.'],
- ['Barocco siciliano','La luce si prende il suo tempo.'],
+ ['Cefalù','La luce si prende il suo tempo.'],
  ['Sicilia, tra i vicoli','Esci. Il bello è fuori.']
 ];
 let orbitItems=[],orbitKey='',phase=1,target=1,orbitVelocity=0,frame=0,lastFrame=0;
