@@ -23,7 +23,8 @@ Requires Python >= 3.10, git, ffmpeg (`brew install ffmpeg`). Re-running is safe
 ## What lives where
 
 - **Per machine (never synced):** `~/.smartlab-sound-kit/.venv`, source clones, `~/.claude/skills/real-sfx`, MCP registration.
-- **Shared (Google Drive):** Hugging Face model cache (~1.1 GB, downloaded once), downloaded Openverse sounds, `CREDITI.md`, procedural library.
+- **Per machine (never synced):** Earshot/Hugging Face model cache in `~/.smartlab-sound-kit/cache` (~1.1 GB per Mac; Drive cannot sync HF symlinks).
+- **Shared (Google Drive):** downloaded Openverse sounds, `CREDITI.md`, procedural library, Gemini music.
 
 ## Rules
 
