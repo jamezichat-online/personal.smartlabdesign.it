@@ -22,20 +22,22 @@
     cheddar: { cat: 'formaggi', name: 'Cheddar', max: 3, kind: 'cheese', v: ['cheddar-a'], flip: 1, drape: 1 },
     chiaro: { cat: 'formaggi', name: 'Formaggio chiaro', max: 3, kind: 'cheese', v: ['bianco-a'], flip: 1, drape: 1 },
     bacon: { cat: 'extra', name: 'Bacon', max: 3, rank: 35, v: ['bacon-a', 'bacon-b', 'bacon-c'], flip: 1 },
-    uovo: { cat: 'extra', name: 'Uovo all’occhio di bue', max: 2, rank: 36, v: ['uovo-a'], flip: 1 },
+    // squash: con qualcosa sopra l’uovo si schiaccia (tuorlo pressato) invece di lasciare un vuoto sotto gli strati superiori
+    uovo: { cat: 'extra', name: 'Uovo all’occhio di bue', max: 2, rank: 36, v: ['uovo-a'], squash: 'uovo-b', flip: 1 },
     cipolla: { cat: 'verdure', name: 'Cipolla rossa', max: 2, rank: 37, v: ['cipolla-a'], flip: 1 },
     pomodoro: { cat: 'verdure', name: 'Pomodoro', max: 2, rank: 40, v: ['pomodoro-a'], flip: 1 },
     cetriolo: { cat: 'verdure', name: 'Cetrioli', max: 2, rank: 40.5, v: ['cetriolo-a'], flip: 1 },
     lattuga: { cat: 'verdure', name: 'Lattuga', max: 2, rank: 41, v: ['lattuga-a', 'lattuga-b', 'lattuga-c'], flip: 1 },
-    salsaSu: { cat: 'salse', name: 'Salsa cremosa', chip: 'Salsa cremosa · sotto il pane', max: 1, rank: 60, v: ['signature-a'], drape: 1 }
+    salsaGiu: { cat: 'salse', name: 'Salsa cremosa · inferiore', chip: 'Salsa cremosa · sulla base', max: 1, rank: 5, v: ['signature-b'], drape: 1 },
+    salsaSu: { cat: 'salse', name: 'Salsa cremosa · superiore', chip: 'Salsa cremosa · sotto il pane', max: 1, rank: 60, v: ['signature-a'], drape: 1 }
   };
   const BUN = { bunB: { v: ['bun-brioche'] }, bunT: { v: ['top-brioche'] } };
   // ricette in ordine di montaggio, dal basso: pane, carne + formaggio sul patty caldo, bacon (nessun liquido),
   // verdure lontane dalla carne (pomodoro sotto, lattuga sopra), salsa sul cappello
   const PRESETS = {
-    'neon-bacon': { name: 'Neon Bacon', items: ['manzo', 'cheddar', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
-    'double-melt': { name: 'Double Melt', items: ['manzo', 'cheddar', 'manzo', 'chiaro', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
-    'golden-double': { name: 'Golden Burger', items: ['pollo', 'cheddar', 'bacon', 'lattuga', 'salsaSu'] }
+    'neon-bacon': { name: 'Neon Bacon', items: ['salsaGiu', 'manzo', 'cheddar', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
+    'double-melt': { name: 'Double Melt', items: ['salsaGiu', 'manzo', 'cheddar', 'manzo', 'chiaro', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
+    'golden-double': { name: 'Golden Burger', items: ['salsaGiu', 'pollo', 'cheddar', 'bacon', 'lattuga', 'salsaSu'] }
   };
   const MAX_LAYERS = 13;
 
@@ -97,12 +99,25 @@
     const chs = items.filter(i => ING[i.id].kind === 'cheese');
     const rest = items.filter(i => !ING[i.id].kind).sort((a, b) => ING[a.id].rank - ING[b.id].rank || a.seq - b.seq);
     // ordine di assemblaggio, dal basso: pane → patty con il formaggio subito sopra (si scioglie sul caldo)
-    // → bacon → uovo → cipolla → pomodoro e cetrioli (rilasciano liquidi: lontani dal basso) → lattuga → salsa sotto il cappello
+    // (salsa sulla base solo se scelta) → bacon → uovo → cipolla → pomodoro e cetrioli (rilasciano liquidi: lontani dal basso) → lattuga → salsa sotto il cappello
     const out = [{ uid: 'bunB' }];
+    rest.filter(i => ING[i.id].rank < 30).forEach(i => out.push(i)); // salsa sulla base (a scelta)
     const n = Math.max(prot.length, chs.length);
     for (let k = 0; k < n; k++) { if (prot[k]) out.push(prot[k]); if (chs[k]) out.push(chs[k]); }
-    rest.forEach(i => out.push(i));
+    rest.filter(i => ING[i.id].rank >= 30).forEach(i => out.push(i));
     return out;
+  }
+
+  // cambia lo sprite di uno strato (es. uovo intero ↔ schiacciato) mantenendo l’ancoraggio alla baseline
+  function setArt(L, name) {
+    if (L.art.name === name) return;
+    const s = SP[name], img = L.el.querySelector('.art > img'), sh = L.el.querySelector('.shadow');
+    L.art = { ...L.art, name, s, h: s.h, below: s.below, top: s.H - s.below };
+    L.el.style.height = s.H + 'px';
+    L.el.style.transformOrigin = `50% ${L.art.top}px`;
+    img.src = s.src; img.style.width = s.w + 'px'; img.style.height = s.H + 'px'; img.style.marginLeft = -s.w / 2 + 'px';
+    sh.style.top = (L.art.top - 9) + 'px'; sh.style.width = Math.round(s.w * .9) + 'px'; sh.style.marginLeft = -Math.round(s.w * .45) + 'px';
+    if (!reduced && L.sq !== undefined) L.vsq += .35;
   }
 
   function relayout(spawn) {
@@ -117,6 +132,8 @@
         L.y = reduced ? b : b + 300; L.fall = !reduced;
         L.el.classList.add('enter');
       }
+      const sq = ING[o.id] && ING[o.id].squash;
+      if (sq) setArt(L, i < order.length - 1 ? sq : ING[o.id].v[0]);
       L.target = b;
       L.el.style.zIndex = i + 1;
       b += L.art.h;

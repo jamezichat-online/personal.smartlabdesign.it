@@ -144,5 +144,13 @@ window.FT_SPRITES = {
   "below": 3,
   "h": 11,
   "cx": 0
+ },
+ "uovo-b": {
+  "src": "sprites/uovo-b.webp",
+  "w": 270.1,
+  "H": 27.0,
+  "below": 5,
+  "h": 22,
+  "cx": 0
  }
 };
