@@ -1,6 +1,6 @@
 import * as THREE from './assets/three.module.js';
 import {products} from './products.js';
-import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDGE_END} from './dynamics.js';
+import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDGE_END} from './dynamics.js?v=20261102-lateral-1';
 const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
 const camera=new THREE.PerspectiveCamera(39,1,.1,60);
@@ -60,10 +60,10 @@ const railAxis=new THREE.Vector3(1,0,0);
 const garments=products.map((p,i)=>{
  const root=new THREE.Group(),pivot=new THREE.Group(),hook=makeRailHook();
  const coupling=new THREE.Mesh(new THREE.CylinderGeometry(.035,.032,.065,20),metal.clone());coupling.position.y=-.17;
- root.add(hook,coupling,pivot);pivot.position.y=-.17;
+ const sway=new THREE.Group();root.add(hook,coupling,sway);sway.position.y=-.17;sway.add(pivot);
  const hanger=makeHanger(),collar=makeCollar();hanger.position.y=collar.position.y=.17;pivot.add(hanger,collar);
  scene.add(root);root.userData.index=i;
- return {root,pivot,hook,index:i,yaw:-1.14,angle:Math.sin(i*1.9)*.004,angularVelocity:0,cloth:null,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
+ return {root,pivot,hook,sway,index:i,yaw:-1.14,angle:0,angularVelocity:0,cloth:null,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
 });
 const loader=new THREE.TextureLoader();loader.setCrossOrigin('anonymous');let finished=0,failures=0;
 for(let i=0;i<products.length;i++){loader.load(products[i].src,tex=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();try{const mesh=makeCloth(tex);mesh.userData.index=i;garments[i].cloth=mesh;mesh.position.y=.17;garments[i].pivot.add(mesh);garments[i].loaded=true;garments[i].materials=[];garments[i].root.traverse(o=>{if(o.isMesh){for(const m of (Array.isArray(o.material)?o.material:[o.material])){m.transparent=false;m.opacity=1;garments[i].materials.push(m)}}})}catch(e){failures++;console.error('Garment construction',e)}ready()},undefined,e=>{failures++;console.error('Texture',e);ready()})}
@@ -98,6 +98,7 @@ const finalMaterial=new THREE.ShaderMaterial({vertexShader:shaderVertex,fragment
 #include <colorspace_fragment>
 gl_FragColor.rgb=max(gl_FragColor.rgb,vec3(3.,3.,4.)/255.);}`,uniforms:{inputTexture:{value:compositionTarget.texture}},depthTest:false,depthWrite:false,toneMapped:true});
 const postQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),horizontal);postQuad.frustumCulled=false;postScene.add(postQuad);
+const railDepthMaterial=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide});
 const baseObjects=scene.children.filter(o=>o.isMesh),bounds=new THREE.Box3(),corner=new THREE.Vector3();
 function assemblyRect(g,W,H){
  bounds.setFromObject(g.root);bounds.expandByScalar(.075);
@@ -123,14 +124,19 @@ function renderScene(){
   g.root.visible=true;g.root.updateWorldMatrix(true,true);const r=assemblyRect(g,W,H);
   if(!g.layer)g.layer=new THREE.WebGLRenderTarget(r.width,r.height,{type:THREE.HalfFloatType,samples:2,depthBuffer:true});
   if(g.layer.width!==r.width||g.layer.height!==r.height)g.layer.setSize(r.width,r.height);
-  camera.setViewOffset(W,H,r.x,r.y,r.width,r.height);renderer.autoClear=true;renderer.setRenderTarget(g.layer);renderer.render(scene,camera);camera.clearViewOffset();g.root.visible=false;
+  camera.setViewOffset(W,H,r.x,r.y,r.width,r.height);renderer.autoClear=true;
+  // Resolve the physical rail/hook depth before flattening the complete assembly.
+  // The rear of the crook must remain behind the tube, even though the assembly is composited on top.
+  const visibleRailMaterial=rail.material;rail.material=railDepthMaterial;rail.visible=true;
+  renderer.setRenderTarget(g.layer);renderer.render(scene,camera);
+  rail.material=visibleRailMaterial;rail.visible=false;camera.clearViewOffset();g.root.visible=false;
   const u=assemblyMaterial.uniforms;u.inputTexture.value=g.layer.texture;u.texel.value.set(1/r.width,1/r.height);u.blurRadius.value=2.3*(1-g.opacity);u.assemblyOpacity.value=g.opacity;u.rect.value.set((r.x+r.width/2)/W*2-1,1-(r.y+r.height/2)/H*2,r.width/W,r.height/H);
   postQuad.material=assemblyMaterial;renderer.autoClear=false;renderer.setRenderTarget(compositionTarget);renderer.render(postScene,postCamera);
  }
  renderer.autoClear=true;scene.background=oldBackground;renderer.setClearColor('#030304',1);baseObjects.forEach(o=>o.visible=true);garments.forEach(g=>g.root.visible=g.loaded&&g.opacity>.004);
  postQuad.material=finalMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
 }
-function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;camera.fov=w<650?42:39;camera.position.set(0,.78,w<650?9.4:9.1);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
+function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
 let priorVelocity=0,filteredAcceleration=0;
@@ -150,18 +156,18 @@ function frame(now){
   g.yaw+=(aim-g.yaw)*(reduce?1:1-Math.exp(-7.5*dt));
   const next=pendulumStep(g.angle,g.angularVelocity,filteredAcceleration*(.88+.12*Math.cos(g.phase)),elapsed,g.phase,dt,velocity);
   g.angle=reduce?0:next.angle;g.angularVelocity=reduce?0:next.speed;
-  g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,g.angle);
-  moving ||= Math.abs(g.yaw-aim)>.0005;
+  const swingAxis=new THREE.Vector3(-tangent.z,0,tangent.x).normalize();g.sway.quaternion.setFromAxisAngle(swingAxis,g.angle);g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,0);
+  moving ||= Math.abs(g.yaw-aim)>.0005||Math.abs(g.angle)>.0001||Math.abs(g.angularVelocity)>.0005||Math.abs(g.selection-(chosen?1:0))>.0005;
   if(g.cloth&&g.root.visible){
    const arr=g.cloth.geometry.attributes.position.array,base=g.cloth.userData.base,half=arr.length/2;
-   const wanted=reduce?0:Math.min(.025,Math.abs(velocity)*.006+Math.abs(g.angularVelocity)*.13+.003);
-   g.flex+=(wanted-g.flex)*(1-Math.exp(-dt*3));
+   const wanted=reduce?0:Math.min(.025,Math.abs(velocity)*.006+Math.abs(g.angularVelocity)*.13);
+   g.flex+=(wanted-g.flex)*(1-Math.exp(-dt*3));moving ||= Math.abs(g.flex-wanted)>.00005;
    for(let k=0;k<half;k+=3){const v=Math.max(0,(-base[k+1]-.19)/3.55),drop=smoothstep(.16,1,v);const displacement=Math.sin(base[k]*2.1+elapsed*1.7-g.phase)*g.flex*drop*drop;arr[k+2]=base[k+2]+displacement;arr[k+half+2]=base[k+half+2]+displacement}
    g.cloth.geometry.attributes.position.needsUpdate=true;
   }
  }
  if(current()!==active)updateInfo();renderScene();
- if(!reduce||moving)requestAnimationFrame(frame);else running=false;
+ if(moving)requestAnimationFrame(frame);else running=false;
 }
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();function pick(e){const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);if(frontIndex>=0&&garments[frontIndex]?.loaded&&raycaster.intersectObject(garments[frontIndex].cloth).length)return frontIndex;const hit=raycaster.intersectObjects(garments.filter(g=>g.loaded&&g.opacity>.004).map(g=>g.cloth));if(hit.length)return hit[0].object.userData.index;return null}
 host.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging=true;gesture=false;travel=0;dragStart=lastX=e.clientX;lastY=e.clientY;lastStamp=e.timeStamp;grabVelocity=0;velocity=0;target=position;wake()});host.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX;travel=Math.max(travel,Math.abs(e.clientX-dragStart));if(!gesture&&Math.abs(e.clientY-lastY)>travel+10){release(false);return}if(travel>6){gesture=true;host.setPointerCapture(e.pointerId);host.classList.add('dragging');frontIndex=-1;let px=host.clientWidth<650?100:145;position-=dx/px;target=position;grabVelocity=dx/Math.max(1,e.timeStamp-lastStamp);velocity=-grabVelocity*1000/px;wake()}lastX=e.clientX;lastStamp=e.timeStamp});

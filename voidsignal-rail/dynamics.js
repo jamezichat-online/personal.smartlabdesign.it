@@ -7,11 +7,14 @@ export function clothDepth(x,v,distance){
  return {depth,folds};
 }
 export function pendulumStep(angle,speed,acceleration,time,phase,dt,motion=0){
- const rest=.006*Math.sin(time*.68+phase)+.002*Math.sin(time*1.07+phase*1.7);
- const force=Math.max(-75,Math.min(75,acceleration))*.075;
- const dragLag=Math.max(-.06,Math.min(.06,motion*.018));
- const nextSpeed=speed+((rest+dragLag-angle)*10.5-speed*2.2+force)*dt;
- return {angle:Math.max(-.14,Math.min(.14,angle+nextSpeed*dt)),speed:nextSpeed};
+ // Translational acceleration drives a pendulum in the rail's lateral/gravity plane.
+ // There is no idle oscillator and no speed-dependent lean at constant velocity.
+ const torque=Math.max(-45,Math.min(45,acceleration))*.15;
+ let nextSpeed=speed+(-11.5*Math.sin(angle)-2.3*speed+torque)*dt;
+ let nextAngle=angle+nextSpeed*dt;
+ const limit=.17;
+ if(Math.abs(nextAngle)>limit){nextAngle=Math.sign(nextAngle)*limit;if(Math.sign(nextSpeed)===Math.sign(nextAngle))nextSpeed*=.2;}
+ return {angle:nextAngle,speed:nextSpeed};
 }
 export const collarY=x=>-.405-.165*Math.sqrt(Math.max(0,1-(x/.36)**2));
 export const loopVisibility=d=>1-smoothstep(3.45,4.42,Math.abs(d));
