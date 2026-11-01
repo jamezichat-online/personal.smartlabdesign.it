@@ -120,5 +120,29 @@ window.FT_SPRITES = {
   "below": 16,
   "h": 30,
   "cx": 0
+ },
+ "uovo-a": {
+  "src": "sprites/uovo-a.webp",
+  "w": 270.1,
+  "H": 37.5,
+  "below": 6,
+  "h": 36,
+  "cx": 0
+ },
+ "cipolla-a": {
+  "src": "sprites/cipolla-a.webp",
+  "w": 259.1,
+  "H": 34.7,
+  "below": 8,
+  "h": 20,
+  "cx": 0
+ },
+ "cetriolo-a": {
+  "src": "sprites/cetriolo-a.webp",
+  "w": 259.1,
+  "H": 17.6,
+  "below": 3,
+  "h": 11,
+  "cx": 0
  }
 };

@@ -13,7 +13,7 @@
 
   /* ---------------- ingredienti: solo quelli dei tre signature ---------------- */
   const CATS = [
-    { id: 'carne', label: 'Carne' }, { id: 'formaggi', label: 'Formaggi' }, { id: 'extra', label: 'Bacon' },
+    { id: 'carne', label: 'Carne' }, { id: 'formaggi', label: 'Formaggi' }, { id: 'extra', label: 'Extra' },
     { id: 'verdure', label: 'Verdure' }, { id: 'salse', label: 'Salse' }
   ];
   const ING = {
@@ -21,18 +21,21 @@
     pollo: { cat: 'carne', name: 'Pollo impanato croccante', max: 2, kind: 'protein', v: ['pollo-a'], flip: 1 },
     cheddar: { cat: 'formaggi', name: 'Cheddar', max: 3, kind: 'cheese', v: ['cheddar-a'], flip: 1, drape: 1 },
     chiaro: { cat: 'formaggi', name: 'Formaggio chiaro', max: 3, kind: 'cheese', v: ['bianco-a'], flip: 1, drape: 1 },
-    bacon: { cat: 'extra', name: 'Bacon', max: 3, rank: 10, v: ['bacon-a', 'bacon-b', 'bacon-c'], flip: 1 },
+    bacon: { cat: 'extra', name: 'Bacon', max: 3, rank: 35, v: ['bacon-a', 'bacon-b', 'bacon-c'], flip: 1 },
+    uovo: { cat: 'extra', name: 'Uovo all’occhio di bue', max: 2, rank: 36, v: ['uovo-a'], flip: 1 },
+    cipolla: { cat: 'verdure', name: 'Cipolla rossa', max: 2, rank: 37, v: ['cipolla-a'], flip: 1 },
     pomodoro: { cat: 'verdure', name: 'Pomodoro', max: 2, rank: 40, v: ['pomodoro-a'], flip: 1 },
+    cetriolo: { cat: 'verdure', name: 'Cetrioli', max: 2, rank: 40.5, v: ['cetriolo-a'], flip: 1 },
     lattuga: { cat: 'verdure', name: 'Lattuga', max: 2, rank: 41, v: ['lattuga-a', 'lattuga-b', 'lattuga-c'], flip: 1 },
-    salsaGiu: { cat: 'salse', name: 'Salsa cremosa · inferiore', chip: 'Salsa cremosa · sulla base', max: 1, rank: 5, v: ['signature-b'], drape: 1 },
-    salsaSu: { cat: 'salse', name: 'Salsa cremosa · superiore', chip: 'Salsa cremosa · sotto il pane', max: 1, rank: 60, v: ['signature-a'], drape: 1 }
+    salsaSu: { cat: 'salse', name: 'Salsa cremosa', chip: 'Salsa cremosa · sotto il pane', max: 1, rank: 60, v: ['signature-a'], drape: 1 }
   };
   const BUN = { bunB: { v: ['bun-brioche'] }, bunT: { v: ['top-brioche'] } };
-  // ricette in ordine di montaggio, dal basso (come gli esplosi del menù)
+  // ricette in ordine di montaggio, dal basso: pane, carne + formaggio sul patty caldo, bacon (nessun liquido),
+  // verdure lontane dalla carne (pomodoro sotto, lattuga sopra), salsa sul cappello
   const PRESETS = {
-    'neon-bacon': { name: 'Neon Bacon', items: ['salsaGiu', 'bacon', 'manzo', 'cheddar', 'pomodoro', 'lattuga', 'salsaSu'] },
-    'double-melt': { name: 'Double Melt', items: ['salsaGiu', 'bacon', 'manzo', 'cheddar', 'manzo', 'chiaro', 'pomodoro', 'lattuga', 'salsaSu'] },
-    'golden-double': { name: 'Golden Burger', items: ['salsaGiu', 'bacon', 'pollo', 'cheddar', 'lattuga', 'salsaSu'] }
+    'neon-bacon': { name: 'Neon Bacon', items: ['manzo', 'cheddar', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
+    'double-melt': { name: 'Double Melt', items: ['manzo', 'cheddar', 'manzo', 'chiaro', 'bacon', 'pomodoro', 'lattuga', 'salsaSu'] },
+    'golden-double': { name: 'Golden Burger', items: ['pollo', 'cheddar', 'bacon', 'lattuga', 'salsaSu'] }
   };
   const MAX_LAYERS = 13;
 
@@ -93,11 +96,12 @@
     const prot = items.filter(i => ING[i.id].kind === 'protein');
     const chs = items.filter(i => ING[i.id].kind === 'cheese');
     const rest = items.filter(i => !ING[i.id].kind).sort((a, b) => ING[a.id].rank - ING[b.id].rank || a.seq - b.seq);
+    // ordine di assemblaggio, dal basso: pane → patty con il formaggio subito sopra (si scioglie sul caldo)
+    // → bacon → uovo → cipolla → pomodoro e cetrioli (rilasciano liquidi: lontani dal basso) → lattuga → salsa sotto il cappello
     const out = [{ uid: 'bunB' }];
-    rest.filter(i => ING[i.id].rank < 30).forEach(i => out.push(i));
     const n = Math.max(prot.length, chs.length);
     for (let k = 0; k < n; k++) { if (prot[k]) out.push(prot[k]); if (chs[k]) out.push(chs[k]); }
-    rest.filter(i => ING[i.id].rank > 31).forEach(i => out.push(i));
+    rest.forEach(i => out.push(i));
     return out;
   }
 
