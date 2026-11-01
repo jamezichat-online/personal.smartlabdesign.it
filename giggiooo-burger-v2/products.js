@@ -700,3 +700,98 @@ window.GB_CATALOG = {
     }
   ]
 };
+window.GB_CATALOG.sauces = [
+  {
+    "id": "bacon-cheese",
+    "name": "Bacon Cheese",
+    "title": [
+      "Bacon",
+      "Cheese."
+    ],
+    "categoryLabel": "SALSA AL FORMAGGIO",
+    "description": "Salsa al formaggio con crispy bacon, in coppetta monodose da 25 g. Cremosa e dorata, per chi vuole il lato più goloso del burger.",
+    "image": "assets/salsa-bacon-cheese.webp",
+    "tags": [
+      "25 g",
+      "Formaggio",
+      "Crispy bacon"
+    ],
+    "price": null,
+    "facts": [
+      [
+        "Tipologia",
+        "Salsa al formaggio con crispy bacon"
+      ],
+      [
+        "Formato",
+        "25 g · coppetta monodose"
+      ],
+      [
+        "Carattere",
+        "Cremosa e golosa"
+      ]
+    ]
+  },
+  {
+    "id": "bbq-smoke",
+    "name": "BBQ Smoke",
+    "title": [
+      "BBQ",
+      "Smoke."
+    ],
+    "categoryLabel": "SALSA BARBECUE",
+    "description": "Salsa barbecue affumicata, in coppetta monodose da 25 g. Il carattere scuro e intenso del grill.",
+    "image": "assets/salsa-bbq-smoke.webp",
+    "tags": [
+      "25 g",
+      "Barbecue",
+      "Affumicata"
+    ],
+    "price": null,
+    "facts": [
+      [
+        "Tipologia",
+        "Salsa barbecue affumicata"
+      ],
+      [
+        "Formato",
+        "25 g · coppetta monodose"
+      ],
+      [
+        "Carattere",
+        "Affumicata e intensa"
+      ]
+    ]
+  },
+  {
+    "id": "giggiooo-sauce",
+    "name": "Giggiooo Sauce",
+    "title": [
+      "Giggiooo",
+      "Sauce."
+    ],
+    "categoryLabel": "SALSA FIRMA",
+    "description": "La salsa cremosa leggermente piccante di Giggiooo, quella dei tre signature. In coppetta monodose da 25 g.",
+    "image": "assets/salsa-giggiooo-sauce.webp",
+    "tags": [
+      "25 g",
+      "Cremosa",
+      "Leggermente piccante"
+    ],
+    "price": null,
+    "facts": [
+      [
+        "Tipologia",
+        "Salsa cremosa leggermente piccante"
+      ],
+      [
+        "Formato",
+        "25 g · coppetta monodose"
+      ],
+      [
+        "Carattere",
+        "Cremosa, con una nota piccante"
+      ]
+    ]
+  }
+];
