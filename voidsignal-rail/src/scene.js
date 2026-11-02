@@ -22,7 +22,10 @@ function railPosition(x,out=new THREE.Vector3()){const a=Math.abs(x),c=Math.min(
 const tmpA=new THREE.Vector3(),tmpB=new THREE.Vector3(),tmpAxis=new THREE.Vector3();const slot=a=>a<=1?a*2.35:2.35+(a-1)*2.05;
 let currentEdgeStart=EDGE_START,currentEdgeEnd=EDGE_END;
 const railFadeUniforms={edgeStart:{value:EDGE_START},edgeEnd:{value:EDGE_END}};
-const pathPoints=[];for(let i=0;i<=240;i++){const x=-40+i/240*80;pathPoints.push(railPosition(x))}const railCurve=new THREE.CatmullRomCurve3(pathPoints);const rail=new THREE.Mesh(new THREE.TubeGeometry(railCurve,360,.068,24,false),metal);rail.material=metal.clone();rail.material.transparent=true;rail.material.onBeforeCompile=shader=>{Object.assign(shader.uniforms,railFadeUniforms);shader.vertexShader='varying float railWorldX;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nrailWorldX=(modelMatrix*vec4(transformed,1.)).x;');shader.fragmentShader='varying float railWorldX;uniform float edgeStart;uniform float edgeEnd;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>','diffuseColor.a *= 1.-smoothstep(edgeStart,edgeEnd,abs(railWorldX));\n#include <alphatest_fragment>')};rail.castShadow=false;scene.add(rail);
+const pathPoints=[];for(let i=0;i<=240;i++){const x=-40+i/240*80;pathPoints.push(railPosition(x))}const railCurve=new THREE.CatmullRomCurve3(pathPoints);const railTaper=x=>.62+.58*Math.exp(-((x/3.2)*(x/3.2))); // steel tube radius factor: fat at the centre (near), slim at the ends (far)
+const railGeo=new THREE.TubeGeometry(railCurve,360,.068,24,false);
+{const pa=railGeo.attributes.position,rs=25;for(let i=0;i<=360;i++){const c=railCurve.getPointAt(i/360),f=railTaper(c.x);for(let j=0;j<rs;j++){const k=i*rs+j;pa.setXYZ(k,c.x+(pa.getX(k)-c.x)*f,c.y+(pa.getY(k)-c.y)*f,c.z+(pa.getZ(k)-c.z)*f)}}pa.needsUpdate=true}
+const rail=new THREE.Mesh(railGeo,metal);rail.material=metal.clone();rail.material.transparent=true;rail.material.onBeforeCompile=shader=>{Object.assign(shader.uniforms,railFadeUniforms);shader.vertexShader='varying float railWorldX;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nrailWorldX=(modelMatrix*vec4(transformed,1.)).x;');shader.fragmentShader='varying float railWorldX;uniform float edgeStart;uniform float edgeEnd;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>','diffuseColor.a *= 1.-smoothstep(edgeStart,edgeEnd,abs(railWorldX));\n#include <alphatest_fragment>')};rail.castShadow=false;scene.add(rail);
 // Small machined collars catch the studio strips at each rail junction.
 for(const x of [-8,8]){const collar=new THREE.Mesh(new THREE.CylinderGeometry(.066,.066,.08,32),rail.material);collar.rotation.z=Math.PI/2;railPosition(x,collar.position);scene.add(collar)}
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,30),new THREE.ShadowMaterial({color:'#000000',opacity:.22}));floor.rotation.x=-Math.PI/2;floor.position.y=-1.55;floor.receiveShadow=true;scene.add(floor);
@@ -32,7 +35,7 @@ function tube(curve,r=.015){const m=new THREE.Mesh(new THREE.TubeGeometry(curve,
 function makeRailHook(){
  const g=new THREE.Group(),points=[];
  // Rail radius .055 + wire radius .014: the inside of the crook bears on the tube.
- const radius=.070;
+ const radius=.086;
  for(let i=0;i<=58;i++){const t=(-140+i/58*282)*Math.PI/180;points.push([0,radius*Math.cos(t),radius*Math.sin(t)])}
  points.push([0,-.105,.027],[0,-.17,0]);
  g.add(tube(hangerCurve(points),.014));g.position.y=-.001;
@@ -70,7 +73,7 @@ const garments=products.map((p,i)=>{
  const sway=new THREE.Group();root.add(hook,coupling,sway);sway.position.y=-.17;sway.add(pivot);
  const hanger=makeHanger(),collar=makeCollar();hanger.position.y=collar.position.y=.17;pivot.add(hanger,collar);
  scene.add(root);root.userData.index=i;
- return {root,pivot,hook,sway,index:i,yaw:-1.14,angle:0,angularVelocity:0,cloth:null,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
+ return {root,pivot,hook,coupling,sway,index:i,yaw:-1.14,angle:0,angularVelocity:0,cloth:null,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
 });
 const loader=new THREE.TextureLoader();loader.setCrossOrigin('anonymous');let finished=0,failures=0;
 for(let i=0;i<products.length;i++){loader.load(products[i].src,tex=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();try{const mesh=makeCloth(tex);mesh.userData.index=i;garments[i].cloth=mesh;mesh.position.y=.17;garments[i].pivot.add(mesh);garments[i].loaded=true;garments[i].materials=[];garments[i].root.traverse(o=>{if(o.isMesh){for(const m of (Array.isArray(o.material)?o.material:[o.material])){m.transparent=false;m.opacity=1;garments[i].materials.push(m)}}})}catch(e){failures++;console.error('Garment construction',e)}ready()},undefined,e=>{failures++;console.error('Texture',e);ready()})}
@@ -163,7 +166,7 @@ function frame(now){
   g.yaw+=(aim-g.yaw)*(reduce?1:1-Math.exp(-7.5*dt));
   const next=pendulumStep(g.angle,g.angularVelocity,filteredAcceleration*(.88+.12*Math.cos(g.phase)),elapsed,g.phase,dt,velocity);
   g.angle=reduce?0:next.angle;g.angularVelocity=reduce?0:next.speed;
-  const swingAxis=tmpAxis.set(-tangent.z,0,tangent.x).normalize();g.sway.quaternion.setFromAxisAngle(swingAxis,g.angle);g.sway.scale.setScalar((ad<=1?1.12-.1*ad:1.02-.05*Math.min(ad-1,2))*(1+.06*g.selection));g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,0);
+  const swingAxis=tmpAxis.set(-tangent.z,0,tangent.x).normalize();const tf=railTaper(x);g.hook.scale.setScalar(tf);{const top=-.17*tf+.012,bottom=-.2025,len=Math.max(.02,top-bottom);g.coupling.scale.y=len/.065;g.coupling.position.y=(top+bottom)/2}g.sway.quaternion.setFromAxisAngle(swingAxis,g.angle);g.sway.scale.setScalar((ad<=1?1.12-.1*ad:1.02-.05*Math.min(ad-1,2))*(1+.06*g.selection));g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,0);
   moving ||= Math.abs(g.yaw-aim)>.0005||Math.abs(g.angle)>.0001||Math.abs(g.angularVelocity)>.0005||Math.abs(g.selection-(chosen?1:0))>.0005;
   if(g.cloth&&g.root.visible){
    const arr=g.cloth.geometry.attributes.position.array,base=g.cloth.userData.base,half=arr.length/2;
