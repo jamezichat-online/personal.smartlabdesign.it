@@ -160,3 +160,8 @@
 @keyframes vsr-spin{to{transform:rotate(360deg)}}
 @media(max-width:650px){.vsr .heading h2{font-size:46px}.vsr .bottom{flex-wrap:wrap;gap:18px}.vsr .hint{order:3;max-width:none;width:100%;text-align:center}.vsr .product h3{font-size:1.5rem}.vsr .product{min-width:145px}.vsr .nav{gap:13px}.vsr .nav button{width:34px;height:34px}.vsr .outro{flex-direction:column;align-items:flex-start;gap:14px}}
 @media(prefers-reduced-motion:reduce){.vsr *,.vsr *::before,.vsr *::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+.vsr-sound{position:absolute;top:max(16px,3vw);right:calc(max(16px,3vw) + 56px);z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid var(--v-line);background:rgba(236,233,242,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center;color:inherit;cursor:pointer;transition:background .25s,border-color .25s}
+.vsr-sound:hover{background:rgba(236,233,242,.1);border-color:rgba(169,139,255,.5)}
+.vsr-sound svg{width:20px;height:20px}.vsr-sound .x{display:none}.vsr-sound.off .w{display:none}.vsr-sound.off .x{display:inline}
+.vsr-sound:focus-visible{outline:2px solid var(--signal,#a98bff);outline-offset:3px}
