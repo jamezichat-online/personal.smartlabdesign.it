@@ -19,4 +19,4 @@ export function pendulumStep(angle,speed,acceleration,time,phase,dt,motion=0){
 export const collarY=x=>-.405-.165*Math.sqrt(Math.max(0,1-(x/.36)**2));
 export const loopVisibility=d=>1-smoothstep(3.45,4.42,Math.abs(d));
 
-export const EDGE_START=3.45*1.62,EDGE_END=4.42*1.62;
+export const EDGE_START=7.4,EDGE_END=9.4;
