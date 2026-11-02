@@ -27,7 +27,7 @@ const metal=new THREE.MeshPhysicalMaterial({color:'#a8a7ae',metalness:1,roughnes
 // thins it and shrinks the garments hanging from it. y rises toward the ends to keep the visible sag of the video.
 const RAIL_KY=.028,RAIL_KZ=.09;
 function railPosition(x,out=new THREE.Vector3()){const a=Math.abs(x),c=Math.min(a,8),e=a-c,sg=x<0?-1:1;return out.set(x,2.45+RAIL_KY*c*c+2*RAIL_KY*8*e,-RAIL_KZ*c*c-2*RAIL_KZ*8*e)}
-const tmpA=new THREE.Vector3(),tmpB=new THREE.Vector3(),tmpAxis=new THREE.Vector3();const slot=a=>a<=1?a*2.35:2.35+(a-1)*2.05;
+const yAxis=new THREE.Vector3(0,1,0),tmpA=new THREE.Vector3(),tmpB=new THREE.Vector3(),tmpAxis=new THREE.Vector3();const slot=a=>a<=1?a*2.35:2.35+(a-1)*2.05;
 let currentEdgeStart=EDGE_START,currentEdgeEnd=EDGE_END;
 const railFadeUniforms={edgeStart:{value:EDGE_START},edgeEnd:{value:EDGE_END}};
 const pathPoints=[];for(let i=0;i<=240;i++){const x=-40+i/240*80;pathPoints.push(railPosition(x))}const railCurve=new THREE.CatmullRomCurve3(pathPoints);const railTaper=x=>.62+.58*Math.exp(-((x/3.2)*(x/3.2))); // steel tube radius factor: fat at the centre (near), slim at the ends (far)
@@ -46,7 +46,7 @@ function makeRailHook(){
  // stretched by 1/cos(phi) along the rail axis so the tube never touches the wire. Depth-only rail pass
  // hides the rear arc behind the tube; the front arc crosses in front.
  const g=new THREE.Group(),crook=new THREE.Group(),points=[];
- const R=.115,wire=.0125,tubeR=.068,phi=42*Math.PI/180,rz=R/Math.cos(phi),cy=tubeR+wire+.004-R;
+ const R=.115,wire=.0125,tubeR=.068,phi=0,rz=R,cy=tubeR+wire+.004-R;
  for(let i=0;i<=96;i++){const t=i/96*Math.PI*2;points.push([0,cy+R*Math.cos(t),rz*Math.sin(t)])}
  crook.add(tube(hangerCurve(points),wire));
  crook.add(tube(hangerCurve([[0,cy-R,0],[0,cy-R-.02,0],[0,-.17,0]]),.012));
@@ -172,14 +172,14 @@ function frame(now){
  let moving=dragging||Math.abs(position-target)>.00015||Math.abs(velocity)>.001;
  for(const g of garments){
   const d=wrap(g.index-position),ad=Math.abs(d),x=Math.sign(d)*slot(ad);
-  railPosition(x,g.root.position);const tangent=railPosition(x+.005,tmpA).sub(railPosition(x-.005,tmpB)).normalize();g.hook.quaternion.setFromUnitVectors(railAxis,tangent);
+  railPosition(x,g.root.position);const tangent=railPosition(x+.005,tmpA).sub(railPosition(x-.005,tmpB)).normalize();{const vx=camera.position.x-g.root.position.x,vz=camera.position.z-g.root.position.z,yaw=Math.atan2(vx,vz),n0=Math.cos(yaw),n2=-Math.sin(yaw);g.hook.quaternion.setFromAxisAngle(yAxis,yaw);g.hookStretch=1/Math.max(.3,Math.abs(tangent.x*n0+tangent.z*n2))}
   const opacity=1-smoothstep(currentEdgeStart,currentEdgeEnd,Math.abs(x));g.root.visible=opacity>.004;g.opacity=opacity;
   const viewYaw=Math.atan2(camera.position.x-x,camera.position.z-g.root.position.z);
   const chosen=frontIndex===g.index&&Math.abs(d)<.7;g.selection+=((chosen?1:0)-g.selection)*(reduce?1:1-Math.exp(-dt*6));const sideYaw=-(.48+.58*Math.min(ad,1.15));const aim=chosen?0:sideYaw;
   g.yaw+=(aim-g.yaw)*(reduce?1:1-Math.exp(-7.5*dt));
   const next=pendulumStep(g.angle,g.angularVelocity,filteredAcceleration*(.88+.12*Math.cos(g.phase)),elapsed,g.phase,dt,velocity);
   g.angle=reduce?0:next.angle;g.angularVelocity=reduce?0:next.speed;
-  const swingAxis=tmpAxis.set(-tangent.z,0,tangent.x).normalize();const tf=railTaper(x);g.hook.scale.setScalar(tf);{const top=-.17*tf+.012,bottom=-.2025,len=Math.max(.02,top-bottom);g.coupling.scale.y=len/.065;g.coupling.position.y=(top+bottom)/2}g.sway.quaternion.setFromAxisAngle(swingAxis,g.angle);g.sway.scale.setScalar((ad<=1?1.12-.1*ad:1.02-.05*Math.min(ad-1,2))*(1+.06*g.selection));g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,0);
+  const swingAxis=tmpAxis.set(-tangent.z,0,tangent.x).normalize();const tf=railTaper(x);g.hook.scale.set(tf,tf,tf*Math.min(3,g.hookStretch||1));{const top=-.17*tf+.012,bottom=-.2025,len=Math.max(.02,top-bottom);g.coupling.scale.y=len/.065;g.coupling.position.y=(top+bottom)/2}g.sway.quaternion.setFromAxisAngle(swingAxis,g.angle);g.sway.scale.setScalar((ad<=1?1.12-.1*ad:1.02-.05*Math.min(ad-1,2))*(1+.06*g.selection));g.pivot.rotation.set(-.19*g.selection,viewYaw+g.yaw,0);
   moving ||= Math.abs(g.yaw-aim)>.0005||Math.abs(g.angle)>.0001||Math.abs(g.angularVelocity)>.0005||Math.abs(g.selection-(chosen?1:0))>.0005;
   if(g.cloth&&g.root.visible){
    const arr=g.cloth.geometry.attributes.position.array,base=g.cloth.userData.base,half=arr.length/2;
