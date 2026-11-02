@@ -1,15 +1,23 @@
 import * as THREE from 'three';
 import {initShop,openSheet} from './shop.js';
+import * as sound from './sound.js';
 const hasGL=(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){return false}})();
 if(!hasGL){document.documentElement.classList.add('vsr-nogl');document.querySelector('#loading')?.remove();{const g=document.createElement('div');g.className='vsr-nogl-grid';g.innerHTML=products.map(p=>`<a href="${p.url}" target="_blank" rel="noopener"><img src="${p.src}" alt="${p.name}" width="300" height="300" style="width:100%;height:auto"><span>${p.name}</span></a>`).join('');document.querySelector('.vsr-main .bottom')?.before(g)}throw new Error('WebGL unavailable: static fallback shown')}
 import {products} from './products.js';
 import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDGE_END} from './dynamics.js';
 const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
+const glowCanvas=document.createElement('canvas'),glowTex=new THREE.CanvasTexture(glowCanvas);glowTex.colorSpace=THREE.SRGBColorSpace;
+function paintGlow(w,h){glowCanvas.width=Math.max(2,Math.round(w/2));glowCanvas.height=Math.max(2,Math.round(h/2));const c=glowCanvas.getContext('2d'),W=glowCanvas.width,H=glowCanvas.height;
+ c.fillStyle='#030304';c.fillRect(0,0,W,H);
+ const blob=(cx,cy,rx,ry,a0,stop)=>{c.save();c.translate(cx*W,cy*H);c.scale(rx*W,ry*H);const g=c.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,`rgba(157,114,255,${a0})`);g.addColorStop(stop,'rgba(157,114,255,0)');c.fillStyle=g;c.fillRect(-2,-2,4,4);c.restore()};
+ blob(.5,.52,.46,.46,.2,.72); // central halo behind the hero piece
+ blob(.5,1.12,1.1,.4,.4,.7);  // violet bloom rising from the floor
+ glowTex.needsUpdate=true;scene.background=glowTex}
 const camera=new THREE.PerspectiveCamera(39,1,.1,60);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.25:1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.prepend(renderer.domElement);
-const room=document.createElement('canvas');room.width=1024;room.height=512;const ec=room.getContext('2d');ec.fillStyle='#15131c';ec.fillRect(0,0,1024,512);const boxes=[[50,45,175,210,'#fff7ec'],[420,5,210,90,'#fff'],[800,60,90,290,'#dbd0ff'],[300,310,300,60,'#4d465e']];for(const [x,y,w,h,c]of boxes){ec.fillStyle=c;ec.fillRect(x,y,w,h)}const rt=new THREE.CanvasTexture(room);rt.mapping=THREE.EquirectangularReflectionMapping;rt.colorSpace=THREE.SRGBColorSpace;const pmrem=new THREE.PMREMGenerator(renderer);const env=pmrem.fromEquirectangular(rt);scene.environment=env.texture;scene.environmentIntensity=.6;rt.dispose();pmrem.dispose();
+const room=document.createElement('canvas');room.width=1024;room.height=512;const ec=room.getContext('2d');ec.fillStyle='#15131c';ec.fillRect(0,0,1024,512);const boxes=[[50,45,175,210,'#fff7ec'],[420,5,210,90,'#fff'],[800,60,90,290,'#dbd0ff'],[300,310,300,60,'#4d465e']];for(const [x,y,w,h,c]of boxes){ec.fillStyle=c;ec.fillRect(x,y,w,h)}{const gb=ec.createLinearGradient(0,330,0,512);gb.addColorStop(0,'#2a2540');gb.addColorStop(1,'#a89be0');ec.fillStyle=gb;ec.fillRect(0,330,1024,182)}const rt=new THREE.CanvasTexture(room);rt.mapping=THREE.EquirectangularReflectionMapping;rt.colorSpace=THREE.SRGBColorSpace;const pmrem=new THREE.PMREMGenerator(renderer);const env=pmrem.fromEquirectangular(rt);scene.environment=env.texture;scene.environmentIntensity=.6;rt.dispose();pmrem.dispose();
 scene.add(new THREE.HemisphereLight('#f0eafc','#19151d',.8));
 const key=new THREE.DirectionalLight('#fff4e8',1.7);key.position.set(-4,8,6);key.castShadow=false;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-13,right:13,top:7,bottom:-7,near:1,far:30});key.shadow.bias=-.00015;key.shadow.normalBias=.025;key.shadow.radius=5;scene.add(key);
 const rim=new THREE.DirectionalLight('#9d86ff',1.15);rim.position.set(-5.5,2.5,-6);scene.add(rim);const fill=new THREE.DirectionalLight('#b9a5f5',.8);fill.position.set(6,3,-2);scene.add(fill);const soft=new THREE.DirectionalLight('#fff',.4);soft.position.set(0,0,8);scene.add(soft);
@@ -33,12 +41,14 @@ const fabric=document.createElement('canvas');fabric.width=fabric.height=256;con
 const hangerCurve=pts=>new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
 function tube(curve,r=.015){const m=new THREE.Mesh(new THREE.TubeGeometry(curve,56,r,12,false),metal.clone());m.castShadow=true;return m}
 function makeRailHook(){
- const g=new THREE.Group(),points=[];
- // Rail radius .055 + wire radius .014: the inside of the crook bears on the tube.
- const radius=.086;
- for(let i=0;i<=58;i++){const t=(-140+i/58*282)*Math.PI/180;points.push([0,radius*Math.cos(t),radius*Math.sin(t)])}
+ const g=new THREE.Group(),points=[],crook=new THREE.Group();
+ // The crook is an ellipse turned ~50deg toward the viewer: from the front it reads as an open loop with the
+ // tube passing through it (front arc over the tube, rear arc hidden behind it by the depth pass).
+ // Semi-axis along the rail axis is stretched by 1/cos(phi) so the tube always clears the wire.
+ const radius=.086,phi=50*Math.PI/180,rz=radius/Math.cos(phi);
+ for(let i=0;i<=72;i++){const t=(-140+i/72*282)*Math.PI/180;points.push([0,radius*Math.cos(t),rz*Math.sin(t)])}
  points.push([0,-.105,.027],[0,-.17,0]);
- g.add(tube(hangerCurve(points),.014));g.position.y=-.001;
+ crook.add(tube(hangerCurve(points),.014));crook.rotation.y=phi;g.add(crook);g.position.y=-.001;
  return g;
 }
 function makeHanger(){
@@ -146,7 +156,7 @@ function renderScene(){
  renderer.autoClear=true;scene.background=oldBackground;renderer.setClearColor('#030304',1);baseObjects.forEach(o=>o.visible=true);garments.forEach(g=>g.root.visible=g.loaded&&g.opacity>.004);
  postQuad.material=finalMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
 }
-function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
+function resize(){const w=host.clientWidth,h=host.clientHeight;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
 let priorVelocity=0,filteredAcceleration=0;
@@ -154,6 +164,7 @@ function frame(now){
  const dt=Math.min(.05,(now-previous)/1000||.016);previous=now;elapsed+=dt;
  if(!visible||document.hidden){running=false;return}
  if(!dragging){if(reduce){position=target;velocity=0}else{const a=(target-position)*42-velocity*11.6;velocity+=a*dt;position+=velocity*dt}}
+ sound.update(velocity,position,dt);
  const instantaneous=(velocity-priorVelocity)/dt;priorVelocity=velocity;
  filteredAcceleration+=(Math.max(-85,Math.min(85,instantaneous))-filteredAcceleration)*(1-Math.exp(-dt*9));
  let moving=dragging||Math.abs(position-target)>.00015||Math.abs(velocity)>.001;
@@ -188,3 +199,6 @@ let wheelTimer;host.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<Math.abs(
 let keyboardNavigation=false;document.addEventListener('keydown',e=>{if(!e.metaKey&&!e.ctrlKey&&!e.altKey){keyboardNavigation=true;if(document.activeElement===host)host.classList.add('keyboard-focus')}});document.addEventListener('pointerdown',()=>{keyboardNavigation=false;host.classList.remove('keyboard-focus')},true);initShop({onClose(){if(keyboardNavigation){host.classList.add('keyboard-focus');host.focus({preventScroll:true})}else{host.classList.remove('keyboard-focus');$('#detail').focus({preventScroll:true})}}});
 function openDetail(){openSheet(active)}$('#detail').onclick=openDetail;
 new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible)wake()}).observe(host);document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('hidden');$('#loading p').textContent='Rendering interrupted. Reload the page.'});updateInfo();resize();
+
+{const un=()=>sound.unlock();['pointerdown','keydown','wheel'].forEach(t=>window.addEventListener(t,un,{once:true,passive:true}));
+ const b=document.querySelector('.vsr-sound');if(b){const paint=()=>{const m=sound.isMuted();b.setAttribute('aria-pressed',String(!m));b.setAttribute('aria-label',m?'Turn rail sound on':'Turn rail sound off');b.classList.toggle('off',m)};paint();b.addEventListener('click',()=>{sound.unlock();sound.setMuted(!sound.isMuted());paint()})}}
