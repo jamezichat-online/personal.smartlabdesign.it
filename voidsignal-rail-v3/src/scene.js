@@ -41,14 +41,16 @@ const fabric=document.createElement('canvas');fabric.width=fabric.height=256;con
 const hangerCurve=pts=>new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
 function tube(curve,r=.015){const m=new THREE.Mesh(new THREE.TubeGeometry(curve,56,r,12,false),metal.clone());m.castShadow=true;return m}
 function makeRailHook(){
- const g=new THREE.Group(),points=[],crook=new THREE.Group();
- // The crook is an ellipse turned ~50deg toward the viewer: from the front it reads as an open loop with the
- // tube passing through it (front arc over the tube, rear arc hidden behind it by the depth pass).
- // Semi-axis along the rail axis is stretched by 1/cos(phi) so the tube always clears the wire.
- const radius=.086,phi=50*Math.PI/180,rz=radius/Math.cos(phi);
- for(let i=0;i<=72;i++){const t=(-140+i/72*282)*Math.PI/180;points.push([0,radius*Math.cos(t),rz*Math.sin(t)])}
- points.push([0,-.105,.027],[0,-.17,0]);
- crook.add(tube(hangerCurve(points),.014));crook.rotation.y=phi;g.add(crook);g.position.y=-.001;
+ // Closed ring, clearly larger than the tube: the rail rests against the inside top of the loop and the
+ // empty lower part of the opening shows it passes THROUGH. The ring is turned toward the viewer (phi) and
+ // stretched by 1/cos(phi) along the rail axis so the tube never touches the wire. Depth-only rail pass
+ // hides the rear arc behind the tube; the front arc crosses in front.
+ const g=new THREE.Group(),crook=new THREE.Group(),points=[];
+ const R=.115,wire=.0125,tubeR=.068,phi=42*Math.PI/180,rz=R/Math.cos(phi),cy=tubeR+wire+.004-R;
+ for(let i=0;i<=96;i++){const t=i/96*Math.PI*2;points.push([0,cy+R*Math.cos(t),rz*Math.sin(t)])}
+ crook.add(tube(hangerCurve(points),wire));
+ crook.add(tube(hangerCurve([[0,cy-R,0],[0,cy-R-.02,0],[0,-.17,0]]),.012));
+ crook.rotation.y=phi;g.add(crook);g.position.y=-.001;
  return g;
 }
 function makeHanger(){
@@ -200,5 +202,5 @@ let keyboardNavigation=false;document.addEventListener('keydown',e=>{if(!e.metaK
 function openDetail(){openSheet(active)}$('#detail').onclick=openDetail;
 new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible)wake()}).observe(host);document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('hidden');$('#loading p').textContent='Rendering interrupted. Reload the page.'});updateInfo();resize();
 
-{const un=()=>sound.unlock();['pointerdown','keydown','wheel'].forEach(t=>window.addEventListener(t,un,{once:true,passive:true}));
- const b=document.querySelector('.vsr-sound');if(b){const paint=()=>{const m=sound.isMuted();b.setAttribute('aria-pressed',String(!m));b.setAttribute('aria-label',m?'Turn rail sound on':'Turn rail sound off');b.classList.toggle('off',m)};paint();b.addEventListener('click',()=>{sound.unlock();sound.setMuted(!sound.isMuted());paint()})}}
+{const un=()=>sound.unlock();['pointerdown','pointerup','keydown','click','touchend'].forEach(t=>window.addEventListener(t,un,{passive:true}));
+ const b=document.querySelector('.vsr-sound');if(b){const paint=()=>{const m=!sound.isActive();b.setAttribute('aria-pressed',String(!m));b.setAttribute('aria-label',m?'Turn rail sound on':'Turn rail sound off');b.classList.toggle('off',m)};paint();sound.onState(paint);b.addEventListener('click',()=>{if(sound.isMuted()||!sound.isRunning()){sound.setMuted(false);sound.unlock();sound.ping()}else sound.setMuted(true);paint()})}}
