@@ -8,12 +8,13 @@ import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDG
 const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
 const glowCanvas=document.createElement('canvas'),glowTex=new THREE.CanvasTexture(glowCanvas);glowTex.colorSpace=THREE.SRGBColorSpace;
-function paintGlow(w,h){glowCanvas.width=Math.max(2,Math.round(w/2));glowCanvas.height=Math.max(2,Math.round(h/2));const c=glowCanvas.getContext('2d'),W=glowCanvas.width,H=glowCanvas.height;
+let glowW=2,glowH=2;const GLOW={stage:[255,74,61],iron:[232,225,207],cyber:[63,230,234]},glowCur=[...GLOW.stage];
+function paintGlow(w=glowW,h=glowH){glowW=w;glowH=h;const[gr,gg,gb]=glowCur.map(Math.round);glowCanvas.width=Math.max(2,Math.round(w/2));glowCanvas.height=Math.max(2,Math.round(h/2));const c=glowCanvas.getContext('2d'),W=glowCanvas.width,H=glowCanvas.height;
  c.fillStyle='#030304';c.fillRect(0,0,W,H);
- const blob=(cx,cy,rx,ry,a0,stop)=>{c.save();c.translate(cx*W,cy*H);c.scale(rx*W,ry*H);const g=c.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,`rgba(157,114,255,${a0})`);g.addColorStop(stop,'rgba(157,114,255,0)');c.fillStyle=g;c.fillRect(-2,-2,4,4);c.restore()};
- blob(.5,.52,.46,.46,.2,.72); // central halo behind the hero piece
- blob(.5,1.12,1.1,.4,.4,.7);  // violet bloom rising from the floor
- glowTex.needsUpdate=true;scene.background=glowTex}
+ const gain=1.15-.5*(gr*.3+gg*.59+gb*.11)/255;const blob=(cx,cy,rx,ry,a0,stop)=>{a0*=gain;c.save();c.translate(cx*W,cy*H);c.scale(rx*W,ry*H);const g=c.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,`rgba(${gr},${gg},${gb},${a0})`);g.addColorStop(stop,`rgba(${gr},${gg},${gb},0)`);c.fillStyle=g;c.fillRect(-2,-2,4,4);c.restore()};
+ blob(.5,.5,.78,.62,.34,.78); // central halo behind the hero piece
+ blob(.5,1.1,1.5,.55,.62,.72);  // tribe-coloured bloom rising from the floor
+ glowTex.needsUpdate=true;scene.background=glowTex;{const r=document.getElementById('vsr');if(r){r.style.setProperty('--v-signal',`rgb(${gr},${gg},${gb})`);r.style.setProperty('--v-glow',`rgba(${gr},${gg},${gb},.4)`)}}}
 const camera=new THREE.PerspectiveCamera(39,1,.1,60);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.25:1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.prepend(renderer.domElement);
@@ -107,7 +108,7 @@ async function switchType(k){
  catButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k)));
  const loading=buildType(k),idx=Math.round(position),from=position;frontIndex=-1;
  // 1. the current rail leaves; 2. photos finish loading; 3. the new rail slides in from the other side, hangers swinging.
- target=from+8;wake();
+ mbAuto=1;target=from+8;wake();
  const t0=performance.now();while(position<from+6.6&&performance.now()-t0<1500)await new Promise(r=>setTimeout(r,40));
  await loading;
  type=k;setCloth(k);position=idx-8;velocity=0;target=idx;switching=false;wake();
@@ -136,10 +137,10 @@ c+=texture2D(inputTexture,vUv-off*3.230769)*.070270;
 gl_FragColor=c;}`;
 function blurMaterial(verticalPass){return new THREE.ShaderMaterial({vertexShader:shaderVertex,fragmentShader:blurFragment,uniforms:{inputTexture:{value:null},resolution:{value:new THREE.Vector2(1,1)},direction:{value:new THREE.Vector2(verticalPass?0:1,verticalPass?1:0)},edgeRange:{value:new THREE.Vector2(.6,.8)}},depthTest:false,depthWrite:false,toneMapped:false})}
 const horizontal=blurMaterial(false),vertical=blurMaterial(true);
-const assemblyMaterial=new THREE.ShaderMaterial({vertexShader:layerVertex,fragmentShader:`uniform sampler2D inputTexture;uniform vec2 texel;uniform float blurRadius;uniform float assemblyOpacity;varying vec2 vUv;
+const assemblyMaterial=new THREE.ShaderMaterial({vertexShader:layerVertex,fragmentShader:`uniform sampler2D inputTexture;uniform vec2 texel;uniform float blurRadius;uniform float assemblyOpacity;uniform float motion;varying vec2 vUv;
 float kernelWeight(int i){int j=abs(i);return j==0?.227027:(j==1?.316216:.070270);}
 float kernelOffset(int i){int j=abs(i);return sign(float(i))*(j==1?1.384615:(j==2?3.230769:0.));}
-void main(){vec4 c=vec4(0.);for(int y=-2;y<=2;y++){for(int x=-2;x<=2;x++){vec2 o=vec2(kernelOffset(x),kernelOffset(y))*texel*blurRadius;c+=texture2D(inputTexture,vUv+o)*kernelWeight(x)*kernelWeight(y);}}gl_FragColor=c*assemblyOpacity;}`,uniforms:{inputTexture:{value:null},texel:{value:new THREE.Vector2(1,1)},blurRadius:{value:0},assemblyOpacity:{value:1},rect:{value:new THREE.Vector4(0,0,1,1)}},transparent:true,premultipliedAlpha:true,depthTest:false,depthWrite:false,toneMapped:false});
+void main(){vec4 c=vec4(0.);if(motion>.5){for(int i=-9;i<=9;i++){float f=float(i)/9.;c+=texture2D(inputTexture,vUv+vec2(f*motion*texel.x,0.))*(1.-.55*abs(f));}c/=13.5;gl_FragColor=c*assemblyOpacity;return;}for(int y=-2;y<=2;y++){for(int x=-2;x<=2;x++){vec2 o=vec2(kernelOffset(x),kernelOffset(y))*texel*blurRadius;c+=texture2D(inputTexture,vUv+o)*kernelWeight(x)*kernelWeight(y);}}gl_FragColor=c*assemblyOpacity;}`,uniforms:{inputTexture:{value:null},texel:{value:new THREE.Vector2(1,1)},blurRadius:{value:0},motion:{value:0},assemblyOpacity:{value:1},rect:{value:new THREE.Vector4(0,0,1,1)}},transparent:true,premultipliedAlpha:true,depthTest:false,depthWrite:false,toneMapped:false});
 const finalMaterial=new THREE.ShaderMaterial({vertexShader:shaderVertex,fragmentShader:`uniform sampler2D inputTexture;varying vec2 vUv;void main(){gl_FragColor=vec4(texture2D(inputTexture,vUv).rgb,1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -177,7 +178,7 @@ function renderScene(){
   const visibleRailMaterial=rail.material;rail.material=railDepthMaterial;rail.visible=true;
   renderer.setRenderTarget(g.layer);renderer.render(scene,camera);
   rail.material=visibleRailMaterial;rail.visible=false;camera.clearViewOffset();g.root.visible=false;
-  const u=assemblyMaterial.uniforms;u.inputTexture.value=g.layer.texture;u.texel.value.set(1/r.width,1/r.height);u.blurRadius.value=2.3*(1-g.opacity);u.assemblyOpacity.value=g.opacity;u.rect.value.set((r.x+r.width/2)/W*2-1,1-(r.y+r.height/2)/H*2,r.width/W,r.height/H);
+  const u=assemblyMaterial.uniforms;u.inputTexture.value=g.layer.texture;u.texel.value.set(1/r.width,1/r.height);u.blurRadius.value=2.3*(1-g.opacity);u.assemblyOpacity.value=g.opacity;u.motion.value=mbNow;u.rect.value.set((r.x+r.width/2)/W*2-1,1-(r.y+r.height/2)/H*2,r.width/W,r.height/H);
   postQuad.material=assemblyMaterial;renderer.autoClear=false;renderer.setRenderTarget(compositionTarget);renderer.render(postScene,postCamera);
  }
  renderer.autoClear=true;scene.background=oldBackground;renderer.setClearColor('#030304',1);baseObjects.forEach(o=>o.visible=true);garments.forEach(g=>g.root.visible=g.loaded&&g.opacity>.004);
@@ -186,15 +187,17 @@ function renderScene(){
 function resize(){const w=host.clientWidth,h=host.clientHeight;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
-let priorVelocity=0,filteredAcceleration=0;
+let mbAuto=0,mbCur=0,mbNow=0,glowLast=0,priorVelocity=0,filteredAcceleration=0;
 function frame(now){
  const dt=Math.min(.05,(now-previous)/1000||.016);previous=now;elapsed+=dt;
  if(!visible||document.hidden){running=false;return}
  if(!dragging){if(reduce){position=target;velocity=0}else{const a=(target-position)*42-velocity*11.6;velocity+=a*dt;position+=velocity*dt}}
+ if(mbAuto&&!switching&&Math.abs(position-target)<.5)mbAuto=0;
+ mbCur+=(mbAuto-mbCur)*(1-Math.exp(-dt*(mbAuto?10:5)));if(mbCur<.01&&!mbAuto)mbCur=0;mbNow=reduce?0:mbCur*Math.min(1,Math.abs(velocity)/8)*46;
  sound.update(velocity,position,dt);
  const instantaneous=(velocity-priorVelocity)/dt;priorVelocity=velocity;
  filteredAcceleration+=(Math.max(-85,Math.min(85,instantaneous))-filteredAcceleration)*(1-Math.exp(-dt*9));
- let moving=dragging||Math.abs(position-target)>.00015||Math.abs(velocity)>.001;
+ let moving=mbCur>0||dragging||Math.abs(position-target)>.00015||Math.abs(velocity)>.001;
  for(const g of garments){
   const d=wrap(g.index-position),ad=Math.abs(d),x=Math.sign(d)*slot(ad);
   railPosition(x,g.root.position);const tangent=railPosition(x+.005,tmpA).sub(railPosition(x-.005,tmpB)).normalize();{const vx=camera.position.x-g.root.position.x,vz=camera.position.z-g.root.position.z,yaw=Math.atan2(vx,vz),n0=Math.cos(yaw),n2=-Math.sin(yaw);g.hook.quaternion.setFromAxisAngle(yAxis,yaw);g.hookStretch=1/Math.max(.3,Math.abs(tangent.x*n0+tangent.z*n2))}
@@ -214,7 +217,9 @@ function frame(now){
    g.cloth.geometry.attributes.position.needsUpdate=true;
   }
  }
- if(current()!==active)updateInfo();renderScene();
+ if(current()!==active)updateInfo();
+ {const t=GLOW[products[current()].tribe],k=reduce?1:Math.min(1,dt*3.2);let d=0;for(let i=0;i<3;i++){glowCur[i]+=(t[i]-glowCur[i])*k;if(Math.abs(t[i]-glowCur[i])<.7)glowCur[i]=t[i];d+=Math.abs(t[i]-glowCur[i])}if(d!==glowLast){glowLast=d;paintGlow();moving=true}}
+ renderScene();
  if(moving)requestAnimationFrame(frame);else running=false;
 }
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();function pick(e){const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);if(frontIndex>=0&&garments[frontIndex]?.loaded&&raycaster.intersectObject(garments[frontIndex].cloth).length)return frontIndex;const hit=raycaster.intersectObjects(garments.filter(g=>g.loaded&&g.opacity>.004).map(g=>g.cloth));if(hit.length)return hit[0].object.userData.index;return null}

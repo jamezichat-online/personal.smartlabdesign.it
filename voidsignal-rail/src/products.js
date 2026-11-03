@@ -2,7 +2,7 @@
 // every sheet/cart photo (front + back, tee / long sleeve / hoodie) is mirrored locally under assets/shop/.
 export const SHOP={id:1590708,url:'https://voidsignal.myspreadshop.it',api:'https://api.spreadshirt.net/api/v1',locale:'it_IT',checkout:'https://checkout.spreadshirt.it/'};
 export const SIZES=[{l:'XS',id:1},{l:'S',id:2},{l:'M',id:3},{l:'L',id:4},{l:'XL',id:5},{l:'XXL',id:6}];
-export const TRIBE={stage:{name:'The Stage',cat:'Street Rock',c:'var(--v-sr)'},iron:{name:'The Iron',cat:'Gym',c:'var(--v-gym)'},cyber:{name:'The Grid',cat:'Cyber Tech',c:'var(--v-signal)'}};
+export const TRIBE={stage:{name:'The Stage',cat:'Street Rock',c:'var(--v-sr)'},iron:{name:'The Iron',cat:'Gym',c:'var(--v-gym)'},cyber:{name:'The Grid',cat:'Cyber Tech',c:'#3ee0ff'}};
 const COLOR={2:'Black',648:'Charcoal Grey',742:'Anthracite',951:'India Ink Grey',1256:'Heather Anthracite'};
 const FIT={812:'Premium organic cotton \u00b7 men\u2019s cut',635:'Organic cotton \u00b7 unisex cut'};
 const raw=[
@@ -166,6 +166,8 @@ const EXTRA={"rlt0l7bvc1x9":{"ls":[2],"hd":[2]},"rlt0mll1d28z":{"ls":[2],"hd":[2
 const SZ=SIZES, SZ_NOXS=SIZES.filter(z=>z.id>1);
 // All shop photos are mirrored locally (assets/shop/<sellable>-<tee|ls|hd>-<f|b>.webp, 1200px, transparent background).
 const img=(base,k,v)=>`assets/shop/${base}-${k}-${v}.webp`;
+const ORDER=['stage','iron','cyber'];
+raw.sort((a,b)=>ORDER.indexOf(a.tribe)-ORDER.indexOf(b.tribe)); // stable: grouped by tribe, original order kept inside
 export const products=raw.map(p=>{
  const base=p.sellable.split('-')[0],x=EXTRA[base],url=`${SHOP.url}/${p.page}`;
  const mk=(k,label,sellable,app,fit,sizes)=>({k,label,sellable,appearance:app,color:COLOR[app],fit,src:img(base,k,'f'),imageBack:img(base,k,'b'),sizes});
