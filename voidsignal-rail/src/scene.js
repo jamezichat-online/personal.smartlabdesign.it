@@ -90,9 +90,9 @@ const garments=products.map((p,i)=>{
 const loader=new THREE.TextureLoader();loader.setCrossOrigin('anonymous');let finished=0,failures=0;
 for(let i=0;i<products.length;i++){loader.load(products[i].src,tex=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();try{const mesh=makeCloth(tex);mesh.userData.index=i;garments[i].cloth=mesh;mesh.position.y=.17;garments[i].pivot.add(mesh);garments[i].loaded=true;garments[i].materials=[];garments[i].root.traverse(o=>{if(o.isMesh){for(const m of (Array.isArray(o.material)?o.material:[o.material])){m.transparent=false;m.opacity=1;garments[i].materials.push(m)}}})}catch(e){failures++;console.error('Garment construction',e)}ready()},undefined,e=>{failures++;console.error('Texture',e);ready()})}
 function ready(){finished++;if(finished===products.length){$('#loading').classList.add('hidden');$('#loading').setAttribute('aria-hidden','true');if(failures){const e=document.createElement('p');e.className='error-notice';e.textContent=failures+' piece(s) failed to load. Check your connection and reload.';host.after(e)}wake()}else wake()}
-function wrap(v){return((v+4.5)%9+9)%9-4.5}
-function current(){return((Math.round(position)%9)+9)%9}
-function updateInfo(){active=current();const p=products[active];$('#name').textContent=p.name;$('#category').textContent=p.category.toUpperCase();$('#count').textContent=String(active+1).padStart(2,'0')+' / 09';$('#track-indicator').style.transform=`translateX(${active*100}%)`}
+const N=products.length;function wrap(v){return((v+N/2)%N+N)%N-N/2}
+function current(){return((Math.round(position)%N)+N)%N}
+function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;$('#category').textContent=p.category.toUpperCase();$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
 const sceneTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2,depthBuffer:true});
 const blurTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
 const compositionTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
