@@ -65,11 +65,11 @@ function makeCollar(){
  return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),100,.015,9,false),new THREE.MeshPhysicalMaterial({color:'#18171b',roughness:.98,bumpMap:weave,bumpScale:.003,sheen:.2}));
 }
 // Photo alpha drives both the exact silhouette and the joined front/back shell.
-function makeCloth(tex){const N=96,S=N+1,maskCanvas=document.createElement('canvas');maskCanvas.width=maskCanvas.height=S;const mc=maskCanvas.getContext('2d',{willReadFrequently:true});mc.drawImage(tex.image,0,0,S,S);const pixels=mc.getImageData(0,0,S,S).data;const inside=new Uint8Array(S*S),dist=new Float32Array(S*S);for(let j=0;j<S;j++)for(let i=0;i<S;i++){let k=j*S+i;inside[k]=pixels[k*4+3]>100?1:0;dist[k]=inside[k]?999:0}
+function makeCloth(tex,neck=true){const N=96,S=N+1,maskCanvas=document.createElement('canvas');maskCanvas.width=maskCanvas.height=S;const mc=maskCanvas.getContext('2d',{willReadFrequently:true});mc.drawImage(tex.image,0,0,S,S);const pixels=mc.getImageData(0,0,S,S).data;const inside=new Uint8Array(S*S),dist=new Float32Array(S*S);for(let j=0;j<S;j++)for(let i=0;i<S;i++){let k=j*S+i;inside[k]=pixels[k*4+3]>100?1:0;dist[k]=inside[k]?999:0}
 for(let j=0;j<S;j++)for(let i=0;i<S;i++){let k=j*S+i;if(i)dist[k]=Math.min(dist[k],dist[k-1]+1);if(j)dist[k]=Math.min(dist[k],dist[k-S]+1)}for(let j=S-1;j>=0;j--)for(let i=S-1;i>=0;i--){let k=j*S+i;if(i<N)dist[k]=Math.min(dist[k],dist[k+1]+1);if(j<N)dist[k]=Math.min(dist[k],dist[k+S]+1)}
  const vertices=[],uvs=[],indices=[];const width=3.55,height=3.55;for(let side=0;side<2;side++)for(let j=0;j<S;j++)for(let i=0;i<S;i++){const u=i/N,v=j/N,x=(u-.5)*width,y=-.19-v*height;const {depth:thickness,folds}=clothDepth(x,v,dist[j*S+i]);vertices.push(x,y,side===0?thickness+folds:-thickness+folds);uvs.push(u,1-v)}
  const layer=S*S;for(let j=0;j<N;j++)for(let i=0;i<N;i++){let a=j*S+i,b=a+1,c=a+S,d=c+1;if(!inside[a]&&!inside[b]&&!inside[c]&&!inside[d])continue;indices.push(a,c,b,b,c,d);indices.push(a+layer,b+layer,c+layer,b+layer,d+layer,c+layer)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();
- const frontMask=document.createElement('canvas');frontMask.width=frontMask.height=S;const fmc=frontMask.getContext('2d'),fd=fmc.createImageData(S,S);for(let j=0;j<S;j++)for(let i=0;i<S;i++){const k=j*S+i,x=(i/N-.5)*3.55,y=-.19-j/N*3.55;let v=pixels[k*4+3];if(Math.abs(x)<.36&&y>collarY(x))v=0;fd.data[k*4]=fd.data[k*4+1]=fd.data[k*4+2]=v;fd.data[k*4+3]=255}fmc.putImageData(fd,0,0);const neckMask=new THREE.CanvasTexture(frontMask);const front=new THREE.MeshPhysicalMaterial({map:tex,alphaMap:neckMask,transparent:true,opacity:1,alphaTest:.18,side:THREE.FrontSide,roughness:.97,metalness:0,bumpMap:weave,bumpScale:.005,envMapIntensity:.25,sheen:.35,sheenColor:new THREE.Color('#88838d'),sheenRoughness:1});
+ const frontMask=document.createElement('canvas');frontMask.width=frontMask.height=S;const fmc=frontMask.getContext('2d'),fd=fmc.createImageData(S,S);for(let j=0;j<S;j++)for(let i=0;i<S;i++){const k=j*S+i,x=(i/N-.5)*3.55,y=-.19-j/N*3.55;let v=pixels[k*4+3];if(neck&&Math.abs(x)<.36&&y>collarY(x))v=0;fd.data[k*4]=fd.data[k*4+1]=fd.data[k*4+2]=v;fd.data[k*4+3]=255}fmc.putImageData(fd,0,0);const neckMask=new THREE.CanvasTexture(frontMask);const front=new THREE.MeshPhysicalMaterial({map:tex,alphaMap:neckMask,transparent:true,opacity:1,alphaTest:.18,side:THREE.FrontSide,roughness:.97,metalness:0,bumpMap:weave,bumpScale:.005,envMapIntensity:.25,sheen:.35,sheenColor:new THREE.Color('#88838d'),sheenRoughness:1});
  const alphaCanvas=document.createElement('canvas');alphaCanvas.width=alphaCanvas.height=S;const ac=alphaCanvas.getContext('2d'),ad=ac.createImageData(S,S);for(let i=0;i<S*S;i++){let v=pixels[i*4+3];ad.data[i*4]=ad.data[i*4+1]=ad.data[i*4+2]=v;ad.data[i*4+3]=255}ac.putImageData(ad,0,0);const alphaTexture=new THREE.CanvasTexture(alphaCanvas);const back=new THREE.MeshPhysicalMaterial({color:'#101014',alphaMap:alphaTexture,transparent:true,opacity:1,alphaTest:.18,side:THREE.FrontSide,roughness:.98,bumpMap:weave,bumpScale:.008,sheen:.3,envMapIntensity:.3});
  // Separate materials ensure the print is confined to the real front of the garment.
  geo.clearGroups();for(let j=0;j<indices.length;j+=12){geo.addGroup(j,6,0);geo.addGroup(j+6,6,1)}
@@ -83,14 +83,39 @@ const garments=products.map((p,i)=>{
  const root=new THREE.Group(),pivot=new THREE.Group(),hook=makeRailHook();
  const coupling=new THREE.Mesh(new THREE.CylinderGeometry(.035,.032,.065,20),metal.clone());coupling.position.y=-.17;
  const sway=new THREE.Group();root.add(hook,coupling,sway);sway.position.y=-.17;sway.add(pivot);
- const hanger=makeHanger(),collar=makeCollar();hanger.position.y=collar.position.y=.17;pivot.add(hanger,collar);
+ const hanger=makeHanger(),collar=makeCollar();hanger.position.y=collar.position.y=.17;pivot.add(hanger,collar);const sets={};const stemExt=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,10),metal);stemExt.visible=false;pivot.add(stemExt);
  scene.add(root);root.userData.index=i;
- return {root,pivot,hook,coupling,sway,index:i,yaw:-1.14,angle:0,angularVelocity:0,cloth:null,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
+ return {root,pivot,hook,coupling,sway,index:i,yaw:-1.14,angle:0,angularVelocity:0,cloth:null,sets,collarMesh:collar,hangerMesh:hanger,stemExt,loaded:false,flex:0,lastOpacity:1,phase:i*1.91,selection:0};
 });
-const loader=new THREE.TextureLoader();loader.setCrossOrigin('anonymous');let finished=0,failures=0;
-for(let i=0;i<products.length;i++){loader.load(products[i].src,tex=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();try{const mesh=makeCloth(tex);mesh.userData.index=i;garments[i].cloth=mesh;mesh.position.y=.17;garments[i].pivot.add(mesh);garments[i].loaded=true;garments[i].materials=[];garments[i].root.traverse(o=>{if(o.isMesh){for(const m of (Array.isArray(o.material)?o.material:[o.material])){m.transparent=false;m.opacity=1;garments[i].materials.push(m)}}})}catch(e){failures++;console.error('Garment construction',e)}ready()},undefined,e=>{failures++;console.error('Texture',e);ready()})}
-function ready(){finished++;if(finished===products.length){$('#loading').classList.add('hidden');$('#loading').setAttribute('aria-hidden','true');if(failures){const e=document.createElement('p');e.className='error-notice';e.textContent=failures+' piece(s) failed to load. Check your connection and reload.';host.after(e)}wake()}else wake()}
-const N=products.length;function wrap(v){return((v+N/2)%N+N)%N-N/2}
+const root0=document.getElementById('vsr');
+const loader=new THREE.TextureLoader();loader.setCrossOrigin('anonymous');let failures=0;
+// Category = garment type. Each type is the same 14 designs photographed as another product; the cloth shell is rebuilt from that photo's alpha.
+const TYPE_FIT={tee:{s:1,y:0,collar:true},ls:{s:1,y:0,collar:true},hd:{s:1,y:0,collar:false,hx:.42,hy:-.55}};
+let type='tee',switching=false;
+const textureUrl=(i,k)=>k==='tee'?products[i].src:products[i].variants.find(v=>v.k===k).src;
+function buildType(k){const fit=TYPE_FIT[k];return Promise.all(products.map((p,i)=>new Promise(res=>{
+ if(garments[i].sets[k]){res();return}
+ loader.load(textureUrl(i,k),tex=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  try{const mesh=makeCloth(tex,fit.collar);mesh.userData.index=i;mesh.position.y=.17+fit.y;mesh.scale.setScalar(fit.s);garments[i].sets[k]=mesh}catch(e){failures++;console.error('Garment construction',e)}res()},undefined,e=>{failures++;console.error('Texture',e);res()})})))}
+function setCloth(k){const fit=TYPE_FIT[k];for(const g of garments){const m=g.sets[k];if(!m)continue;if(g.cloth)g.pivot.remove(g.cloth);g.cloth=m;g.pivot.add(m);g.collarMesh.visible=fit.collar;g.hangerMesh.scale.set(fit.hx||1,1,fit.hx||1);g.hangerMesh.position.y=.17+(fit.hy||0);g.stemExt.visible=!!fit.hy;if(fit.hy){g.stemExt.scale.y=-fit.hy;g.stemExt.position.y=fit.hy/2}g.loaded=true;g.materials=[];g.root.traverse(o=>{if(o.isMesh){for(const mat of (Array.isArray(o.material)?o.material:[o.material])){mat.transparent=false;mat.opacity=1;g.materials.push(mat)}}})}}
+buildType('tee').then(()=>{setCloth('tee');finishLoad()});
+function finishLoad(){$('#loading').classList.add('hidden');$('#loading').setAttribute('aria-hidden','true');if(failures){const e=document.createElement('p');e.className='error-notice';e.textContent=failures+' piece(s) failed to load. Check your connection and reload.';host.after(e)}wake()}
+const catButtons=[...root0.querySelectorAll('.vsr-cats [data-k]')];
+function paintCats(){catButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===type)))}
+async function switchType(k){
+ if(k===type||switching||!TYPE_FIT[k])return;switching=true;
+ catButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k)));
+ const loading=buildType(k),idx=Math.round(position),from=position;frontIndex=-1;
+ // 1. the current rail leaves; 2. photos finish loading; 3. the new rail slides in from the other side, hangers swinging.
+ target=from+8;wake();
+ const t0=performance.now();while(position<from+6.6&&performance.now()-t0<1500)await new Promise(r=>setTimeout(r,40));
+ await loading;
+ type=k;setCloth(k);position=idx-8;velocity=0;target=idx;switching=false;wake();
+}
+const N=products.length;
+window.__vsrSwitch=switchType;
+catButtons.forEach(b=>b.addEventListener('click',()=>switchType(b.dataset.k)));
+function wrap(v){return((v+N/2)%N+N)%N-N/2}
 function current(){return((Math.round(position)%N)+N)%N}
 function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;$('#category').textContent=p.category.toUpperCase();$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
 const sceneTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2,depthBuffer:true});
@@ -199,7 +224,7 @@ host.addEventListener('pointerup',e=>{const was=gesture;release();if(!was&&trave
 function step(d){frontIndex=-1;target=Math.round(target)+d;wake()}$('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);host.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();step(e.key==='ArrowRight'?1:-1)}if(e.key==='Enter'||e.key===' '){e.preventDefault();if(frontIndex===active)openDetail();else{frontIndex=active;wake()}}});
 let wheelTimer;host.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<Math.abs(e.deltaY))return;e.preventDefault();frontIndex=-1;target+=Math.max(-.5,Math.min(.5,e.deltaX/320));clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{target=Math.round(target);wake()},140);wake()},{passive:false});
 let keyboardNavigation=false;document.addEventListener('keydown',e=>{if(!e.metaKey&&!e.ctrlKey&&!e.altKey){keyboardNavigation=true;if(document.activeElement===host)host.classList.add('keyboard-focus')}});document.addEventListener('pointerdown',()=>{keyboardNavigation=false;host.classList.remove('keyboard-focus')},true);initShop({onClose(){if(keyboardNavigation){host.classList.add('keyboard-focus');host.focus({preventScroll:true})}else{host.classList.remove('keyboard-focus');$('#detail').focus({preventScroll:true})}}});
-function openDetail(){openSheet(active)}$('#detail').onclick=openDetail;
+function openDetail(){openSheet(active,type)}$('#detail').onclick=openDetail;
 new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible)wake()}).observe(host);document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('hidden');$('#loading p').textContent='Rendering interrupted. Reload the page.'});updateInfo();resize();
 
 {const un=()=>sound.unlock();['pointerdown','pointerup','keydown','click','touchend'].forEach(t=>window.addEventListener(t,un,{passive:true}));

@@ -127,8 +127,8 @@ function panelHTML(i){
     <button class="vsr-cta" type="button" data-act="add" data-state="idle"><span class="spin"></span><span class="t">Add to cart</span></button>
     <button class="vsr-viewcart" type="button" data-act="viewcart" tabindex="-1"><span>View cart &rarr;</span></button>`;
 }
-function openSheet(i){
-  sh = { i, sizeId: 3, view: 'front', k: 'tee' };
+function openSheet(i, k0){
+  sh = { i, sizeId: 3, view: 'front', k: P[i].variants.some(v => v.k === k0) ? k0 : 'tee' };
   S.open = i;
   sheet.innerHTML = `<div class="vsr-panel">${panelHTML(i)}</div>`;
   lock(true);
