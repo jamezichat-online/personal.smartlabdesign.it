@@ -165,3 +165,9 @@
 .vsr-sound:hover{background:rgba(236,233,242,.1);border-color:rgba(169,139,255,.5)}
 .vsr-sound svg{width:20px;height:20px}.vsr-sound .x{display:none}.vsr-sound.off .w{display:none}.vsr-sound.off .x{display:inline}
 .vsr-sound:focus-visible{outline:2px solid var(--signal,#a98bff);outline-offset:3px}
+
+.vsr .vsr-types{display:flex;gap:6px;margin:18px 0 4px;flex-wrap:wrap}
+.vsr .vsr-type{padding:8px 14px;border-radius:999px;border:1px solid var(--v-line);background:rgba(236,233,242,.04);color:var(--v-mist);font:500 12px/1 'Inter Tight',system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;transition:background .25s,border-color .25s,color .25s}
+.vsr .vsr-type:hover{border-color:rgba(169,139,255,.5)}
+.vsr .vsr-type[aria-pressed="true"]{background:rgba(169,139,255,.16);border-color:var(--v-signal);color:var(--v-bone)}
+.vsr .vsr-type:focus-visible{outline:2px solid var(--v-signal);outline-offset:3px}

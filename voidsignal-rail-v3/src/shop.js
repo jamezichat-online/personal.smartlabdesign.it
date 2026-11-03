@@ -12,7 +12,9 @@ const pic=(p,view)=>`<span class="vsr-pic"><img src="${view==='back'?p.imageBack
    SHOP SYNC — the cart lives in a real Spreadshop basket
    ===================================================================== */
 const sizeById = id => SIZES.find(z => z.id === id);
-const productBy = sellable => P.find(p => p.sellable === sellable);
+const ALL = P.flatMap(p => p.variants.map(v => ({ ...p, ...v })));
+const productBy = sellable => ALL.find(p => p.sellable === sellable);
+const cur = () => ALL.find(x => x.name === P[sh.i].name && x.k === sh.k);
 async function api(method, path, body){
   const r = await fetch(`${SHOP.api}${path}${path.includes('?') ? '&' : '?'}mediaType=json&locale=${SHOP.locale}`, {
     method, headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: body ? JSON.stringify(body) : undefined });
@@ -101,31 +103,34 @@ async function reconcile(){
 const ICON_X = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>';
 let sh = null, ctaTimer;
 
-function openSheet(i){
-  const p = P[i];
-  sh = { i, sizeId: 3, view: 'front' };
-  S.open = i;
-  sheet.innerHTML = `<div class="vsr-panel">
-    <button class="vsr-close" type="button" data-act="close">Close ${ICON_X}</button>
+function panelHTML(i){
+  const p = cur();
+  const types = P[i].variants.map(v => `<button class="vsr-type" type="button" data-act="type" data-k="${v.k}" aria-pressed="${v.k === sh.k}">${v.label}</button>`).join('');
+  return `<button class="vsr-close" type="button" data-act="close">Close ${ICON_X}</button>
     <div class="vsr-fig" data-fig>
-      <span class="vsr-fv is-on" data-v="front">${pic(p, 'front')}</span>
-      <span class="vsr-fv" data-v="back">${pic(p, 'back')}</span>
+      <span class="vsr-fv${sh.view === 'front' ? ' is-on' : ''}" data-v="front">${pic(p, 'front')}</span>
+      <span class="vsr-fv${sh.view === 'back' ? ' is-on' : ''}" data-v="back">${pic(p, 'back')}</span>
     </div>
     <p class="vsr-count">${String(i + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}</p>
     <h2 class="vsr-name">${p.name}</h2>
     <p class="vsr-meta" style="--c:${TRIBE[p.tribe].c}">${TRIBE[p.tribe].name} · ${p.color}</p>
+    <div class="vsr-types" role="group" aria-label="Style">${types}</div>
     <div class="vsr-tabs" role="tablist">
-      <button class="vsr-tab" role="tab" type="button" data-act="view" data-v="front" aria-selected="true">Front</button>
-      <button class="vsr-tab" role="tab" type="button" data-act="view" data-v="back" aria-selected="false">Back</button>
+      <button class="vsr-tab" role="tab" type="button" data-act="view" data-v="front" aria-selected="${sh.view === 'front'}">Front</button>
+      <button class="vsr-tab" role="tab" type="button" data-act="view" data-v="back" aria-selected="${sh.view === 'back'}">Back</button>
     </div>
     <p class="vsr-lab">Size</p>
     <div class="vsr-sizes" role="group" aria-label="Size">
-      ${SIZES.map(z => `<button class="vsr-size" type="button" data-act="size" data-s="${z.id}" aria-pressed="${z.id === sh.sizeId}">${z.l}</button>`).join('')}
+      ${p.sizes.map(z => `<button class="vsr-size" type="button" data-act="size" data-s="${z.id}" aria-pressed="${z.id === sh.sizeId}">${z.l}</button>`).join('')}
     </div>
     <p class="vsr-fit">${p.fit}</p>
     <button class="vsr-cta" type="button" data-act="add" data-state="idle"><span class="spin"></span><span class="t">Add to cart</span></button>
-    <button class="vsr-viewcart" type="button" data-act="viewcart" tabindex="-1"><span>View cart &rarr;</span></button>
-  </div>`;
+    <button class="vsr-viewcart" type="button" data-act="viewcart" tabindex="-1"><span>View cart &rarr;</span></button>`;
+}
+function openSheet(i){
+  sh = { i, sizeId: 3, view: 'front', k: 'tee' };
+  S.open = i;
+  sheet.innerHTML = `<div class="vsr-panel">${panelHTML(i)}</div>`;
   lock(true);
   root.classList.add('is-covered');
   requestAnimationFrame(() => { sheet.classList.add('is-open'); $('.vsr-close', sheet).focus({ preventScroll: true }); });
@@ -149,8 +154,16 @@ sheet.addEventListener('pointermove', e => {          // gentle parallax on the 
 sheet.addEventListener('click', e => {
   if (e.target === sheet){ closeSheet(); return; }
   const b = e.target.closest('[data-act]'); if (!b || !sh) return;
-  const act = b.dataset.act, p = P[sh.i];
+  const act = b.dataset.act, p = cur();
   if (act === 'close') closeSheet();
+  if (act === 'type'){
+    if (b.dataset.k === sh.k) return;
+    sh.k = b.dataset.k; clearTimeout(ctaTimer);
+    if (!cur().sizes.some(z => z.id === sh.sizeId)) sh.sizeId = 3;
+    $('.vsr-panel', sheet).innerHTML = panelHTML(sh.i);
+    const nb = sheet.querySelector(`.vsr-type[data-k="${sh.k}"]`); nb && nb.focus({ preventScroll: true });
+    return;
+  }
   if (act === 'view'){
     sh.view = b.dataset.v;
     sheet.querySelectorAll('.vsr-tab').forEach(t => t.setAttribute('aria-selected', String(t === b)));
