@@ -171,3 +171,9 @@
 .vsr .vsr-type:hover{border-color:rgba(169,139,255,.5)}
 .vsr .vsr-type[aria-pressed="true"]{background:rgba(169,139,255,.16);border-color:var(--v-signal);color:var(--v-bone)}
 .vsr .vsr-type:focus-visible{outline:2px solid var(--v-signal);outline-offset:3px}
+
+.vsr .vsr-cats{display:inline-flex;gap:4px;margin-top:20px;padding:4px;border-radius:999px;border:1px solid var(--v-line);background:rgba(236,233,242,.04);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);pointer-events:auto}
+.vsr .vsr-cats button{padding:10px 18px;border:0;border-radius:999px;background:none;color:var(--v-ash);font:500 12px/1 var(--v-sans);letter-spacing:.06em;cursor:pointer;transition:background .3s,color .3s,box-shadow .3s}
+.vsr .vsr-cats button:hover{color:var(--v-bone)}
+.vsr .vsr-cats button[aria-pressed="true"]{background:rgba(169,139,255,.18);color:var(--v-bone);box-shadow:0 0 22px var(--v-glow)}
+.vsr .vsr-cats button:focus-visible{outline:2px solid var(--v-signal);outline-offset:2px}
