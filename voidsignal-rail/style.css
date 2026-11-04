@@ -90,7 +90,7 @@
 .vsr-meta{margin:0;display:grid;gap:.5rem;text-align:right;font:500 .64rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:rgba(236,233,242,.62)}
 .vsr-meta b{font-weight:600;color:rgb(var(--tc))}
 .vsr-meta b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:.55rem;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);vertical-align:1px}
-.vsr-types{display:flex;justify-content:center;gap:8px;margin:0 22px 44px}
+.vsr .vsr-types{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 22px 40px}
 .vsr-cta{position:relative;display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 22px;text-decoration:none;cursor:pointer;
   font:600 .76rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--v-void);background:var(--v-bone);border-radius:999px;padding:1.25rem 1.9rem;
   box-shadow:0 0 0 1px rgba(255,255,255,.2) inset,0 12px 50px -10px rgba(var(--tc),.75);
@@ -112,7 +112,6 @@
 .vsr-sound svg{width:20px;height:20px}.vsr-sound .x{display:none}.vsr-sound.off .w{display:none}.vsr-sound.off .x{display:inline}
 .vsr-sound:focus-visible{outline:2px solid var(--signal,#a98bff);outline-offset:3px}
 
-.vsr .vsr-types{display:flex;gap:6px;margin:18px 0 4px;flex-wrap:wrap}
 .vsr .vsr-type{padding:8px 14px;border-radius:999px;border:1px solid var(--v-line);background:rgba(236,233,242,.04);color:var(--v-mist);font:500 12px/1 'Inter Tight',system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;transition:background .25s,border-color .25s,color .25s}
 .vsr .vsr-type:hover{border-color:color-mix(in srgb,var(--v-signal) 50%,transparent)}
 .vsr .vsr-type[aria-pressed="true"]{background:color-mix(in srgb,var(--v-signal) 16%,transparent);border-color:var(--v-signal);color:var(--v-bone)}
