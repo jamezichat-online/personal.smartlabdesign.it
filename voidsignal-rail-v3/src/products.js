@@ -2,7 +2,7 @@
 // every sheet/cart photo (front + back, tee / long sleeve / hoodie) is mirrored locally under assets/shop/.
 export const SHOP={id:1590708,url:'https://voidsignal.myspreadshop.it',api:'https://api.spreadshirt.net/api/v1',locale:'it_IT',checkout:'https://checkout.spreadshirt.it/'};
 export const SIZES=[{l:'XS',id:1},{l:'S',id:2},{l:'M',id:3},{l:'L',id:4},{l:'XL',id:5},{l:'XXL',id:6}];
-export const TRIBE={stage:{name:'The Stage',cat:'Street Rock',c:'var(--v-sr)'},iron:{name:'The Iron',cat:'Gym',c:'var(--v-gym)'},cyber:{name:'The Grid',cat:'Cyber Tech',c:'#3ee0ff'}};
+export const TRIBE={stage:{name:'The Stage',cat:'Street Rock',c:'#ff4a3d',rgb:'255,74,61'},iron:{name:'The Iron',cat:'Gym',c:'#e8e1cf',rgb:'232,225,207'},cyber:{name:'The Grid',cat:'Cyber Tech',c:'#3fe6ea',rgb:'63,230,234'}};
 const COLOR={2:'Black',648:'Charcoal Grey',742:'Anthracite',951:'India Ink Grey',1256:'Heather Anthracite'};
 const FIT={812:'Premium organic cotton \u00b7 men\u2019s cut',635:'Organic cotton \u00b7 unisex cut'};
 const raw=[
@@ -159,18 +159,28 @@ const raw=[
   "file": "VOID SIGNAL - Last Encore Street Rock.png",
   "page": "void+signal+last+encore+street+rock-A327bdab4c150c31a",
   "src": "assets/tee-13.webp"
+ },
+ {
+  "name": "Load Vector",
+  "tribe": "iron",
+  "sellable": "rn428cbc0k64-812",
+  "appearance": 2,
+  "type": 812,
+  "page": "void+signal+load+vector+gym-A327dcda54101be1c",
+  "src": "assets/shop/rn428cbc0k64-tee-f.webp"
  }
 ];
 // Long sleeve (men's, 875) and unisex hoodie (1047): [appearance id]. Same design, same sellable base id, other product type.
-const EXTRA={"rlt0l7bvc1x9":{"ls":[2],"hd":[2]},"rlt0mll1d28z":{"ls":[2],"hd":[2]},"rlt0mncxe0bp":{"ls":[2],"hd":[2]},"rlt0ne09c1ck":{"ls":[1256],"hd":[648]},"rlt0nrz6i83t":{"ls":[1256],"hd":[648]},"rlt0pujbzmja":{"ls":[1256],"hd":[648]},"rlt0pyz1eopi":{"ls":[2],"hd":[2]},"rlt0q4nzis9i":{"ls":[2],"hd":[2]},"rlt0kxfr1vlx":{"ls":[1256],"hd":[648]},"rmynrrgqrti4":{"ls":[1256],"hd":[648]},"rmynrqa6ulxx":{"ls":[2],"hd":[2]},"rmynrtoj3ngq":{"ls":[2],"hd":[2]},"rmynru5uh1od":{"ls":[1256],"hd":[648]},"rmynrto9v4t6":{"ls":[1256],"hd":[648]}};
+const EXTRA={"rlt0l7bvc1x9":{"ls":[2],"hd":[2]},"rlt0mll1d28z":{"ls":[2],"hd":[2]},"rlt0mncxe0bp":{"ls":[2],"hd":[2]},"rlt0ne09c1ck":{"ls":[1256],"hd":[648]},"rlt0nrz6i83t":{"ls":[1256],"hd":[648]},"rlt0pujbzmja":{"ls":[1256],"hd":[648]},"rlt0pyz1eopi":{"ls":[2],"hd":[2]},"rlt0q4nzis9i":{"ls":[2],"hd":[2]},"rlt0kxfr1vlx":{"ls":[1256],"hd":[648]},"rmynrrgqrti4":{"ls":[1256],"hd":[648]},"rmynrqa6ulxx":{"ls":[2],"hd":[2]},"rmynrtoj3ngq":{"ls":[2],"hd":[2]},"rmynru5uh1od":{"ls":[1256],"hd":[648]},"rmynrto9v4t6":{"ls":[1256],"hd":[648]},"rn428cbc0k64":{"ls":[2],"hd":[2]}};
 const SZ=SIZES, SZ_NOXS=SIZES.filter(z=>z.id>1);
 // All shop photos are mirrored locally (assets/shop/<sellable>-<tee|ls|hd>-<f|b>.webp, 1200px, transparent background).
 const img=(base,k,v)=>`assets/shop/${base}-${k}-${v}.webp`;
+import ZOOM from './zoom.json';
 const ORDER=['stage','iron','cyber'];
 raw.sort((a,b)=>ORDER.indexOf(a.tribe)-ORDER.indexOf(b.tribe)); // stable: grouped by tribe, original order kept inside
 export const products=raw.map(p=>{
  const base=p.sellable.split('-')[0],x=EXTRA[base],url=`${SHOP.url}/${p.page}`;
- const mk=(k,label,sellable,app,fit,sizes)=>({k,label,sellable,appearance:app,color:COLOR[app],fit,src:img(base,k,'f'),imageBack:img(base,k,'b'),sizes});
+ const mk=(k,label,sellable,app,fit,sizes)=>({k,label,sellable,appearance:app,color:COLOR[app],fit,src:img(base,k,'f'),imageBack:img(base,k,'b'),sizes,zoom:ZOOM[base+'-'+k],shop:`${url}?sellable=${sellable}&appearance=${app}`});
  const tee=mk('tee','T-shirt',p.sellable,p.appearance,FIT[p.type],SZ);
  const ls=mk('ls','Long sleeve',base+'-875',x.ls[0],'Premium organic cotton \u00b7 men\u2019s long sleeve',SZ);
  const hd=mk('hd','Hoodie',base+'-1047',x.hd[0],'Unisex hoodie',SZ_NOXS);
