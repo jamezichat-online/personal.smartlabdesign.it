@@ -90,7 +90,7 @@
 .vsr-meta{margin:0;display:grid;gap:.5rem;text-align:right;font:500 .64rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:rgba(236,233,242,.62)}
 .vsr-meta b{font-weight:600;color:rgb(var(--tc))}
 .vsr-meta b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:.55rem;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);vertical-align:1px}
-.vsr-types{display:flex;justify-content:center;gap:8px;margin:0 22px 26px}
+.vsr-types{display:flex;justify-content:center;gap:8px;margin:0 22px 44px}
 .vsr-cta{position:relative;display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 22px;text-decoration:none;cursor:pointer;
   font:600 .76rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--v-void);background:var(--v-bone);border-radius:999px;padding:1.25rem 1.9rem;
   box-shadow:0 0 0 1px rgba(255,255,255,.2) inset,0 12px 50px -10px rgba(var(--tc),.75);
