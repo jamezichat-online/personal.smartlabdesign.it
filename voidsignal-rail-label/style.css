@@ -19,7 +19,7 @@
 .vsr .heading h2{font:400 clamp(43px,4.5vw,65px)/1.1 var(--v-cond);letter-spacing:-1px;margin:12px 0;text-transform:uppercase}
 .vsr .heading em{font:italic 400 1.08em/1 var(--v-serif);text-transform:none;letter-spacing:0}
 .vsr .legend{font:500 .66rem/1 var(--v-sans);letter-spacing:.3em;text-transform:uppercase;color:var(--v-ash);margin:14px 0 0}
-.vsr #scene{height:min(clamp(430px,calc(30vw + 280px),640px),max(340px,72svh));position:relative;cursor:grab;touch-action:pan-y;overflow:hidden;user-select:none;-webkit-user-select:none;
+.vsr #scene{height:calc(min(clamp(430px,calc(30vw + 280px),640px),max(340px,72svh)) + var(--ext,0px));position:relative;cursor:grab;touch-action:pan-y;overflow:hidden;user-select:none;-webkit-user-select:none;
  background:radial-gradient(46% 46% at 50% 52%,color-mix(in srgb,var(--v-signal) 10%,transparent),transparent 72%)}
 .vsr #scene.dragging{cursor:grabbing}
 .vsr #scene:focus,.vsr #scene:focus-visible{outline:none}
@@ -36,7 +36,7 @@
 .vsr .nav button:hover{background:var(--v-signal);color:var(--v-void)}
 .vsr .nav span{font:500 .66rem/1 var(--v-sans);letter-spacing:.24em;min-width:56px;text-align:center;color:var(--v-mist)}
 /* ---- Product label: lives inside the rack, anchored under the front piece (JS sets --lt / --reserve). Variants: data-label="a" hang tag, "c" caption line ---- */
-.vsr-stage{position:relative;margin-bottom:var(--reserve,0px)}
+.vsr-stage{position:relative}
 .vsr #product{position:absolute;left:50%;top:var(--lt,88%);z-index:2;width:max-content;max-width:92%;transform:translateX(-50%);pointer-events:none;--c:var(--v-signal)}
 .vsr #product h3{margin:0;font:italic 400 clamp(1.9rem,3vw,2.5rem)/1.05 var(--v-serif);color:var(--v-bone);text-wrap:balance;text-align:center}
 .vsr #product p{margin:0;display:flex;align-items:center;gap:.6rem;font:600 .64rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--v-ash)}
@@ -50,9 +50,10 @@
 .vsr #product.swap h3,.vsr #product.swap p,.vsr #product.swap button{animation:vsr-swap .55s var(--v-ease) both}
 .vsr #product.swap p{animation-delay:.05s}.vsr #product.swap button{animation-delay:.1s}
 /* A — hang tag: string from the hem, glass card, swings with the piece */
-.vsr[data-label=a] #product{transform-origin:50% 0}
-.vsr[data-label=a] .lbl{position:relative;margin-top:46px;display:grid;justify-items:center;gap:.7rem;min-width:min(340px,84vw);padding:32px 34px 20px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(14,12,18,.84);box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 70px color-mix(in srgb,var(--c) 24%,transparent);transform-origin:50% -60px;transform:rotate(var(--sw,0deg))}
-.vsr[data-label=a] .lbl::before{content:"";position:absolute;left:50%;top:-60px;width:1px;height:60px;background:linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,.65))}
+.vsr[data-label=a] #product{clip-path:inset(0 -300px -300px -300px)}
+.vsr[data-label=a] .lbl{position:relative;margin-top:46px;display:grid;justify-items:center;gap:.7rem;min-width:min(340px,84vw);padding:32px 34px 20px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(14,12,18,.84);box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 70px color-mix(in srgb,var(--c) 24%,transparent);transform-origin:50% -46px;transform:translateY(var(--ty,0)) rotate(var(--sw,0deg));transition:transform .75s var(--v-ease) .16s,opacity .4s .16s}
+.vsr[data-label=a] #product[data-st=hide] .lbl{--ty:-135%;opacity:0;transition:transform .28s cubic-bezier(.5,0,.8,.4),opacity .2s .08s}
+.vsr[data-label=a] .lbl::before{content:"";position:absolute;left:50%;top:-46px;width:1px;height:46px;background:linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,.65))}
 .vsr[data-label=a] .lbl::after{content:"";position:absolute;left:50%;top:11px;width:9px;height:9px;margin-left:-4.5px;border:1px solid rgba(255,255,255,.55);border-radius:50%}
 /* C — caption line: hairline + tick from the hem, tribe | name | shop */
 .vsr[data-label=c] #product{width:min(880px,92%)}
@@ -63,7 +64,7 @@
 .vsr[data-label=c] #product h3{grid-column:2;grid-row:1}.vsr[data-label=c] #product p{grid-column:1;grid-row:1;justify-self:end}.vsr[data-label=c] #product button{grid-column:3;grid-row:1;justify-self:start}
 .vsr[data-label=c] #product h3{white-space:nowrap}
 @media(max-width:650px){.vsr[data-label=c] .lbl{grid-template-columns:1fr 1fr;row-gap:.9rem;column-gap:22px}.vsr[data-label=c] #product h3{grid-column:1/-1;grid-row:1;white-space:normal}.vsr[data-label=c] #product p{grid-column:1;grid-row:2}.vsr[data-label=c] #product button{grid-column:2;grid-row:2}}
-@media(prefers-reduced-motion:reduce){.vsr #product,.vsr #product *{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.vsr #product,.vsr #product *{animation:none!important}.vsr[data-label=a] #product[data-st=hide] .lbl{--ty:0}}
 @media(max-width:650px){.vsr .heading h2{font-size:46px}.vsr .hint{font-size:.74rem}.vsr .outro{flex-direction:column;align-items:flex-start;gap:14px}}
 @media(prefers-reduced-motion:reduce){.vsr *,.vsr *::before,.vsr *::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 
