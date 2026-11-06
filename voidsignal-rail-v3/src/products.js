@@ -168,68 +168,13 @@ const raw=[
   "type": 812,
   "page": "void+signal+load+vector+gym-A327dcda54101be1c",
   "src": "assets/shop/rn428cbc0k64-tee-f.webp"
- },
- {
-  "name": "Cymbal Cataclysm",
-  "tribe": "stage",
-  "sellable": "rn5a4l7c9tyx-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+cymbal+cataclysm+street+rock-A327e3e45c60857f9",
-  "src": "assets/shop/rn5a4l7c9tyx-tee-f.webp"
- },
- {
-  "name": "Signal Serpent",
-  "tribe": "stage",
-  "sellable": "rn5a4l8lu6y7-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+signal+serpent+street+rock-A327e3e45ca9823af",
-  "src": "assets/shop/rn5a4l8lu6y7-tee-f.webp"
- },
- {
-  "name": "Speaker Riot",
-  "tribe": "stage",
-  "sellable": "rn5a4pnh0dni-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+speaker+riot+street+rock-A327e3e480728421e",
-  "src": "assets/shop/rn5a4pnh0dni-tee-f.webp"
- },
- {
-  "name": "Shattered Vinyl Moth",
-  "tribe": "stage",
-  "sellable": "rn5a4pm9wben-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+shattered+vinyl+moth+street+rock-A327e3e4802d752bf",
-  "src": "assets/shop/rn5a4pm9wben-tee-f.webp"
- },
- {
-  "name": "Raven of the Pit",
-  "tribe": "stage",
-  "sellable": "rn5a4ih2t9ys-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+raven+of+the+pit+street+rock-A327e3e4463e31db4",
-  "src": "assets/shop/rn5a4ih2t9ys-tee-f.webp"
- },
- {
-  "name": "Pirate Radio Uprising",
-  "tribe": "stage",
-  "sellable": "rn5a4p68qeec-812",
-  "appearance": 1256,
-  "type": 812,
-  "page": "void+signal+pirate+radio+uprising+street+rock-A327e3e47c90f3b64",
-  "src": "assets/shop/rn5a4p68qeec-tee-f.webp"
  }
 ];
 // Long sleeve (men's, 875) and unisex hoodie (1047): [appearance id]. Same design, same sellable base id, other product type.
-const EXTRA={"rlt0l7bvc1x9":{"ls":[2],"hd":[2]},"rlt0mll1d28z":{"ls":[2],"hd":[2]},"rlt0mncxe0bp":{"ls":[2],"hd":[2]},"rlt0ne09c1ck":{"ls":[1256],"hd":[648]},"rlt0nrz6i83t":{"ls":[1256],"hd":[648]},"rlt0pujbzmja":{"ls":[1256],"hd":[648]},"rlt0pyz1eopi":{"ls":[2],"hd":[2]},"rlt0q4nzis9i":{"ls":[2],"hd":[2]},"rlt0kxfr1vlx":{"ls":[1256],"hd":[648]},"rmynrrgqrti4":{"ls":[1256],"hd":[648]},"rmynrqa6ulxx":{"ls":[2],"hd":[2]},"rmynrtoj3ngq":{"ls":[2],"hd":[2]},"rmynru5uh1od":{"ls":[1256],"hd":[648]},"rmynrto9v4t6":{"ls":[1256],"hd":[648]},"rn428cbc0k64":{"ls":[2],"hd":[2]},"rn5a4l7c9tyx":{"ls":[1256],"hd":[648]},"rn5a4l8lu6y7":{"ls":[1256],"hd":[648]},"rn5a4pnh0dni":{"ls":[1256],"hd":[648]},"rn5a4pm9wben":{"ls":[1256],"hd":[648]},"rn5a4ih2t9ys":{"ls":[1256],"hd":[648]},"rn5a4p68qeec":{"ls":[1256],"hd":[648]}};
+const EXTRA={"rlt0l7bvc1x9":{"ls":[2],"hd":[2]},"rlt0mll1d28z":{"ls":[2],"hd":[2]},"rlt0mncxe0bp":{"ls":[2],"hd":[2]},"rlt0ne09c1ck":{"ls":[1256],"hd":[648]},"rlt0nrz6i83t":{"ls":[1256],"hd":[648]},"rlt0pujbzmja":{"ls":[1256],"hd":[648]},"rlt0pyz1eopi":{"ls":[2],"hd":[2]},"rlt0q4nzis9i":{"ls":[2],"hd":[2]},"rlt0kxfr1vlx":{"ls":[1256],"hd":[648]},"rmynrrgqrti4":{"ls":[1256],"hd":[648]},"rmynrqa6ulxx":{"ls":[2],"hd":[2]},"rmynrtoj3ngq":{"ls":[2],"hd":[2]},"rmynru5uh1od":{"ls":[1256],"hd":[648]},"rmynrto9v4t6":{"ls":[1256],"hd":[648]},"rn428cbc0k64":{"ls":[2],"hd":[2]}};
 const SZ=SIZES, SZ_NOXS=SIZES.filter(z=>z.id>1);
 // All shop photos are mirrored locally (assets/shop/<sellable>-<tee|ls|hd>-<f|b>.webp, 1200px, transparent background).
-const BASE=(typeof window!=='undefined'&&window.VS_RACK_BASE)||'';
-const img=(base,k,v)=>`${BASE}assets/shop/${base}-${k}-${v}.webp`;
+const img=(base,k,v)=>`assets/shop/${base}-${k}-${v}.webp`;
 import ZOOM from './zoom.json';
 const ORDER=['stage','iron','cyber'];
 raw.sort((a,b)=>ORDER.indexOf(a.tribe)-ORDER.indexOf(b.tribe)); // stable: grouped by tribe, original order kept inside
@@ -239,5 +184,5 @@ export const products=raw.map(p=>{
  const tee=mk('tee','T-shirt',p.sellable,p.appearance,FIT[p.type],SZ);
  const ls=mk('ls','Long sleeve',base+'-875',x.ls[0],'Premium organic cotton \u00b7 men\u2019s long sleeve',SZ);
  const hd=mk('hd','Hoodie',base+'-1047',x.hd[0],'Unisex hoodie',SZ_NOXS);
- return {...p,src:BASE+p.src,category:TRIBE[p.tribe].cat,color:tee.color,fit:tee.fit,url,imageBack:tee.imageBack,variants:[tee,ls,hd]};
+ return {...p,category:TRIBE[p.tribe].cat,color:tee.color,fit:tee.fit,url,imageBack:tee.imageBack,variants:[tee,ls,hd]};
 });
