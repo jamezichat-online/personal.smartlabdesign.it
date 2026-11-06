@@ -185,13 +185,13 @@ function renderScene(){
  postQuad.material=finalMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
 }
 function resize(){const w=host.clientWidth,h=host.clientHeight;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);placeLabel();wake()}const HEM=new THREE.Vector3(0,-1.74,0);
-function placeLabel(){const el=$('#product'),st=$('.vsr-stage');if(!el||!st)return;const h=host.clientHeight,y=(.5-HEM.clone().project(camera).y*.5)*h;el.style.setProperty('--lt',y.toFixed(1)+'px');st.style.setProperty('--reserve',Math.max(0,y+el.offsetHeight-h+16).toFixed(0)+'px')}
+let lastLt=-1,lastRes=-1;function placeLabel(){const el=$('#product'),st=$('.vsr-stage');if(!el||!st)return;const h=host.clientHeight,y=Math.round((.5-HEM.clone().project(camera).y*.5)*h);if(y!==lastLt){lastLt=y;el.style.setProperty('--lt',y+'px')}const r=Math.ceil(Math.max(0,y+el.offsetHeight-h+16)/16)*16;if(r!==lastRes){lastRes=r;st.style.setProperty('--reserve',r+'px')}}
 document.fonts?.ready.then(placeLabel);for(const ev of['pointerdown','pointerup'])$('#detail').addEventListener(ev,e=>e.stopPropagation());
 new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
 let mbAuto=0,mbCur=0,mbNow=0,glowLast=0,priorVelocity=0,filteredAcceleration=0;
-const labelEl=$('#product'),labelA=()=>labelEl?.closest('.vsr')?.dataset.label==='a';
+let lastSw=NaN;const labelEl=$('#product'),labelA=()=>labelEl?.closest('.vsr')?.dataset.label==='a';
 function frame(now){
  const dt=Math.min(.05,(now-previous)/1000||.016);previous=now;elapsed+=dt;
  if(!visible||document.hidden){running=false;return}
@@ -222,7 +222,7 @@ function frame(now){
   }
  }
  if(current()!==active)updateInfo();
- if(labelA()){const ag=garments.find(g=>g.index===active);if(ag)labelEl.style.setProperty('--sw',(reduce?0:ag.angle*80).toFixed(2)+'deg')}
+ if(labelA()){const ag=garments.find(g=>g.index===active);if(ag){const d=reduce?0:Math.round(ag.angle*80*20)/20;if(d!==lastSw){lastSw=d;labelEl.style.setProperty('--sw',d+'deg')}}}
  {const t=GLOW[products[current()].tribe],k=reduce?1:Math.min(1,dt*3.2);let d=0;for(let i=0;i<3;i++){glowCur[i]+=(t[i]-glowCur[i])*k;if(Math.abs(t[i]-glowCur[i])<.7)glowCur[i]=t[i];d+=Math.abs(t[i]-glowCur[i])}if(d!==glowLast){glowLast=d;paintGlow();moving=true}}
  renderScene();
  if(moving)requestAnimationFrame(frame);else running=false;
