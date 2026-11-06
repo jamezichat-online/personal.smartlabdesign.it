@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#030304"><title>VOID SIGNAL — The Hanging Collection</title>
-<link rel="stylesheet" href="dist/style.css?v=20261106d">
+<link rel="stylesheet" href="dist/style.css?v=20261106e">
 <style>/* STANDALONE PREVIEW ONLY — the site already provides the page shell and its own header. */html,body{margin:0;background:#030304}</style></head>
 <body>
 <!-- ===== SECTION: drop from here ... -->
@@ -27,5 +27,5 @@
 <!-- ===== ... to here. Then load dist/rail.js (type=module) + dist/style.css ===== -->
 <div id="lblsw" style="position:fixed;z-index:50;right:16px;top:16px;display:flex;gap:6px;font:600 11px/1 system-ui;letter-spacing:.12em"><button data-l="a">A · TAG</button><button data-l="c">C · LINE</button></div>
 <script>(()=>{const s=document.querySelector('#vsr'),q=new URLSearchParams(location.search).get('label');if(q==='a'||q==='c')s.dataset.label=q;const bs=[...document.querySelectorAll('#lblsw button')];const sync=()=>bs.forEach(b=>{const on=b.dataset.l===s.dataset.label;b.style.cssText='padding:9px 12px;border-radius:999px;cursor:pointer;border:1px solid #ff4a3d;color:'+(on?'#000':'#ff4a3d')+';background:'+(on?'#ff4a3d':'rgba(0,0,0,.6)')});bs.forEach(b=>b.onclick=()=>{s.dataset.label=b.dataset.l;sync();requestAnimationFrame(()=>window.VSRack?.relayout?.())});sync()})()</script>
-<script type="module" src="dist/rail.js?v=20261106d"></script>
+<script type="module" src="dist/rail.js?v=20261106e"></script>
 </body></html>
