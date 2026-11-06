@@ -41,7 +41,7 @@
 .vsr #product p{margin:0;display:flex;align-items:center;gap:.6rem;font:600 .64rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--v-ash)}
 .vsr #product p::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
 .vsr #product button{pointer-events:auto;background:none;border:0;border-bottom:1px solid currentColor;padding:.5rem 0 .45rem;font:600 .66rem/1 var(--v-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--c);transition:filter .3s}
-.vsr #product button::after{content:" \2192";display:inline-block;transition:transform .35s var(--v-ease)}
+.vsr #product button::after{content:"\2192";margin-left:.7em;display:inline-block;transition:transform .35s var(--v-ease)}
 .vsr #product button:hover::after,.vsr #product button:focus-visible::after{transform:translateX(4px)}
 .vsr #product button:hover{filter:brightness(1.25)}
 @keyframes vsr-swap{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -60,9 +60,9 @@
 .vsr[data-label=c] .lbl::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.38) 16%,rgba(255,255,255,.38) 84%,transparent)}
 .vsr[data-label=c] .lbl::after{content:"";position:absolute;left:50%;top:-44px;width:1px;height:44px;background:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,.5))}
 .vsr[data-label=c] #product.swap .lbl::before{animation:vsr-line .8s var(--v-ease) both}
-.vsr[data-label=c] #product p{justify-self:end}.vsr[data-label=c] #product button{justify-self:start}
+.vsr[data-label=c] #product h3{grid-column:2;grid-row:1}.vsr[data-label=c] #product p{grid-column:1;grid-row:1;justify-self:end}.vsr[data-label=c] #product button{grid-column:3;grid-row:1;justify-self:start}
 .vsr[data-label=c] #product h3{white-space:nowrap}
-@media(max-width:650px){.vsr[data-label=c] .lbl{grid-template-columns:1fr 1fr;row-gap:.9rem;column-gap:22px}.vsr[data-label=c] #product h3{grid-column:1/-1;grid-row:1;white-space:normal}.vsr[data-label=c] #product p{grid-row:2}.vsr[data-label=c] #product button{grid-row:2}}
+@media(max-width:650px){.vsr[data-label=c] .lbl{grid-template-columns:1fr 1fr;row-gap:.9rem;column-gap:22px}.vsr[data-label=c] #product h3{grid-column:1/-1;grid-row:1;white-space:normal}.vsr[data-label=c] #product p{grid-column:1;grid-row:2}.vsr[data-label=c] #product button{grid-column:2;grid-row:2}}
 @media(prefers-reduced-motion:reduce){.vsr #product,.vsr #product *{animation:none!important}}
 @media(max-width:650px){.vsr .heading h2{font-size:46px}.vsr .hint{font-size:.74rem}.vsr .outro{flex-direction:column;align-items:flex-start;gap:14px}}
 @media(prefers-reduced-motion:reduce){.vsr *,.vsr *::before,.vsr *::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
