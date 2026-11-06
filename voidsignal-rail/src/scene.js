@@ -3,7 +3,7 @@ import {initShop,openSheet,repaint} from './shop.js';
 import * as sound from './sound.js';
 const hasGL=(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){return false}})();
 if(!hasGL){document.documentElement.classList.add('vsr-nogl');document.querySelector('#loading')?.remove();{const g=document.createElement('div');g.className='vsr-nogl-grid';g.innerHTML=products.map(p=>`<a href="${p.url}" target="_blank" rel="noopener"><img src="${p.src}" alt="${p.name}" width="300" height="300" style="width:100%;height:auto"><span>${p.name}</span></a>`).join('');document.querySelector('.vsr-main .bottom')?.before(g)}throw new Error('WebGL unavailable: static fallback shown')}
-import {products} from './products.js';
+import {products,TRIBE} from './products.js';
 import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDGE_END} from './dynamics.js';
 const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
@@ -118,7 +118,7 @@ window.__vsrSwitch=switchType;
 catButtons.forEach(b=>b.addEventListener('click',()=>switchType(b.dataset.k)));
 function wrap(v){return((v+N/2)%N+N)%N-N/2}
 function current(){return((Math.round(position)%N)+N)%N}
-function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;$('#category').textContent=p.category.toUpperCase();$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
+function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;{const t=TRIBE[p.tribe];$('#category').textContent=t.name;$('.vsr .product').style.setProperty('--c',t.c)}$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
 const sceneTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2,depthBuffer:true});
 const blurTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
 const compositionTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
