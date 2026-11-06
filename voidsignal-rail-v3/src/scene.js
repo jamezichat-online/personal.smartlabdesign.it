@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import {initShop,openSheet,repaint} from './shop.js';
+import {initShop,openSheet} from './shop.js';
 import * as sound from './sound.js';
 const hasGL=(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){return false}})();
 if(!hasGL){document.documentElement.classList.add('vsr-nogl');document.querySelector('#loading')?.remove();{const g=document.createElement('div');g.className='vsr-nogl-grid';g.innerHTML=products.map(p=>`<a href="${p.url}" target="_blank" rel="noopener"><img src="${p.src}" alt="${p.name}" width="300" height="300" style="width:100%;height:auto"><span>${p.name}</span></a>`).join('');document.querySelector('.vsr-main .bottom')?.before(g)}throw new Error('WebGL unavailable: static fallback shown')}
-import {products,TRIBE} from './products.js';
+import {products} from './products.js';
 import {smoothstep,clothDepth,pendulumStep,collarY,loopVisibility,EDGE_START,EDGE_END} from './dynamics.js';
 const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
@@ -118,7 +118,7 @@ window.__vsrSwitch=switchType;
 catButtons.forEach(b=>b.addEventListener('click',()=>switchType(b.dataset.k)));
 function wrap(v){return((v+N/2)%N+N)%N-N/2}
 function current(){return((Math.round(position)%N)+N)%N}
-function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;{const t=TRIBE[p.tribe],el=$('#product');$('#category').textContent=t.name;el.style.setProperty('--c',t.c);el.classList.remove('swap');void el.offsetWidth;el.classList.add('swap');placeLabel()}$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
+function updateInfo(){active=current();$('#track-indicator').style.width=(100/N)+'%';const p=products[active];$('#name').textContent=p.name;$('#category').textContent=p.category.toUpperCase();$('#count').textContent=String(active+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');$('#track-indicator').style.transform=`translateX(${active*100}%)`}
 const sceneTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2,depthBuffer:true});
 const blurTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
 const compositionTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
@@ -184,14 +184,10 @@ function renderScene(){
  renderer.autoClear=true;scene.background=oldBackground;renderer.setClearColor('#030304',1);baseObjects.forEach(o=>o.visible=true);garments.forEach(g=>g.root.visible=g.loaded&&g.opacity>.004);
  postQuad.material=finalMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
 }
-function resize(){const w=host.clientWidth,h=host.clientHeight;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);placeLabel();wake()}const HEM=new THREE.Vector3(0,-1.74,0);
-let lastLt=-1,lastRes=-1;function placeLabel(){const el=$('#product'),st=$('.vsr-stage');if(!el||!st)return;const h=host.clientHeight,y=Math.round((.5-HEM.clone().project(camera).y*.5)*h);if(y!==lastLt){lastLt=y;el.style.setProperty('--lt',y+'px')}const r=Math.ceil(Math.max(0,y+el.offsetHeight-h+16)/16)*16;if(r!==lastRes){lastRes=r;st.style.setProperty('--reserve',r+'px')}}
-document.fonts?.ready.then(placeLabel);for(const ev of['pointerdown','pointerup'])$('#detail').addEventListener(ev,e=>e.stopPropagation());
-new ResizeObserver(resize).observe(host);
+function resize(){const w=host.clientWidth,h=host.clientHeight;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);camera.fov=37.5-2.5*framing;camera.position.set(0,.78,9.35-.25*framing);camera.lookAt(0,.65,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);wake()}new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
 let mbAuto=0,mbCur=0,mbNow=0,glowLast=0,priorVelocity=0,filteredAcceleration=0;
-let lastSw=NaN;const labelEl=$('#product'),labelA=()=>labelEl?.closest('.vsr')?.dataset.label==='a';
 function frame(now){
  const dt=Math.min(.05,(now-previous)/1000||.016);previous=now;elapsed+=dt;
  if(!visible||document.hidden){running=false;return}
@@ -222,7 +218,6 @@ function frame(now){
   }
  }
  if(current()!==active)updateInfo();
- if(labelA()){const ag=garments.find(g=>g.index===active);if(ag){const d=reduce?0:Math.round(ag.angle*80*20)/20;if(d!==lastSw){lastSw=d;labelEl.style.setProperty('--sw',d+'deg')}}}
  {const t=GLOW[products[current()].tribe],k=reduce?1:Math.min(1,dt*3.2);let d=0;for(let i=0;i<3;i++){glowCur[i]+=(t[i]-glowCur[i])*k;if(Math.abs(t[i]-glowCur[i])<.7)glowCur[i]=t[i];d+=Math.abs(t[i]-glowCur[i])}if(d!==glowLast){glowLast=d;paintGlow();moving=true}}
  renderScene();
  if(moving)requestAnimationFrame(frame);else running=false;
@@ -234,7 +229,6 @@ host.addEventListener('pointerup',e=>{const was=gesture;release();if(!was&&trave
 function step(d){frontIndex=-1;target=Math.round(target)+d;wake()}$('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);host.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();step(e.key==='ArrowRight'?1:-1)}if(e.key==='Enter'||e.key===' '){e.preventDefault();if(frontIndex===active)openDetail();else{frontIndex=active;wake()}}});
 let wheelTimer;host.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<Math.abs(e.deltaY))return;e.preventDefault();frontIndex=-1;target+=Math.max(-.5,Math.min(.5,e.deltaX/320));clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{target=Math.round(target);wake()},140);wake()},{passive:false});
 let keyboardNavigation=false;document.addEventListener('keydown',e=>{if(!e.metaKey&&!e.ctrlKey&&!e.altKey){keyboardNavigation=true;if(document.activeElement===host)host.classList.add('keyboard-focus')}});document.addEventListener('pointerdown',()=>{keyboardNavigation=false;host.classList.remove('keyboard-focus')},true);initShop({onClose(){if(keyboardNavigation){host.classList.add('keyboard-focus');host.focus({preventScroll:true})}else{host.classList.remove('keyboard-focus');$('#detail').focus({preventScroll:true})}}});
-window.VSRack=Object.assign(window.VSRack||{},{ready:true,relayout:placeLabel,count:products.length,goTribe(t){const i=products.findIndex(p=>p.tribe===t);if(i<0)return;frontIndex=-1;target=Math.round(target)+wrap(i-Math.round(target));wake()},open(name,k){const i=products.findIndex(p=>p.name===name);if(i<0)return false;openSheet(i,k||'tee');return true},repaint});
 function openDetail(){openSheet(active,type)}$('#detail').onclick=openDetail;
 new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible)wake()}).observe(host);document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('hidden');$('#loading p').textContent='Rendering interrupted. Reload the page.'});updateInfo();resize();
 
