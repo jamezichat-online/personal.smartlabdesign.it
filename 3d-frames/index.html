@@ -113,6 +113,10 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
 
 .tag{position:absolute;z-index:2;pointer-events:none;padding:5px 8px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--pink);font:500 10px/1 var(--f-mono);letter-spacing:.1em;white-space:nowrap;transform:translate(-2px,-100%);font-variant-numeric:tabular-nums}
 .tag[hidden]{display:none!important}
+.tag.pin{background:var(--cream);box-shadow:3px 3px 0 var(--aqua)}
+.pill.pins{pointer-events:auto;cursor:pointer;background:var(--cream);color:var(--ink);border-color:var(--cream)}
+.pill.pins i{background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.hud-r{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 
 .progress{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:min(360px,calc(100% - 40px));padding:18px 18px 16px;background:var(--ink);border:2px solid var(--cream);box-shadow:8px 8px 0 var(--pink);border-radius:4px 22px 4px 22px}
 .progress b{display:block;font:400 20px/1 var(--f-display);letter-spacing:-.03em;text-transform:uppercase}
@@ -275,7 +279,7 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
             </div>
           </div>
           <p class="note" id="selNote">Nessun frame selezionato: ZIP esporta tutti i frame a piena risoluzione.</p>
-          <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click su un frame = sollevalo (di nuovo click o <kbd>Esc</kbd> = riabbassa), <kbd>Shift</kbd>+click = seleziona per export<br>Trascina = ruota attorno al punto cliccato · rotella = zoom verso il cursore · tasto destro o <kbd>Shift</kbd>+trascina = sposta</div>
+          <div class="keys"><kbd>Space</kbd> play · <kbd>←</kbd><kbd>→</kbd> step · <kbd>S</kbd> seleziona · <kbd>1</kbd>–<kbd>6</kbd> mode · click sui frame = estraili dalla pila (alto → destra → basso → sinistra), di nuovo click = rimettilo, <kbd>Esc</kbd> = rimetti tutti, <kbd>Shift</kbd>+click = seleziona per export<br>Trascina = ruota attorno al punto cliccato · rotella = zoom verso il cursore · tasto destro o <kbd>Shift</kbd>+trascina = sposta</div>
         </div>
       </details>
 
@@ -303,7 +307,7 @@ select.sel{min-height:32px;padding:0 28px 0 10px;background:var(--ink);border:1p
     </div>
     <div class="hud">
       <span class="pill" id="hudInfo"><i></i><span id="hudTxt">Loading</span></span>
-      <span class="pill rec" id="recPill"><i></i><span id="recTxt">REC</span></span>
+      <div class="hud-r"><button class="pill pins" id="pinPill" type="button" hidden title="Rimetti tutti i frame nella pila"><i></i><span id="pinTxt"></span></button><span class="pill rec" id="recPill"><i></i><span id="recTxt">REC</span></span></div>
     </div>
     <div class="progress" id="progress" hidden>
       <b id="progTitle">Extracting frames</b>
@@ -346,7 +350,7 @@ const S = {
   active: true, edges: true, mono: true, diff: false,
   bg: 'ink', grid: true, orbit: false, fov: 38, format: 'viewport',
   speed: 1, loop: 'loop', dir: 1, playing: !reduce, p: 0, ai: -1,
-  frames: [], selected: new Set(), focus: -1, camShift: 0, building: false, buildToken: 0,
+  frames: [], selected: new Set(), pins: new Map(), pinNext: 0, camShift: 0, building: false, buildToken: 0,
   exporting: false, recording: false, video: null
 };
 
@@ -545,7 +549,7 @@ new ResizeObserver(fit).observe(stage);
 /* ---------- frames ---------- */
 function disposeFrames(){
   S.frames.forEach(f => { if (!f) return; root.remove(f.mesh); f.tex.dispose(); f.mesh.geometry.dispose(); f.mesh.material.dispose(); f.edge.geometry.dispose(); f.edge.material.dispose(); });
-  S.frames = []; S.selected.clear(); updateSel();
+  S.frames = []; S.selected.clear(); S.pins.clear(); S.pinNext = 0; updateSel(); pinUI();
 }
 function addFrame(i, src, cnv, t){
   const { W, H } = dims();
@@ -565,7 +569,7 @@ function addFrame(i, src, cnv, t){
   const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x00bfc4, transparent: true, opacity: .5, depthWrite: false }));
   mesh.add(edge); root.add(mesh);
   const L = layoutOf(i);
-  const f = { i, t, cnv, tex, mesh, edge, lift: 0, op: 0,
+  const f = { i, t, cnv, tex, mesh, edge, lift: 0, ox: 0, oy: 0, op: 0,
     curP: L.p.clone().add(new THREE.Vector3(0, -.8, 0)), curQ: L.q.clone(),
     fromP: new THREE.Vector3(), fromQ: new THREE.Quaternion(), toP: L.p.clone(), toQ: L.q.clone(), t0: 0, dur: .7 };
   f.fromP.copy(f.curP); f.fromQ.copy(f.curQ); f.t0 = performance.now() / 1000;
@@ -839,15 +843,15 @@ $('#buildBtn').onclick = build;
 
 /* ---------- transport ---------- */
 const PLAY = '<path d="M4 2l10 6-10 6z"/>', PAUSE = '<path d="M3 2h4v12H3zM9 2h4v12H9z"/>';
-function setPlaying(on){ S.playing = on; if (on) S.focus = -1; $('#playIco').innerHTML = on ? PAUSE : PLAY; }
+function setPlaying(on){ S.playing = on; $('#playIco').innerHTML = on ? PAUSE : PLAY; }
 setPlaying(S.playing);
 $('#playBtn').onclick = () => setPlaying(!S.playing);
-function step(d){ setPlaying(false); S.focus = -1; const n = S.frames.length; if (!n) return; S.p = (Math.round(S.p) + d + n) % n; }
+function step(d){ setPlaying(false); const n = S.frames.length; if (!n) return; S.p = (Math.round(S.p) + d + n) % n; }
 $('#prevBtn').onclick = () => step(-1);
 $('#nextBtn').onclick = () => step(1);
 $('#speed').onchange = e => S.speed = +e.target.value;
 $('#loopBtn').onclick = () => { S.loop = S.loop === 'loop' ? 'pingpong' : 'loop'; $('#loopBtn').setAttribute('aria-pressed', S.loop === 'pingpong'); $('#loopBtn').title = S.loop === 'loop' ? 'Loop' : 'Ping-pong'; toast(S.loop === 'loop' ? 'Loop' : 'Ping-pong'); };
-$('#scrub').addEventListener('input', e => { setPlaying(false); S.focus = -1; S.p = +e.target.value; });
+$('#scrub').addEventListener('input', e => { setPlaying(false); S.p = +e.target.value; });
 function toggleSel(i){ if (S.selected.has(i)) S.selected.delete(i); else S.selected.add(i); updateSel(); }
 $('#selBtn').onclick = () => toggleSel(Math.round(S.p));
 function updateSel(){
@@ -863,7 +867,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (e.key === 's' || e.key === 'S') toggleSel(Math.round(S.p));
-  else if (e.key === 'Escape') S.focus = -1;
+  else if (e.key === 'Escape') clearPins();
   else if (/^[1-6]$/.test(e.key)) setMode(['stack','corridor','ring','scatter','mosaic','helix'][+e.key - 1]);
 });
 
@@ -952,7 +956,7 @@ frameEl.addEventListener('pointerup', e => {
   if (!hit) return;
   const i = hit.object.userData.i;
   /* click = seleziona: il frame si solleva fuori dalla pila (Stack/Corridor/Scatter); secondo click lo riabbassa */
-  if (e.shiftKey) toggleSel(i); else { setPlaying(false); S.focus = S.focus === i && Math.round(S.p) === i ? -1 : i; S.p = i; }
+  if (e.shiftKey) toggleSel(i); else { setPlaying(false); togglePin(i); S.p = i; }
 });
 
 /* ---------- HUD ---------- */
@@ -968,6 +972,28 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 /* ---------- loop ---------- */
 const tag = $('#tag'), tmpV = new THREE.Vector3(), nrm = new THREE.Vector3();
 const RISE_MODES = new Set(['stack', 'corridor', 'scatter']);
+/* direzioni di uscita nel piano del frame: alto, destra, basso, sinistra */
+const PIN_DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]], PIN_NAMES = ['↑', '→', '↓', '←'];
+const pinTags = new Map();
+function togglePin(i){
+  if (S.pins.has(i)) S.pins.delete(i);
+  else { S.pins.set(i, S.pinNext); S.pinNext = (S.pinNext + 1) % 4; }
+  pinUI();
+}
+function clearPins(){ S.pins.clear(); S.pinNext = 0; pinUI(); }
+$('#pinPill').addEventListener('click', clearPins);
+function pinUI(){
+  pinTags.forEach((el, i) => { if (!S.pins.has(i)) { el.remove(); pinTags.delete(i); } });
+  S.pins.forEach((d, i) => {
+    let el = pinTags.get(i);
+    if (!el) { el = document.createElement('div'); el.className = 'tag pin'; frameEl.appendChild(el); pinTags.set(i, el); }
+    const f = S.frames[i];
+    el.textContent = `${PIN_NAMES[d]} F ${String(i + 1).padStart(3, '0')}${f ? ' · ' + fmtTime(f.t) : ''}`;
+  });
+  const n = S.pins.size, b = $('#pinPill');
+  b.hidden = !n;
+  $('#pinTxt').textContent = `${n} selezionat${n === 1 ? 'o' : 'i'} · Esc per rimetterli`;
+}
 const ease = k => k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
 let last = performance.now();
 function tick(now){
@@ -999,32 +1025,44 @@ function tick(now){
     /* Stack, Corridor, Scatter: il frame attivo sale lungo il proprio asse verticale, restando al suo posto
        nella sequenza (niente salto in profondità davanti ai frame precedenti). Altri layout: viene in avanti. */
     const rise = RISE_MODES.has(S.mode);
-    /* rise: fermo durante riproduzione/scrub; esce del tutto dalla pila solo se selezionato col click */
-    const liftT = !S.active || !isA ? 0 : rise ? (S.focus === f.i ? 1.12 * H : 0) : .32;
-    f.lift += (liftT - f.lift) * Math.min(1, dt * 10);
-    nrm.set(0, rise ? 1 : 0, rise ? 0 : 1).applyQuaternion(f.curQ);
-    f.mesh.position.copy(f.curP).addScaledVector(nrm, f.lift);
+    /* Multi-selezione: ogni frame selezionato col click esce dalla pila nel proprio piano, in una direzione
+       assegnata a rotazione (alto → destra → basso → sinistra), restando alla sua posizione nella sequenza.
+       Riproduzione e scrub non spostano nulla. Fuori dai layout 'rise' il frame corrente non selezionato viene in avanti. */
+    const pin = S.pins.get(f.i);
+    const pinned = pin !== undefined;
+    const dir = pinned ? PIN_DIRS[pin] : null;
+    /* Stack/Corridor/Scatter: esce del tutto dalla pila; Mosaic/Ring/Helix: esce di mezzo frame e avanza,
+       così non copre la cella vicina e resta riconoscibile al suo posto */
+    const pk = rise ? 1 : .45;
+    const tx = pinned ? dir[0] * W * 1.08 * pk : 0, ty = pinned ? dir[1] * H * 1.12 * pk : 0;
+    const fwdT = rise ? 0 : pinned ? .3 : (S.active && isA ? .32 : 0);
+    f.ox += (tx - f.ox) * Math.min(1, dt * 9); f.oy += (ty - f.oy) * Math.min(1, dt * 9);
+    f.lift += (fwdT - f.lift) * Math.min(1, dt * 10);
+    f.mesh.position.copy(f.curP)
+      .addScaledVector(nrm.set(1, 0, 0).applyQuaternion(f.curQ), f.ox)
+      .addScaledVector(nrm.set(0, 1, 0).applyQuaternion(f.curQ), f.oy)
+      .addScaledVector(nrm.set(0, 0, 1).applyQuaternion(f.curQ), f.lift);
     f.mesh.quaternion.copy(f.curQ);
-    f.mesh.scale.setScalar(rise ? 1 : 1 + f.lift * .25);
+    f.mesh.scale.setScalar(1 + f.lift * .25);
     let op, sat;
     if (!S.active) { op = 1; sat = 1; }
     else {
       const tr = S.trail > 0 ? Math.max(0, 1 - d / (S.trail + 1)) : 0;
-      op = isA ? 1 : S.surface + (1 - S.surface) * tr * .75;
-      sat = isA ? 1 : (S.mono ? tr * .6 : 1);
+      op = isA || pinned ? 1 : S.surface + (1 - S.surface) * tr * .75;
+      sat = isA || pinned ? 1 : (S.mono ? tr * .6 : 1);
     }
     f.op += (op - f.op) * Math.min(1, dt * 14);
     const u = f.mesh.material.uniforms;
     u.uOpacity.value = f.op; u.uSat.value = sat; u.uDiff.value = S.diff ? 1 : 0;
-    f.mesh.renderOrder = isA ? 10 : 0; /* frame corrente in primo piano: il video scorre in sovrapposizione frontale */
+    f.mesh.renderOrder = isA ? 10 : pinned ? 9 : 0; /* frame corrente in primo piano; selezionati subito dietro */
     const sel = S.selected.has(f.i);
-    f.edge.visible = S.edges || sel || (isA && S.active);
-    f.edge.material.color.setHex(sel ? 0xff2d87 : (isA && S.active) ? 0xffbc42 : edgeCol);
-    f.edge.material.opacity = sel || (isA && S.active) ? 1 : Math.min(.55, .12 + f.op * .5);
+    f.edge.visible = S.edges || sel || pinned || (isA && S.active);
+    f.edge.material.color.setHex(sel ? 0xff2d87 : (isA && S.active) ? 0xffbc42 : pinned ? 0xfff0ce : edgeCol);
+    f.edge.material.opacity = sel || pinned || (isA && S.active) ? 1 : Math.min(.55, .12 + f.op * .5);
   }
 
   /* pan verticale della camera che accompagna il frame sollevato (relativo, reversibile) */
-  const shiftT = S.active && S.focus >= 0 && RISE_MODES.has(S.mode) ? .62 * 1.12 * H : 0;
+  const shiftT = 0; /* Lab: con la multi-selezione i frame escono in 4 direzioni, nessun pan automatico */
   const shiftNew = S.camShift + (shiftT - S.camShift) * Math.min(1, dt * 6), dShift = shiftNew - S.camShift;
   if (Math.abs(dShift) > 1e-5) { camera.position.y += dShift; controls.target.y += dShift; if (camAnim) { camAnim.tp.y += dShift; camAnim.tt.y += dShift; } }
   S.camShift = shiftNew;
@@ -1065,6 +1103,15 @@ function tick(now){
       tag.textContent = `F ${String(ai + 1).padStart(3,'0')} · ${fmtTime(fa.t)}${S.selected.has(ai) ? ' · ★' : ''}`;
     }
   } else tag.hidden = true;
+  /* etichette dei frame selezionati (il frame corrente usa l'etichetta principale) */
+  pinTags.forEach((el, i) => {
+    const f = S.frames[i];
+    if (!f || (i === ai && S.active) || S.building) { el.hidden = true; return; }
+    tmpV.set(-W/2, H/2, 0).applyMatrix4(f.mesh.matrixWorld).project(camera);
+    const vis = tmpV.z < 1 && Math.abs(tmpV.x) < 1.2 && Math.abs(tmpV.y) < 1.2;
+    el.hidden = !vis;
+    if (vis) { el.style.left = ((tmpV.x + 1) / 2 * cssW) + 'px'; el.style.top = ((1 - tmpV.y) / 2 * cssH - 6) + 'px'; }
+  });
 }
 
 /* ---------- export ---------- */
