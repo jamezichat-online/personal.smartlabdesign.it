@@ -9,7 +9,7 @@ const $=s=>document.querySelector(s),host=$('#scene'),reduce=matchMedia('(prefer
 const scene=new THREE.Scene();scene.background=new THREE.Color('#030304');
 const glowCanvas=document.createElement('canvas'),glowTex=new THREE.CanvasTexture(glowCanvas);glowTex.colorSpace=THREE.SRGBColorSpace;
 let glowW=2,glowH=2,glowK=1,extPx=0;const GLOW={stage:[255,74,61],iron:[232,225,207],cyber:[63,230,234]},glowCur=[...GLOW.stage];
-function paintGlow(w=glowW,h=glowH){glowW=w;glowH=h;const[gr,gg,gb]=glowCur.map(Math.round);glowCanvas.width=Math.max(2,Math.round(w/2));glowCanvas.height=Math.max(2,Math.round(h/2));const c=glowCanvas.getContext('2d'),W=glowCanvas.width,H=glowCanvas.height;
+function paintGlow(w=glowW,h=glowH){glowW=w;glowH=h;const[gr,gg,gb]=glowCur.map(Math.round);{const gw=Math.max(2,Math.round(w/2)),gh=Math.max(2,Math.round(h/2));if(glowCanvas.width!==gw||glowCanvas.height!==gh){glowCanvas.width=gw;glowCanvas.height=gh;glowTex.dispose()}}const c=glowCanvas.getContext('2d'),W=glowCanvas.width,H=glowCanvas.height;
  c.fillStyle='#030304';c.fillRect(0,0,W,H);
  const gain=1.15-.5*(gr*.3+gg*.59+gb*.11)/255;const blob=(cx,cy,rx,ry,a0,stop)=>{a0*=gain;c.save();c.translate(cx*W,cy*H*glowK);c.scale(rx*W,ry*H*glowK);const g=c.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,`rgba(${gr},${gg},${gb},${a0})`);g.addColorStop(stop,`rgba(${gr},${gg},${gb},0)`);c.fillStyle=g;c.fillRect(-2,-2,4,4);c.restore()};
  blob(.5,.5,.78,.62,.34,.78); // central halo behind the hero piece
@@ -185,13 +185,12 @@ function renderScene(){
  postQuad.material=finalMaterial;renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
 }
 function resize(){const w=host.clientWidth,h=host.clientHeight,H0=Math.max(200,h-extPx);glowK=H0/h;paintGlow(w,h);renderer.setSize(w,h);const pr=renderer.getPixelRatio(),pw=Math.round(w*pr),ph=Math.round(h*pr);sceneTarget.setSize(pw,ph);blurTarget.setSize(pw,ph);compositionTarget.setSize(pw,ph);horizontal.uniforms.resolution.value.set(pw,ph);vertical.uniforms.resolution.value.set(pw,ph);camera.aspect=w/h;const framing=smoothstep(360,1200,w);const fov0=37.5-2.5*framing,tan0=Math.tan(fov0*Math.PI/360),camZ=9.35-.25*framing,dY=(2*Math.hypot(.13,camZ)*tan0/H0)*(h-H0)/2;camera.fov=2*Math.atan(tan0*h/H0)*180/Math.PI;camera.position.set(0,.78-dY,camZ);camera.lookAt(0,.65-dY,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();function worldAt(ndc){let lo=0,hi=14;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(Math.abs(railPosition(mid).project(camera).x)<ndc)lo=mid;else hi=mid}return (lo+hi)/2}currentEdgeStart=Math.min(EDGE_START,worldAt(.59));currentEdgeEnd=Math.min(EDGE_END,worldAt(.96));railFadeUniforms.edgeStart.value=currentEdgeStart;railFadeUniforms.edgeEnd.value=currentEdgeEnd;const edgeA=Math.abs(railPosition(currentEdgeStart).project(camera).x),edgeB=Math.abs(railPosition(currentEdgeEnd).project(camera).x);horizontal.uniforms.edgeRange.value.set(edgeA,edgeB);vertical.uniforms.edgeRange.value.set(edgeA,edgeB);camReady=true;placeLabel();wake()}const HEM=new THREE.Vector3(0,-1.74,0);
-let lastLt=-1,camReady=false;function placeLabel(){const el=$('#product'),st=$('.vsr-stage');if(!el||!st||!camReady)return;const h=host.clientHeight,H0=h-extPx,y=Math.round((.5-HEM.clone().project(camera).y*.5)*h);if(y!==lastLt){lastLt=y;el.style.setProperty('--lt',y+'px')}let need=Math.max(0,Math.ceil((y+el.offsetHeight+34-H0)/8)*8);if(!isFinite(need))return;need=Math.min(need,420);if(need!==extPx){extPx=need;st.style.setProperty('--ext',need+'px')}}
+let lastLt=-1,camReady=false,pendExt=null;function placeLabel(){const el=$('#product'),st=$('.vsr-stage');if(!el||!st||!camReady)return;const h=host.clientHeight,H0=h-extPx,y=Math.round((.5-HEM.clone().project(camera).y*.5)*h);if(y!==lastLt){lastLt=y;el.style.setProperty('--lt',y+'px')}let need=Math.max(0,Math.ceil((y+el.offsetHeight+34-H0)/8)*8);if(!isFinite(need))return;need=Math.min(need,420);if(need!==extPx&&need!==pendExt){pendExt=need;requestAnimationFrame(()=>{pendExt=null;extPx=need;st.style.setProperty('--ext',need+'px')})}}
 document.fonts?.ready.then(placeLabel);for(const ev of['pointerdown','pointerup'])$('#detail').addEventListener(ev,e=>e.stopPropagation());
 new ResizeObserver(resize).observe(host);
 let running=false,previous=0,visible=true,elapsed=0;
 function wake(){if(!running&&visible&&!document.hidden){running=true;previous=performance.now();requestAnimationFrame(frame)}}
 let mbAuto=0,mbCur=0,mbNow=0,glowLast=0,priorVelocity=0,filteredAcceleration=0;
-let lastSw=NaN;const labelEl=$('#product'),labelA=()=>labelEl?.closest('.vsr')?.dataset.label==='a';
 function frame(now){
  const dt=Math.min(.05,(now-previous)/1000||.016);previous=now;elapsed+=dt;
  if(!visible||document.hidden){running=false;return}
@@ -222,7 +221,7 @@ function frame(now){
   }
  }
  if(current()!==active)updateInfo();
- if(labelEl)labelEl.dataset.st=(dragging||Math.abs(position-target)>.004||Math.abs(velocity)>.03)?'hide':'show';if(labelA()){const ag=garments.find(g=>g.index===active);if(ag){const d=reduce?0:Math.round(ag.angle*80*20)/20;if(d!==lastSw){lastSw=d;labelEl.style.setProperty('--sw',d+'deg')}}}
+ 
  {const t=GLOW[products[current()].tribe],k=reduce?1:Math.min(1,dt*3.2);let d=0;for(let i=0;i<3;i++){glowCur[i]+=(t[i]-glowCur[i])*k;if(Math.abs(t[i]-glowCur[i])<.7)glowCur[i]=t[i];d+=Math.abs(t[i]-glowCur[i])}if(d!==glowLast){glowLast=d;paintGlow();moving=true}}
  renderScene();
  if(moving)requestAnimationFrame(frame);else running=false;
