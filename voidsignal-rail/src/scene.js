@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {initShop,openSheet} from './shop.js';
+import {initShop,openSheet,repaint} from './shop.js';
 import * as sound from './sound.js';
 const hasGL=(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){return false}})();
 if(!hasGL){document.documentElement.classList.add('vsr-nogl');document.querySelector('#loading')?.remove();{const g=document.createElement('div');g.className='vsr-nogl-grid';g.innerHTML=products.map(p=>`<a href="${p.url}" target="_blank" rel="noopener"><img src="${p.src}" alt="${p.name}" width="300" height="300" style="width:100%;height:auto"><span>${p.name}</span></a>`).join('');document.querySelector('.vsr-main .bottom')?.before(g)}throw new Error('WebGL unavailable: static fallback shown')}
@@ -229,6 +229,7 @@ host.addEventListener('pointerup',e=>{const was=gesture;release();if(!was&&trave
 function step(d){frontIndex=-1;target=Math.round(target)+d;wake()}$('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);host.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();step(e.key==='ArrowRight'?1:-1)}if(e.key==='Enter'||e.key===' '){e.preventDefault();if(frontIndex===active)openDetail();else{frontIndex=active;wake()}}});
 let wheelTimer;host.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<Math.abs(e.deltaY))return;e.preventDefault();frontIndex=-1;target+=Math.max(-.5,Math.min(.5,e.deltaX/320));clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{target=Math.round(target);wake()},140);wake()},{passive:false});
 let keyboardNavigation=false;document.addEventListener('keydown',e=>{if(!e.metaKey&&!e.ctrlKey&&!e.altKey){keyboardNavigation=true;if(document.activeElement===host)host.classList.add('keyboard-focus')}});document.addEventListener('pointerdown',()=>{keyboardNavigation=false;host.classList.remove('keyboard-focus')},true);initShop({onClose(){if(keyboardNavigation){host.classList.add('keyboard-focus');host.focus({preventScroll:true})}else{host.classList.remove('keyboard-focus');$('#detail').focus({preventScroll:true})}}});
+window.VSRack=Object.assign(window.VSRack||{},{ready:true,count:products.length,goTribe(t){const i=products.findIndex(p=>p.tribe===t);if(i<0)return;frontIndex=-1;target=Math.round(target)+wrap(i-Math.round(target));wake()},open(name,k){const i=products.findIndex(p=>p.name===name);if(i<0)return false;openSheet(i,k||'tee');return true},repaint});
 function openDetail(){openSheet(active,type)}$('#detail').onclick=openDetail;
 new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible)wake()}).observe(host);document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('#loading').classList.remove('hidden');$('#loading p').textContent='Rendering interrupted. Reload the page.'});updateInfo();resize();
 

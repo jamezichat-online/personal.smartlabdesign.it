@@ -13,6 +13,7 @@ const VIEWS=[['front','Front'],['back','Back'],['detail','Detail']];
 /* The product page in the shop (size, colour and checkout happen there). */
 function panelHTML(i){
   const p=P[i],v=cur(),t=TRIBE[p.tribe];
+  const L=(window.VSRack&&window.VSRack.link&&window.VSRack.link(p,v))||{href:v.shop,label:'Shop it'};
   const types=p.variants.map(x=>`<button class="vsr-type" type="button" data-act="type" data-k="${x.k}" aria-pressed="${x.k===sh.k}">${x.label}</button>`).join('');
   const tabs=VIEWS.map(([k,l])=>`<button class="vsr-tab" role="tab" type="button" data-act="view" data-v="${k}" aria-selected="${sh.view===k}">${l}</button>`).join('');
   const fv=(k,src)=>`<span class="vsr-fv${sh.view===k?' is-on':''}" data-v="${k}"><span class="vsr-pic"><img src="${src}" alt="${k==='back'?'Back of ':k==='detail'?'Print detail of ':'Front of '}${p.name}" draggable="false" decoding="async"></span></span>`;
@@ -24,7 +25,7 @@ function panelHTML(i){
       <p class="vsr-meta" style="--c:${t.c}"><b>${t.name}</b><span>${v.color}</span></p>
     </div>
     <div class="vsr-types" role="group" aria-label="Style">${types}</div>
-    <a class="vsr-cta" href="${v.shop}" target="_blank" rel="noopener" data-act="shop"><span>Shop it</span>${ICON_OUT}</a>`;
+    <a class="vsr-cta${L.miss?' is-alt':''}" href="${L.href}" target="_blank" rel="noopener" data-act="shop"><span>${L.label}</span>${ICON_OUT}</a>${L.note?`<p class="vsr-note">${L.note}</p>`:''}`;
 }
 /* Detail view: zoom on the print, centred, sized so the artwork fills the frame. */
 function fitDetail(){
@@ -94,3 +95,4 @@ document.addEventListener('keydown',e=>{
 });
 export function initShop(opts={}){onClose=opts.onClose||null}
 export {openSheet};
+export function repaint(){if(sh)paint()}

@@ -122,3 +122,25 @@
 .vsr .vsr-cats button:hover{color:var(--v-bone)}
 .vsr .vsr-cats button[aria-pressed="true"]{background:color-mix(in srgb,var(--v-signal) 18%,transparent);color:var(--v-bone);box-shadow:0 0 22px var(--v-glow)}
 .vsr .vsr-cats button:focus-visible{outline:2px solid var(--v-signal);outline-offset:2px}
+
+.vsr .vsr-cta.is-alt{background:transparent;color:var(--v-bone);box-shadow:inset 0 0 0 1px var(--v-line)}.vsr a.vsr-cta.is-alt{color:var(--v-bone)}
+.vsr .vsr-note{margin:14px 22px 24px;text-align:center;font:500 .62rem/1.4 var(--v-sans);letter-spacing:.22em;text-transform:uppercase;color:var(--v-ash)}
+
+/* Desktop product sheet: image left, details right. Mobile keeps the vertical stack. */
+@media(min-width:900px) and (min-height:560px){
+ .vsr-panel{width:min(100%,1120px);height:min(100%,700px);display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);grid-template-rows:1fr auto auto auto auto auto 1fr;column-gap:0;padding:0;
+  background:
+   radial-gradient(60% 78% at 28% 46%,rgba(var(--tc),.78),rgba(var(--tc),.3) 52%,transparent 82%),
+   radial-gradient(70% 55% at 80% 104%,rgba(var(--tc),.5),transparent 72%),
+   radial-gradient(120% 40% at 30% 108%,rgba(var(--tc),.6),transparent 74%),
+   #040405}
+ .vsr-fig{grid-column:1;grid-row:1/-1;flex:none;height:100%}
+ .vsr-tabs,.vsr-head,.vsr .vsr-types,.vsr-cta,.vsr-note{grid-column:2;margin-left:0;margin-right:clamp(32px,4vw,56px);padding-left:0}
+ .vsr-tabs{grid-row:2;justify-content:flex-start;gap:1.8rem;margin-top:0;margin-bottom:22px}
+ .vsr-head{grid-row:3;flex-direction:column;align-items:flex-start;gap:1.1rem;margin-top:0;margin-bottom:26px}
+ .vsr-name{font-size:clamp(2.8rem,4.2vw,4rem);line-height:.98}
+ .vsr-meta{text-align:left}
+ .vsr .vsr-types{grid-row:4;justify-content:flex-start;margin-bottom:30px}
+ .vsr-cta{grid-row:5}
+ .vsr-note{grid-row:6;text-align:left;margin-top:14px;margin-bottom:0}
+}
