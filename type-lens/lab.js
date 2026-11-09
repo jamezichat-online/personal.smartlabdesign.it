@@ -1,6 +1,6 @@
 import {projectQuad} from './surface-model.mjs';
 import {STORIES,secretInFocus,readDiscoveries,discoveryAnnouncement} from './story-model.mjs';
-import {LAYERS,LAYER_RATIO,STYLES,STYLE_MS,PALETTE,PROMPT_LINES,PROMPT_HOLD,TYPE_CPS,nearestPalette,styleIndexAt,typedLines,typingDuration} from './layers-model.mjs';
+import {LAYERS,LAYER_RATIO,STYLES,STYLE_MS,PALETTE,PROMPT_LINES,PROMPT_HOLD,TYPE_CPS,nearestPalette,styleIndexAt,typedLines,typingDuration} from './layers-model.mjs?v=hl1';
 import {specimenLines,safeMagnification,lensRadius,DEFAULT_TEXT} from './lab-model.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const scene=$('#scene'),stone=$('#stone'),shadow=$('#lens-shadow'),light=$('#light');let lens=$('#optics');
