@@ -424,7 +424,7 @@ let drag=null,down=null,peel=false;
 function setPeel(on){if(on===peel)return;peel=on;leaves[0].dir=1;gsap.to(leaves[0],{t:on?.07:0,duration:.6,ease:'power3.out',overwrite:true,onUpdate(){deform(leaves[0])}})}
 
 addEventListener('pointermove',e=>{
-  ptr.x=e.clientX/innerWidth*2-1;ptr.y=e.clientY/innerHeight*2-1;
+  if(!(gyroOn&&e.pointerType!=='mouse')){ptr.x=e.clientX/innerWidth*2-1;ptr.y=e.clientY/innerHeight*2-1}
   if(drag){
     const dx=e.clientX-down.x;
     if(!drag.active&&Math.abs(dx)>6){drag.active=true;gsap.killTweensOf(drag.L);unsettle();peel=false;canvas.style.cursor='grabbing';
@@ -495,6 +495,32 @@ let wl=0;addEventListener('wheel',e=>{const now=Date.now();if(now-wl<1100||Math.
 const copy=document.getElementById('copy');
 copy.onclick=()=>{const t='jamez.ichat@gmail.com',done=m=>{copy.textContent=m;setTimeout(()=>copy.textContent='Copy email',1800)};
   try{navigator.clipboard.writeText(t).then(()=>done('Copied'),()=>done(t))}catch(_){done(t)}};
+
+/* ---------- gyroscope (mobile): drives the same tilt + page-layer parallax as the mouse ---------- */
+var gyroOn=false;
+const touchDev=matchMedia('(hover: none) and (pointer: coarse)').matches;
+let gBase=null,gAsked=false;
+function onOrient(e){
+  if(e.beta==null||e.gamma==null)return;gyroOn=true;
+  const ang=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+  let gx=e.gamma,gy=e.beta;
+  if(ang===90){gx=e.beta;gy=-e.gamma}else if(ang===-90||ang===270){gx=-e.beta;gy=e.gamma}else if(ang===180){gx=-e.gamma;gy=-e.beta}
+  if(!gBase)gBase={x:gx,y:gy};
+  // the neutral position slowly follows how the phone is being held
+  gBase.x+=(gx-gBase.x)*.004;gBase.y+=(gy-gBase.y)*.004;
+  ptr.x=Math.max(-1,Math.min(1,(gx-gBase.x)/20));ptr.y=Math.max(-1,Math.min(1,(gy-gBase.y)/20));
+}
+function enableGyro(){
+  if(!touchDev||gyroOn||gAsked||RM)return;const D=window.DeviceOrientationEvent;if(!D)return;
+  if(typeof D.requestPermission==='function'){gAsked=true;D.requestPermission().then(r=>{if(r==='granted')addEventListener('deviceorientation',onOrient)}).catch(()=>{gAsked=false})}
+  else{gAsked=true;addEventListener('deviceorientation',onOrient)}
+}
+if(touchDev){
+  // Android: starts right away. iOS: asks permission on the first tap (e.g. "Open book").
+  if(!(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function'))enableGyro();
+  addEventListener('pointerup',enableGyro);
+}
+addEventListener('orientationchange',()=>{gBase=null});
 
 /* ---------- boot + loop ---------- */
 resize();thick.r=TOP-PG*1.5;applyThick();
