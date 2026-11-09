@@ -218,33 +218,33 @@ const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.o
 await Promise.all(SPREADS.map(async s=>{const a=ART[s.k];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(loadImg));if(bg&&subj&&fg)s.art={...a,bg,subj,fg}}));
 const LM=.04; // layer overscan, so parallax never reveals an empty edge
 
-function ruleCard(x,s){
-  const w=780,pad=46,x0=PW*2-w-86,iw=w-pad*2;
-  const lay=draw=>{let y=pad+20;
-    x.textAlign='left';x.textBaseline='alphabetic';
-    x.font='500 19px "DM Mono"';LS(x,'3px');if(draw){x.fillStyle=I;x.globalAlpha=.7;x.fillText(('Studio rule ✦ '+s.k).toUpperCase(),x0+pad,y0+y);x.globalAlpha=1}y+=112;
-    let fs=128;x.font=`400 ${fs}px "Archivo Black"`;LS(x,`${-fs*.05}px`);const mw=x.measureText(s.word).width;if(mw>iw){fs*=iw/mw;x.font=`400 ${fs}px "Archivo Black"`;LS(x,`${-fs*.05}px`)}
-    if(draw){x.fillStyle=I;x.fillText(s.word,x0+pad+6,y0+y+6);x.fillStyle=CO;x.fillText(s.word,x0+pad,y0+y)}y+=66;
-    x.font='800 44px "Barlow Condensed"';LS(x,'0px');for(const l of wrap(x,s.title.toUpperCase(),iw)){if(draw){x.fillStyle=I;x.fillText(l,x0+pad,y0+y)}y+=44}y+=12;
-    x.font='600 28px "Barlow Condensed"';for(const l of wrap(x,s.body,iw)){if(draw){x.fillStyle=I;x.fillText(l,x0+pad,y0+y)}y+=34}y+=14;
-    x.font='600 26px "Barlow Condensed"';const tl=wrap(x,s.tip,iw-52);const bh=58+tl.length*31;
-    if(draw){x.fillStyle=I;x.beginPath();x.roundRect(x0+pad+9,y0+y+9,iw,bh,[5,26,5,26]);x.fill();
-      x.fillStyle=AQ;x.strokeStyle=I;x.lineWidth=3;x.beginPath();x.roundRect(x0+pad,y0+y,iw,bh,[5,26,5,26]);x.fill();x.stroke();
-      x.fillStyle=I;x.font='500 16px "DM Mono"';LS(x,'3px');x.fillText('TRY THIS',x0+pad+26,y0+y+34);LS(x,'0px');
-      x.font='600 26px "Barlow Condensed"';tl.forEach((l,i)=>x.fillText(l,x0+pad+26,y0+y+68+i*31))}
-    return y+bh+pad};
-  let y0=0;const h=lay(false);y0=Math.max(60,PH-74-h);
-  x.fillStyle=PK;x.beginPath();x.roundRect(x0+16,y0+16,w,h,[8,52,8,52]);x.fill();
-  x.fillStyle=C;x.strokeStyle=I;x.lineWidth=4;x.beginPath();x.roundRect(x0,y0,w,h,[8,52,8,52]);x.fill();x.stroke();
-  lay(true);
+// free text on the illustration: soft scrim, no box; only the tip keeps its box. The big word is its own layer.
+function ruleText(x,s,part){
+  const x0=1150,iw=780,sh=(t,X,Y)=>{x.fillStyle='rgba(6,45,49,.85)';x.fillText(t,X+3,Y+3);x.fillStyle=C;x.fillText(t,X,Y)};
+  const lay=(draw,y0)=>{let y=y0;x.textAlign='left';x.textBaseline='alphabetic';
+    x.font='500 19px "DM Mono"';LS(x,'3px');if(draw)sh(('Studio rule ✦ '+s.k).toUpperCase(),x0,y);y+=56;
+    x.font='800 46px "Barlow Condensed"';LS(x,'0px');for(const l of wrap(x,s.title.toUpperCase(),iw)){if(draw)sh(l,x0,y);y+=46}y+=10;
+    x.font='600 29px "Barlow Condensed"';for(const l of wrap(x,s.body,iw-40)){if(draw)sh(l,x0,y);y+=35}y+=20;
+    x.font='600 26px "Barlow Condensed"';const tl=wrap(x,s.tip,iw-110);const bh=58+tl.length*31,bw=iw-60;
+    if(draw){x.fillStyle=PK;x.beginPath();x.roundRect(x0+10,y+10,bw,bh,[5,26,5,26]);x.fill();
+      x.fillStyle=SU;x.strokeStyle=I;x.lineWidth=3;x.beginPath();x.roundRect(x0,y,bw,bh,[5,26,5,26]);x.fill();x.stroke();
+      x.fillStyle=I;x.font='500 16px "DM Mono"';LS(x,'3px');x.fillText('TRY THIS',x0+26,y+34);LS(x,'0px');
+      x.font='600 26px "Barlow Condensed"';tl.forEach((l,i)=>x.fillText(l,x0+26,y+68+i*31))}
+    return y+bh};
+  const h=lay(false,0),top=PH-78-h;
+  if(part==='title'){bigWord(x,s.word,x0+iw/2-10,top-118,iw+40,190,{fill:C,sh:I,ol:PK},-0.035);return}
+  const g=x.createRadialGradient(x0+iw/2,PH+60,60,x0+iw/2,PH+60,PH*1.05);
+  g.addColorStop(0,'rgba(4,28,30,.78)');g.addColorStop(.55,'rgba(4,28,30,.45)');g.addColorStop(1,'rgba(4,28,30,0)');
+  x.fillStyle=g;x.fillRect(PW,0,PW,PH);
+  lay(true,top+19);
 }
-
 function drawSpread(s,mode='full',m=0){
   const ox=Math.round(PW*2*m),oy=Math.round(PH*m);
   const c=mk(PW*2+ox*2,PH+oy*2),x=c.getContext('2d');x.translate(ox,oy);
   const F=mode==='full',B=F||mode==='base',MO=F||mode==='motif',WO=F||mode==='word';
   if(s.art){const A=s.art,fx=PW*2*LM,fy=PH*LM;
-    if(B){x.drawImage(A.bg,0,0,PW*2,PH);ruleCard(x,s);grain(x,PW*2,PH,.025)}
+    if(B){x.drawImage(A.bg,0,0,PW*2,PH);ruleText(x,s,'text');grain(x,PW*2,PH,.025)}
+    if(F||mode==='title')ruleText(x,s,'title');
     if(MO)x.drawImage(A.subj,A.sx,A.sy,A.subj.width*A.sh/A.subj.height,A.sh);
     if(WO)x.drawImage(A.fg,-fx+(A.fgx||0),-fy,PW*2+fx*2,PH+fy*2);
     return c}
@@ -431,12 +431,12 @@ function settle(){
   const tl=tex(pageFrom(base,'L'),true),tr=tex(pageFrom(base,'R'));
   const lm=leaves[cur-1].mb.material,rm=leaves[cur].mf.material;
   swapped=[[lm,lm.map,tl],[rm,rm.map,tr]];lm.map=tl;rm.map=tr;lm.needsUpdate=rm.needsUpdate=true;
-  ['motif','word'].forEach((md,k)=>{
+  const plan=s.art?[['motif',s.art.dS,0],['title',s.art.dT||1,1],['word',s.art.dF,0]]:[['motif',.55,0],['word',1,1]];
+  plan.forEach(([md,d,fl],k)=>{
     const mat=layerMat(drawSpread(s,md,LM));
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W,H),mat);
     mesh.rotation.x=-Math.PI/2;mesh.position.y=topY()+k*0.002;mesh.renderOrder=3+k;book.add(mesh);
-    const d=s.art?(k?s.art.dF:s.art.dS):(k?1:.55);
-    layers.push({mesh,mat,d,k,float:!s.art&&k===1});
+    layers.push({mesh,mat,d,k,float:!!fl});
   });
   // layers start exactly where the baked page drew them, then ease into the parallax
   live.v=0;gsap.to(live,{v:1,duration:RM?0:.9,ease:'power2.out',overwrite:true});
