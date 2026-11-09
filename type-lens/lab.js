@@ -1,6 +1,6 @@
 import {projectQuad} from './surface-model.mjs';
 import {STORIES,secretInFocus,readDiscoveries,discoveryAnnouncement} from './story-model.mjs';
-import {LAYERS,LAYER_RATIO,STYLES,STYLE_MS,PALETTE,PROMPT_LINES,PROMPT_HOLD,TYPE_CPS,nearestPalette,styleIndexAt,typedLines,typingDuration} from './layers-model.mjs?v=hl1';
+import {LAYERS,LAYER_RATIO,STYLES,STYLE_MS,PALETTE,PROMPT_LINES,CODE_LINES,PROMPT_HOLD,nearestPalette,styleIndexAt,typedLines,typingDuration,scriptAt} from './layers-model.mjs?v=hl2';
 import {specimenLines,safeMagnification,lensRadius,DEFAULT_TEXT} from './lab-model.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const scene=$('#scene'),stone=$('#stone'),shadow=$('#lens-shadow'),light=$('#light');let lens=$('#optics');
@@ -147,24 +147,23 @@ function layerTick(t,moving){
  if(id==='multi'){const s=currentStyle(now);if(s!==styleShown){styleShown=s;texDirty=true;hudUntil=now+220}if(!reduced)wake(STYLE_MS-((now-layerStart)%STYLE_MS)+8);return false}
  if(id==='prompt'){
   if(moving)texDirty=true;
-  const type=typingDuration(),sec=reduced?type:(now-layerStart)/1000;
-  if(sec<type){texDirty=true;return true}
-  if(!promptDone){promptDone=true;texDirty=true}
-  if(!reduced)wake((type+PROMPT_HOLD)*1000-(now-layerStart));
-  if(sec>=type+PROMPT_HOLD){layerStart=now;promptDone=false;texDirty=true;return true}
-  return false}
+  const sc=reduced?{kind:'prompt',typing:false,next:0}:scriptAt((now-layerStart)/1000),key=sc.kind+sc.typing;
+  if(sc.typing){texDirty=true;scriptKey=key;return true}
+  if(key!==scriptKey){scriptKey=key;texDirty=true;hudUntil=now+220}
+  if(!reduced)wake(sc.next*1000+16);
+  return moving}
  return false}
-let styleShown=-1,promptDone=false;
+let styleShown=-1,promptDone=false,scriptKey='';
 function coverDraw(c,img){c.drawImage(img,0,0,w,h)}
 function drawLayer(c){
  const id=LAYERS[layerIndex].id;if(!layerReady(id))return;
  if(id==='blueprint'||id==='palette'){coverDraw(c,layerImages.get(id));return}
  if(id==='multi'){coverDraw(c,layerImages.get(STYLES[currentStyle()].id));return}
- // prompt: a dark panel under the lens, typed line by line like the reel
- const half=r*1.12,fs=clamp(r/(6*magnification),6,34),sp=fs*1.5,sec=reduced?typingDuration():(performance.now()-layerStart)/1000,lines=typedLines(sec);
+ // prompt then code: a dark panel under the lens, typed line by line like the reel
+ const sc=reduced?{kind:'prompt',lines:PROMPT_LINES,full:PROMPT_LINES}:scriptAt((performance.now()-layerStart)/1000),half=r*1.12,fs=clamp(r/(6*magnification),6,34),sp=fs*1.5;
  c.save();c.fillStyle='rgba(6,45,49,.9)';c.fillRect(x-half,y-half,half*2,half*2);c.font=`500 ${fs}px "DM Mono",monospace`;c.textAlign='center';c.textBaseline='middle';
- const y0=y-sp*(PROMPT_LINES.length-1)/2;
- lines.forEach((l,i)=>{const full=PROMPT_LINES[i];const typing=l.length<full.length&&l.length>0;c.fillStyle=i?'#fff0ce':'#ffbc42';if('letterSpacing'in c)c.letterSpacing=i?'0px':(fs*.18)+'px';c.fillText(l+(typing?'▌':''),x,y0+i*sp)});
+ const y0=y-sp*(sc.full.length-1)/2,last=sc.full.length-1;
+ sc.lines.forEach((l,i)=>{const typing=l.length<sc.full[i].length&&l.length>0;c.fillStyle=sc.kind==='prompt'?(i?'#fff0ce':'#ffbc42'):(i===0||i===last?'#ffbc42':i%2?'#00bfc4':'#fff0ce');if('letterSpacing'in c)c.letterSpacing=(sc.kind==='prompt'&&!i)?(fs*.18)+'px':'0px';c.fillText(l+(typing?'▌':''),x,y0+i*sp)});
  c.restore()}
 function paletteUnderLens(){
  if(!palReady)return -1;const k=Math.max(1,Math.round(r*.45/w*96)),px=clamp(Math.round(x/w*95),k,95-k),py=clamp(Math.round(y/h*53),k,53-k),n=k*2+1,d=pp.getImageData(px-k,py-k,n,n).data,votes=new Array(PALETTE.length).fill(0);
@@ -173,6 +172,7 @@ function hudLabel(){
  const id=LAYERS[layerIndex].id;if(!layerReady(id))return null;
  if(id==='palette'){const i=paletteUnderLens();if(i<0)return null;if(!paletteSeen.has(i)){paletteSeen.add(i);$('#layer-live').textContent='Colori trovati · '+paletteSeen.size+' / '+PALETTE.length+(paletteSeen.size===PALETTE.length?' · Color script completo.':'')}return{text:PALETTE[i].toUpperCase(),swatch:PALETTE[i]}}
  if(id==='multi')return{text:STYLES[currentStyle()].label};
+ if(id==='prompt')return{text:(reduced?'PROMPT':scriptAt((performance.now()-layerStart)/1000).kind.toUpperCase())};
  return{text:LAYERS[layerIndex].label}}
 function drawHud(t){
  hx.clearRect(0,0,w,h);if(mode!=='layers')return;const lab=hudLabel();if(!lab)return;
@@ -186,7 +186,7 @@ function drawHud(t){
  if(lab.swatch){const s=fs*1.25;hx.fillStyle=lab.swatch;hx.fillRect(-bw/2+padX*.75,-s/2,s,s);hx.strokeStyle='#fff0ce';hx.lineWidth=1.5;hx.strokeRect(-bw/2+padX*.75,-s/2,s,s)}
  hx.fillStyle='#fff0ce';hx.textAlign='center';hx.textBaseline='middle';hx.fillText(lab.text,sw/2,fs*.06);hx.restore()}
 function selectLayer(index){
- layerIndex=index;const L=LAYERS[index];styleShown=-1;promptDone=false;styleStep=0;layerStart=performance.now();hudUntil=performance.now()+220;
+ layerIndex=index;const L=LAYERS[index];styleShown=-1;promptDone=false;scriptKey='';styleStep=0;layerStart=performance.now();hudUntil=performance.now()+220;
  $$('[data-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.layer===L.id)));$('#layer-name').textContent=L.name;
  $('#layer-live').textContent=L.id==='palette'?'Colori trovati · '+paletteSeen.size+' / '+PALETTE.length:L.live;
  scene.setAttribute('aria-label',L.name+'. '+L.description);scene.style.setProperty('--story-ratio',LAYER_RATIO);
