@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23062d31'/%3E%3Cpath d='M16 9c-3-1.6-6-1.6-9 0v15c3-1.6 6-1.6 9 0 3-1.6 6-1.6 9 0V9c-3-1.6-6-1.6-9 0z' fill='%23ffbc42' stroke='%23ff2d87' stroke-width='1.5'/%3E%3Cpath d='M16 9v15' stroke='%23062d31' stroke-width='1.5'/%3E%3C/svg%3E">
 <title>Ideas Into Worlds — SmartLabDesign</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* Layout: full-screen WebGL stage (3D book on a dark table), thin HTML UI layer on top: header, open button + dedication, arrows, dots, footer. */
 :root{
@@ -19,35 +19,39 @@
   color-scheme:dark;
 }
 html,body{height:100%;margin:0;overflow:hidden;background:var(--ink-deep)}
+body{--fg:var(--cream);--fgm:var(--cream-mute);transition:background-color .5s}
+body[data-bg=flat]{background:radial-gradient(ellipse 90% 80% at 50% 42%,var(--bgc),color-mix(in srgb,var(--bgc),#000 34%));--vig:.28}
+body[data-bg=hero]{background:linear-gradient(180deg,rgba(0,27,31,.5),transparent 30%,transparent 60%,rgba(0,25,29,.7)),url(../assets/smartlab-miami.webp) 57% center/cover no-repeat var(--ink-deep);--vig:.5}
+body[data-ui=ink]{--fg:var(--ink);--fgm:rgba(6,45,49,.62)}
 body{color:var(--cream);font-family:var(--ft);-webkit-font-smoothing:antialiased}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
-.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 70% at 50% 45%,transparent 40%,rgba(1,14,14,.78) 100%)}
+.vig{position:fixed;inset:0;pointer-events:none;opacity:var(--vig,1);transition:opacity .5s;background:radial-gradient(ellipse 80% 70% at 50% 45%,transparent 40%,rgba(1,14,14,.78) 100%)}
 .ui{position:fixed;inset:0;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .ui a,.ui button{pointer-events:auto}
 :focus-visible{outline:3px solid var(--sun);outline-offset:4px}
 
-.logo{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:none;border:0;color:var(--cream);
+.logo{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:none;border:0;color:var(--fg);
   font:400 13px/0.95 var(--fd);letter-spacing:-.02em;text-transform:uppercase;text-align:center;cursor:pointer;padding:8px 12px}
 .logo span{color:var(--sun)}
 
 .intro{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(520px,calc(100% - 32px));
   display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;transition:opacity .6s,transform .6s}
-.open-btn{pointer-events:auto;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 22px;border:1.5px solid var(--cream);border-radius:999px;background:rgba(2,26,25,.6);
+.open-btn{pointer-events:auto;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 22px;border:1.5px solid var(--fg);border-radius:999px;background:rgba(2,26,25,.6);
   color:var(--cream);font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(6px);transition:background .25s,color .25s,box-shadow .25s}
 .open-btn:hover{background:var(--sun);color:var(--ink);border-color:var(--sun);box-shadow:5px 5px 0 var(--pink)}
 .open-btn svg{width:18px;height:18px}
-.ded{margin:0;font-size:20px;font-weight:600;line-height:1.3;color:var(--cream)}
-.ded small{display:block;font:400 10px var(--fm);letter-spacing:.14em;text-transform:uppercase;color:var(--cream-mute);margin-top:8px}
+.ded{margin:0;font-size:20px;font-weight:600;line-height:1.3;color:var(--fg)}
+.ded small{display:block;font:400 10px var(--fm);letter-spacing:.14em;text-transform:uppercase;color:var(--fgm);margin-top:8px}
 
-.arrow{position:absolute;top:50%;transform:translateY(-50%);width:64px;height:64px;border:0;background:none;color:var(--cream);cursor:pointer;opacity:0;transition:opacity .5s,color .2s}
+.arrow{position:absolute;top:50%;transform:translateY(-50%);width:64px;height:64px;border:0;background:none;color:var(--fg);cursor:pointer;opacity:0;transition:opacity .5s,color .2s}
 .arrow svg{width:46px;height:20px}
 .arrow:hover{color:var(--sun)}
 .prev{left:max(12px,env(safe-area-inset-left,0px))}
 .next{right:max(12px,env(safe-area-inset-right,0px))}
-.dots{position:absolute;left:50%;bottom:calc(52px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:flex-end;gap:2px;height:64px;padding:0 14px;opacity:0;transition:opacity .5s}
+.dots{position:absolute;left:50%;bottom:calc(52px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:flex-end;gap:2px;height:64px;padding:0 14px;opacity:0;transition:opacity .5s;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .dot{width:30px;height:30px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;transform-origin:50% 100%;transition:transform .14s ease-out}
-.dot i{width:13px;height:13px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px rgba(255,240,206,.55);transition:box-shadow .2s}
-.dot[aria-current="true"] i{box-shadow:0 0 0 2px var(--cream),3px 3px 0 2px var(--pink)}
+.dot i{width:13px;height:13px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px var(--fgm);transition:box-shadow .2s}
+.dot[aria-current="true"] i{box-shadow:0 0 0 2px var(--fg),3px 3px 0 2px var(--pink)}
 .preview{position:absolute;bottom:calc(100% + 14px);left:0;width:212px;transform:translate(-50%,8px) scale(.92);transform-origin:50% 100%;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .25s cubic-bezier(.2,1.5,.4,1);background:var(--ink);border:2px solid var(--cream);border-radius:4px 18px 4px 18px;overflow:hidden;box-shadow:7px 7px 0 var(--pink)}
 .preview.on{opacity:1;transform:translate(-50%,0) scale(1)}
@@ -55,19 +59,18 @@ body{color:var(--cream);font-family:var(--ft);-webkit-font-smoothing:antialiased
 .preview span{display:block;padding:8px 10px 9px;font:500 10px var(--fm);letter-spacing:.12em;text-transform:uppercase;color:var(--cream)}
 .arrow svg{transition:transform .25s cubic-bezier(.2,1.5,.4,1)}
 .next:hover svg{transform:translateX(7px)}.prev:hover svg{transform:translateX(-7px)}
-.cta{position:absolute;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:12px;opacity:0;visibility:hidden;transition:opacity .5s;width:calc(100% - 32px)}
+.cta{position:absolute;right:max(15vw,24px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:18px;opacity:0;visibility:hidden;transition:opacity .5s;width:min(300px,calc(100% - 32px))}
+.cta .btn{justify-content:center;min-height:52px;font-size:18px}
 .btn{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:2px solid var(--ink);border-radius:3px;background:var(--sun);color:var(--ink);
   font:800 15px var(--ft);text-transform:uppercase;letter-spacing:.03em;text-decoration:none;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:transform .2s,box-shadow .2s}
 .btn:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--pink)}
 .btn.alt{background:var(--aqua)}
-
-footer{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
-  padding:10px max(20px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
-  font:400 10px var(--fm);letter-spacing:.12em;text-transform:uppercase;color:var(--cream-mute)}
-footer nav{display:flex;gap:18px;flex-wrap:wrap}
-footer a{color:var(--cream);text-decoration:none;pointer-events:auto;padding-block:6px}
-footer a:hover{color:var(--sun)}
-footer b{color:var(--cream);font-weight:500}
+.cta .btn:nth-child(1){background:var(--sun)}
+.cta .btn:nth-child(2){background:var(--aqua);box-shadow:6px 6px 0 var(--pink)}
+.cta .btn:nth-child(3){background:var(--pink);color:var(--cream,#fff8e1);box-shadow:6px 6px 0 var(--aqua)}
+.cta .btn:nth-child(3):hover{box-shadow:9px 9px 0 var(--aqua)}
+.cta .btn:nth-child(4){background:var(--coral);color:var(--ink);box-shadow:6px 6px 0 var(--aqua)}
+.cta .btn:nth-child(4):hover{box-shadow:9px 9px 0 var(--aqua)}
 
 body.is-open .intro{opacity:0;transform:translate(-50%,20px);pointer-events:none}
 body.is-open .intro *{pointer-events:none}
@@ -81,12 +84,18 @@ body.at-end .cta{opacity:1;visibility:visible}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (max-width:640px){
   .ded{font-size:17px}
-  footer{justify-content:center;font-size:9px}
-  footer .credit{display:none}
   .arrow{top:auto;bottom:calc(46px + env(safe-area-inset-bottom,0px));transform:none;width:52px;height:52px}
   .dots{bottom:calc(60px + env(safe-area-inset-bottom,0px))}
-  .cta{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 }
+@media (max-aspect-ratio:17/20){.cta{left:50%;right:auto;top:auto;bottom:calc(122px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(420px,calc(100% - 40px))}.cta .btn{font-size:15px;padding:0 10px}}
+.bgbtn{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:50%;border:1.5px solid var(--fg);background:rgba(2,26,25,.55);color:var(--cream);display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(6px);pointer-events:auto}
+.bgbtn svg{width:20px;height:20px}
+.bgpop{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:10px;padding:12px;border:1.5px solid var(--cream);border-radius:4px 18px 4px 18px;background:rgba(2,26,25,.86);backdrop-filter:blur(8px);box-shadow:5px 5px 0 var(--pink);pointer-events:auto}
+.bgpop[hidden]{display:none}
+.sw{display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px 0 6px;border:0;border-radius:999px;background:none;color:var(--cream);font:500 10px var(--fm);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.sw i{width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px rgba(255,240,206,.6)}
+.sw[aria-pressed="true"]{background:rgba(255,240,206,.14)}
+.sw[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--cream),3px 3px 0 2px var(--pink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -108,13 +117,12 @@ body.at-end .cta{opacity:1;visibility:visible}
   <div class="cta">
     <a class="btn" href="https://sites.smartlabdesign.it" target="_blank" rel="noopener">See the work ↗</a>
     <a class="btn alt" href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener">LinkedIn ↗</a>
-    <button class="btn alt" id="copy" type="button">Copy email</button>
+    <a class="btn" href="https://www.instagram.com/smartlabdesign/" target="_blank" rel="noopener">Instagram ↗</a>
+    <button class="btn" id="copy" type="button">Copy email</button>
   </div>
 
-  <footer>
-    <span class="credit">Ideas into worlds by <b>SmartLabDesign</b></span>
-    <nav><a href="https://sites.smartlabdesign.it" target="_blank" rel="noopener">Studio ↗</a><a href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener">LinkedIn ↗</a><span class="credit">Set in Archivo Black ✦ Barlow Condensed</span></nav>
-  </footer>
+  <button class="bgbtn" id="bgbtn" aria-label="Change background" aria-expanded="false" aria-controls="bgpop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-1.4-1.2-1.6-1.2-2.9 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1" fill="currentColor"/><circle cx="10.5" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7.5" r="1" fill="currentColor"/></svg></button>
+  <div class="bgpop" id="bgpop" role="group" aria-label="Background" hidden></div>
 </div>
 <div class="loader" id="loader">Setting up the book</div>
 <p class="sr" aria-live="polite" id="live"></p>
@@ -127,7 +135,7 @@ const I='#062d31',C='#fff0ce',P='#f7ddad',CO='#ff6848',PK='#ff2d87',AQ='#00bfc4'
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const W=1, H=0.98, PW=1024, PH=Math.round(1024*H), RAD=74, GAP=0.0034, SEG=56;
 
-try{ await Promise.race([Promise.all(['400 100px "Archivo Black"','800 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 20px "DM Mono"'].map(f=>document.fonts.load(f))), new Promise(r=>setTimeout(r,3500))]); }catch(e){}
+try{ await Promise.race([Promise.all(['400 100px "Archivo Black"','800 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 20px "DM Mono"','italic 700 100px "Barlow Condensed"'].map(f=>document.fonts.load(f))), new Promise(r=>setTimeout(r,3500))]); }catch(e){}
 
 /* ---------- canvas helpers ---------- */
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
@@ -212,7 +220,7 @@ const RULES=[
 const SPREADS=[
  {type:'intro',bg:P,word:'FOR MAKERS',fill:C,sh:I,ol:PK,kicker:'SmartLabDesign ✦ Studio handbook',tipLabel:'TWO MINUTES',title:'Every project starts as a scribble.',body:'A napkin, a voice note, a half-formed hunch. This small handbook collects the rules the studio keeps coming back to, after twenty years of brand identity, print, motion and interactive work.',tip:'Keep the pages that help you and skip the rest.'},
  ...RULES.map(r=>({type:'rule',...r})),
- {type:'final',bg:I,word:"LET'S BUILD",fill:SU,sh:PK,ol:CO,kicker:'Last page ✦ your turn',tipLabel:'SAY HELLO',title:'Got an idea?',body:'The studio is open to brand identities, cinematic websites, motion and interactive tools. Bring the scribble.',tip:'Studio, LinkedIn or email: pick a button below.'}
+ {type:'final',bg:I,word:"LET'S BUILD",fill:SU,sh:PK,ol:CO,kicker:'Last page ✦ your turn',tipLabel:'SAY HELLO',title:'Got an idea?',body:'The studio is open to brand identities, cinematic websites, motion and interactive tools. Bring the scribble.',tip:'Close the book: studio, LinkedIn, Instagram and email are on the back.'}
 ];
 // illustrated spreads: fixed background plate + subject + foreground, each its own parallax layer
 const ART={
@@ -248,7 +256,7 @@ function ruleText(x,s,part){
   if(part==='title'){bigWord(x,s.word,s.art.tcx||(L?PW*2-1210:1210),300,s.art.tw||1620,390,{fill:C,sh:I,ol:PK},L?0.035:-0.04);return}
   // diagonal scrim: darkest at the outer bottom corner, gone before it reaches the gutter, so no dark band shows where the pages meet
   const ox=L?0:PW*2,g=x.createLinearGradient(ox,PH,PW,PH*.12);
-  g.addColorStop(0,'rgba(4,28,30,.82)');g.addColorStop(.3,'rgba(4,28,30,.5)');g.addColorStop(.5,'rgba(4,28,30,.16)');g.addColorStop(.62,'rgba(4,28,30,0)');
+  g.addColorStop(0,'rgba(3,22,24,.95)');g.addColorStop(.3,'rgba(3,22,24,.76)');g.addColorStop(.5,'rgba(3,22,24,.36)');g.addColorStop(.62,'rgba(3,22,24,.07)');g.addColorStop(.68,'rgba(3,22,24,0)');
   x.fillStyle=g;x.fillRect(L?0:PW,0,PW,PH);
   lay(true,top+19);
 }
@@ -315,14 +323,30 @@ function drawCover(){
   x.fillStyle=I;x.fillRect(0,0,PW,PH);
   x.fillStyle=SU;x.beginPath();x.arc(760,880,300,0,7);x.fill();
   x.fillStyle=I;[0,1,2,3,4].forEach(i=>x.fillRect(400,700+i*44,700,8+i*4));
-    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,420,58,4);x.fill();x.fillStyle=SU;x.strokeStyle=I;x.lineWidth=3;x.beginPath();x.roundRect(94,94,420,58,4);x.fill();x.stroke();
+    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,500,58,4);x.fill();x.fillStyle=SU;x.strokeStyle=I;x.lineWidth=3;x.beginPath();x.roundRect(94,94,500,58,4);x.fill();x.stroke();
   x.fillStyle=I;x.font='500 19px "DM Mono"';LS(x,'2.6px');x.textBaseline='middle';x.fillText('A FIELD GUIDE BY SMARTLABDESIGN',116,124);x.textBaseline='alphabetic';
   x.font='400 236px "Archivo Black"';LS(x,'-14px');
   x.fillStyle=PK;x.fillText('IDEAS',104,416);x.fillStyle=C;x.fillText('IDEAS',90,400);
   x.font='400 96px "Archivo Black"';LS(x,'-5px');x.fillStyle=SU;x.fillText('INTO',94,500);
-  x.font='400 196px "Archivo Black"';LS(x,'-11px');x.strokeStyle=C;x.lineWidth=5;x.strokeText('WORLDS.',90,680);
+  // WORLDS. in the studio site's italic (Barlow Condensed Italic), sized to the cover width
+  {let fs=330;x.font=`italic 700 ${fs}px "Barlow Condensed"`;LS(x,'-2px');const mw=x.measureText('WORLDS.').width;fs=Math.min(fs*860/mw,330);
+   x.font=`italic 700 ${fs}px "Barlow Condensed"`;LS(x,'-2px');x.strokeStyle=C;x.lineWidth=5;x.lineJoin='round';x.strokeText('WORLDS.',92,690)}
+  if(logoImg){const lh=210,lw=lh*logoImg.width/logoImg.height;x.save();x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=24;x.shadowOffsetY=8;x.drawImage(logoImg,PW-lw-92,86,lw,lh);x.restore()}
   x.fillStyle=C;x.globalAlpha=.6;x.font='500 18px "DM Mono"';LS(x,'3px');x.fillText('STUDIO HANDBOOK ✦ 2026',94,PH-70);x.globalAlpha=1;
   const g=x.createLinearGradient(0,0,90,0);g.addColorStop(0,'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,PW,PH);
+  grain(x,PW,PH,.05);return c;
+}
+function drawBack(){
+  const c=mk(PW,PH),x=c.getContext('2d');x.beginPath();x.roundRect(0,0,PW,PH,[RAD,0,0,RAD]);x.clip();
+  x.fillStyle=I;x.fillRect(0,0,PW,PH);
+  x.fillStyle=SU;x.beginPath();x.arc(300,300,230,0,7);x.fill();
+  x.fillStyle=I;[0,1,2,3,4].forEach(i=>x.fillRect(40,200+i*34,520,6+i*4));
+  x.strokeStyle=PK;x.lineWidth=4;x.beginPath();x.moveTo(94,PH-250);x.lineTo(PW-110,PH-250);x.stroke();
+  x.textAlign='left';x.textBaseline='alphabetic';
+  x.fillStyle=C;x.globalAlpha=.8;x.font='500 22px "DM Mono"';LS(x,'4px');x.fillText('IDEAS INTO WORLDS BY',94,PH-170);
+  x.globalAlpha=1;x.font='400 74px "Archivo Black"';LS(x,'-3px');x.fillStyle=SU;x.fillText('SMARTLABDESIGN',90,PH-96);
+  x.fillStyle=C;x.globalAlpha=.55;x.font='500 17px "DM Mono"';LS(x,'3px');x.fillText('STUDIO HANDBOOK ✦ 2026',94,PH-52);x.globalAlpha=1;
+  const g=x.createLinearGradient(PW,0,PW-90,0);g.addColorStop(0,'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,PW,PH);
   grain(x,PW,PH,.05);return c;
 }
 function drawTable(){
@@ -340,9 +364,9 @@ function drawTable(){
 
 /* ---------- three ---------- */
 const canvas=document.getElementById('gl');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setClearColor(0x000000,0);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;
-const scene=new THREE.Scene();scene.background=new THREE.Color('#021a19');
+const scene=new THREE.Scene();
 const cam=new THREE.PerspectiveCamera(30,1,0.05,60);
 scene.add(new THREE.AmbientLight(0xffffff,0.74));
 const dl=new THREE.DirectionalLight(0xffffff,0.42);dl.position.set(-1.6,3,1.4);scene.add(dl);
@@ -379,6 +403,7 @@ function applyThick(){rBlock.scale.y=Math.max(thick.r,1e-4);lBlock.scale.y=Math.
 
 // leaves
 const NL=SPREADS.length+1, PG=0.0005, TOP=NL*GAP; let cur=0;
+const logoImg=await loadImg('assets/smartlab-logo.webp');
 const spreadCanvases=SPREADS.map(s=>drawSpread(s,'full'));
 const leaves=[];
 function leafGeo(){const g=new THREE.BufferGeometry(),n=(SEG+1)*2,pos=new Float32Array(n*3),uv=new Float32Array(n*2),idx=[];
@@ -387,7 +412,7 @@ function leafGeo(){const g=new THREE.BufferGeometry(),n=(SEG+1)*2,pos=new Float3
   g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g}
 for(let i=0;i<NL;i++){
   const front=i===0?drawCover():pageFrom(spreadCanvases[i-1],'R');
-  const back=i<NL-1?pageFrom(spreadCanvases[i],'L'):drawCover();
+  const back=i<NL-1?pageFrom(spreadCanvases[i],'L'):drawBack();
   const g=leafGeo();
   const mf=new THREE.Mesh(g,new THREE.MeshLambertMaterial({map:tex(front),alphaTest:.5,side:THREE.FrontSide}));
   const mb=new THREE.Mesh(g,new THREE.MeshLambertMaterial({map:tex(back,true),alphaTest:.5,side:THREE.BackSide}));
@@ -412,19 +437,24 @@ const proxy={px:0,py:3,pz:2,tx:0,ty:0,tz:0,bx:-W/2,ry:0.2,sx:.5,sox:W/2};
 function view(){
   const vf=cam.fov*Math.PI/180,a=innerWidth/innerHeight,hf=2*Math.atan(Math.tan(vf/2)*a),fitD=(w,h)=>Math.max(w/2/Math.tan(hf/2),h/2/Math.tan(vf/2));
   if(cur===0){const d=fitD(W*1.35,H*2.05);return{px:0,py:d*.8,pz:d*.6,tx:0,ty:0,tz:H*.24,bx:-W/2,ry:0.2,sx:.5,sox:W/2}}
+  if(cur===NL){ // closed on the back cover: book on the left, empty background on the right for the contact buttons
+    if(a<.85){const d=fitD(W*1.2,H*2.5);return{px:-W/2,py:d,pz:H*.34+d*.035,tx:-W/2,ty:0,tz:H*.34,bx:0,ry:0,sx:.5,sox:-W/2}}
+    const d=Math.max(fitD(W*2.7,0),fitD(0,H*1.55)),vw=2*d*Math.tan(hf/2),tx=-W/2+vw*.2;
+    return{px:tx,py:d,pz:d*.035+.03,tx,ty:0,tz:.03,bx:0,ry:0,sx:.5,sox:-W/2}}
   const pt=portrait(),d=pt?fitD(W*1.1,H*1.45):fitD(2*W*1.16,H*1.42);const tx=pt?(side==='L'?-W/2:W/2):0;
   return{px:tx,py:d,pz:d*.035+.03,tx,ty:0,tz:.03,bx:0,ry:0,sx:1,sox:0};
 }
-function applyProxy(){cam.position.set(proxy.px,proxy.py,proxy.pz);cam.lookAt(proxy.tx,proxy.ty,proxy.tz);book.position.x=proxy.bx;
+const Z={s:1,x:0,z:0}; // free zoom / pan on top of the preset view
+function applyProxy(){const zs=Z.s;cam.position.set(proxy.tx+(proxy.px-proxy.tx)/zs+Z.x,proxy.py/zs,proxy.tz+(proxy.pz-proxy.tz)/zs+Z.z);cam.lookAt(proxy.tx+Z.x,proxy.ty,proxy.tz+Z.z);book.position.x=proxy.bx;
   // shadow follows the cover's actual angle: one page wide when closed, two when open
-  if(cur<=1){const t=leaves[0].t;shadow.scale.x=.5+.5*t;shadow.position.x=0.03+W/2*(1-t)}
+  if(cur<=1&&cur!==NL){const t=leaves[0].t;shadow.scale.x=.5+.5*t;shadow.position.x=0.03+W/2*(1-t)}
   else{shadow.scale.x=proxy.sx;shadow.position.x=0.03+proxy.sox}}
-function toView(dur=1.6){gsap.to(proxy,{...view(),duration:RM?0:dur,ease:'power3.inOut',overwrite:true})}
-function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();gsap.killTweensOf(proxy);Object.assign(proxy,view())}
+function toView(dur=1.6){gsap.to(Z,{s:1,x:0,z:0,duration:RM?0:Math.min(dur,1),ease:'power2.inOut',overwrite:true});gsap.to(proxy,{...view(),duration:RM?0:dur,ease:'power3.inOut',overwrite:true})}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();gsap.killTweensOf(proxy);Object.assign(proxy,view());Z.s=1;Z.x=Z.z=0}
 addEventListener('resize',resize);
 function setThick(){
   const lt=cur>=1?TOP-PG*1.5:0,grow=lt>thick.l;
-  gsap.to(thick,{r:TOP-PG*1.5,duration:RM?0:.4,overwrite:'auto',onUpdate:applyThick});
+  gsap.to(thick,{r:cur===NL?0:TOP-PG*1.5,duration:RM?0:.4,overwrite:'auto',onUpdate:applyThick});
   // left stack appears only once the cover has landed, and vanishes at once when the book closes
   gsap.to(thick,{l:lt,duration:RM?0:(grow?.2:.01),delay:RM?0:(grow?1.05:0),overwrite:'auto',onUpdate:applyThick});
 }
@@ -450,7 +480,7 @@ function layerMat(cv){const t=new THREE.CanvasTexture(cv);t.anisotropy=ANI;
     vertexShader:LVS,fragmentShader:LFS,transparent:true,depthWrite:false})}
 const live={v:0};
 function settle(){
-  unsettle();leaves.forEach(deform);if(cur===0)return;
+  unsettle();leaves.forEach(deform);if(cur===0||cur===NL)return;
   const s=SPREADS[cur-1],base=drawSpread(s,'base');
   const tl=tex(pageFrom(base,'L'),true),tr=tex(pageFrom(base,'R'));
   const lm=leaves[cur-1].mb.material,rm=leaves[cur].mf.material;
@@ -468,7 +498,7 @@ function settle(){
 
 /* ---------- flipping ---------- */
 function flipTo(target){
-  if(target===cur||target<0||target>NL-1)return;
+  if(target===cur||target<0||target>NL)return;
   unsettle();const from=cur;cur=target;busy=true;const tok=++flipToken;leaves.forEach(deform);
   const ks=target>from?[...Array(target-from)].map((_,k)=>from+k):[...Array(from-target)].map((_,k)=>from-1-k);
   let end=0;
@@ -477,10 +507,10 @@ function flipTo(target){
   setThick();ui();
   setTimeout(()=>{if(tok!==flipToken)return;busy=false;settle()},end*1000+40);
 }
-const names=['Cover','Introduction',...RULES.map(r=>r.title),'Let’s build'];
+const names=['Cover','Introduction',...RULES.map(r=>r.title),'Let’s build','Back cover'];
 function next(){if(busy)return;if(cur===0){side='L';flipTo(1);toView();return}
   if(portrait()&&side==='L'){side='R';toView(1);ui();return}
-  if(cur<NL-1){side='L';flipTo(cur+1);toView(1.2)}}
+  if(cur<NL){side='L';flipTo(cur+1);toView(cur===NL?1.6:1.2)}}
 function prev(){if(busy||cur===0)return;
   if(portrait()&&side==='R'){side='L';toView(1);ui();return}
   if(cur>1){side='R';flipTo(cur-1);toView(1.2)}else{flipTo(0);toView()}}
@@ -492,12 +522,27 @@ const ptr={x:0,y:0},tilt={x:0,y:0};
 const v3=new THREE.Vector3();
 function scr(x,z){v3.set(x,topY(),z);book.localToWorld(v3);v3.project(cam);return{x:(v3.x+1)/2*innerWidth,y:(1-v3.y)/2*innerHeight}}
 function pagePx(){const a=scr(0,0),b=scr(W,0);return Math.max(80,Math.hypot(b.x-a.x,b.y-a.y))}
-function overBook(cx,cy){const xs=cur===0?[0,W]:[-W,W];const p=[scr(xs[0],-H/2),scr(xs[1],-H/2),scr(xs[1],H/2),scr(xs[0],H/2)];
+function overBook(cx,cy){const xs=cur===0?[0,W]:cur===NL?[-W,0]:[-W,W];const p=[scr(xs[0],-H/2),scr(xs[1],-H/2),scr(xs[1],H/2),scr(xs[0],H/2)];
   const mnx=Math.min(...p.map(q=>q.x)),mxx=Math.max(...p.map(q=>q.x)),mny=Math.min(...p.map(q=>q.y)),mxy=Math.max(...p.map(q=>q.y));return cx>mnx&&cx<mxx&&cy>mny&&cy<mxy}
 let drag=null,down=null,peel=false;
+/* free zoom: pinch with two fingers (or ctrl+wheel / trackpad pinch), drag with one finger when zoomed in */
+const tp=new Map();let pinch=null,panLast=null,moved=false;
+const kpx=s=>2*(proxy.py/s)*Math.tan(cam.fov*Math.PI/360)/innerHeight; // world units per screen pixel at zoom s
+const clampZ=()=>{const m=Math.max(0,Z.s-1);Z.x=Math.max(-W*1.8*m/2,Math.min(W*1.8*m/2,Z.x));Z.z=Math.max(-H*1.2*m/2,Math.min(H*1.2*m/2,Z.z))};
+function zoomAt(sNew,mx,my){sNew=Math.max(1,Math.min(5,sNew));const ko=kpx(Z.s),kn=kpx(sNew);Z.x+=(mx-innerWidth/2)*(ko-kn);Z.z+=(my-innerHeight/2)*(ko-kn);Z.s=sNew;clampZ()}
+function beginPinch(){const [a,b]=[...tp.values()];
+  if(drag&&drag.active){const L=drag.L,d=drag.dir;busy=true;gsap.to(L,{t:d>0?0:1,duration:.4,overwrite:true,onUpdate(){deform(L)},onComplete(){busy=false;settle();setThick()}})}
+  drag=null;down=null;panLast=null;gsap.killTweensOf(Z);
+  pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:Z.s,mx:(a.x+b.x)/2,my:(a.y+b.y)/2};moved=true}
+function updatePinch(){const [a,b]=[...tp.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  zoomAt(pinch.s*d/pinch.d,mx,my);const k=kpx(Z.s);Z.x-=(mx-pinch.mx)*k;Z.z-=(my-pinch.my)*k;pinch.mx=mx;pinch.my=my;clampZ()}
+addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();zoomAt(Z.s*Math.exp(-e.deltaY*.01),e.clientX,e.clientY)},{passive:false});
 function setPeel(on){if(on===peel)return;peel=on;leaves[0].dir=1;gsap.to(leaves[0],{t:on?.07:0,duration:.6,ease:'power3.out',overwrite:true,onUpdate(){deform(leaves[0])}})}
 
 addEventListener('pointermove',e=>{
+  if(tp.has(e.pointerId))tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch){if(tp.size>=2)updatePinch();return}
+  if(panLast&&Z.s>1.04&&tp.size===1&&e.pointerType!=='mouse'){const k=kpx(Z.s),dx=e.clientX-panLast.x,dy=e.clientY-panLast.y;if(Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y)>8)moved=true;Z.x-=dx*k;Z.z-=dy*k;clampZ();panLast={x:e.clientX,y:e.clientY};return}
   if(!(gyroOn&&e.pointerType!=='mouse')){ptr.x=e.clientX/innerWidth*2-1;ptr.y=e.clientY/innerHeight*2-1}
   if(drag){
     const dx=e.clientX-down.x;
@@ -517,15 +562,21 @@ addEventListener('pointermove',e=>{
 },{passive:true});
 
 canvas.addEventListener('pointerdown',e=>{
-  canvas.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY};
+  tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(tp.size>=2){beginPinch();return}
+  moved=false;canvas.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY};
+  if(Z.s>1.04&&e.pointerType!=='mouse'){panLast={x:e.clientX,y:e.clientY};return}
   if(busy||portrait()||!overBook(e.clientX,e.clientY))return;
   let L=null,dir=0;
   if(cur===0){L=leaves[0];dir=1}
-  else if(e.clientX>innerWidth/2&&cur<NL-1){L=leaves[cur];dir=1}
+  else if(e.clientX>innerWidth/2&&cur<NL){L=leaves[cur];dir=1}
   else if(e.clientX<=innerWidth/2){L=leaves[cur-1];dir=-1}
   if(L){L.dir=dir;drag={L,dir,t0:L.t,active:false,px:pagePx(),lx:e.clientX,lt:performance.now(),v:0}}
 });
 canvas.addEventListener('pointerup',e=>{
+  tp.delete(e.pointerId);
+  if(pinch){if(tp.size<2){pinch=null;down=null;panLast=null}return}
+  if(panLast){panLast=null;if(moved){down=null;return}}
   if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;down=null;
   if(drag&&drag.active){
     const L=drag.L,prog=drag.dir>0?L.t:1-L.t,fling=drag.dir>0?drag.v<-.45:drag.v>.45;
@@ -537,24 +588,62 @@ canvas.addEventListener('pointerup',e=>{
   if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){dx<0?next():prev();return}
   if(Math.abs(dx)<8&&Math.abs(dy)<8){if(cur===0)next();else(e.clientX>innerWidth/2?next():prev())}
 });
+canvas.addEventListener('pointercancel',e=>{tp.delete(e.pointerId);if(tp.size<2)pinch=null;down=null;panLast=null});
 canvas.addEventListener('pointerleave',()=>{if(!drag&&cur===0)setPeel(false)});
 
 /* ---------- nav: dock magnifier + section preview ---------- */
 const dots=document.getElementById('dots'),pv=document.getElementById('preview'),pimg=document.getElementById('pimg'),plab=document.getElementById('plab');
 const thumbs=spreadCanvases.map(c=>{const t=mk(424,208),x=t.getContext('2d');x.drawImage(c,0,0,424,208);return t.toDataURL('image/jpeg',.82)});
 spreadCanvases.length=0;
+const showIdx=j=>{const b=dotEls[j],dr=dots.getBoundingClientRect(),abs=dr.left+b.offsetLeft+b.offsetWidth/2,cl=Math.min(innerWidth-112,Math.max(112,abs));
+  pimg.src=thumbs[j];plab.textContent=names[j+1];pv.style.left=(cl-dr.left)+'px';pv.classList.add('on')};
 const dotEls=SPREADS.map((s,j)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.style.setProperty('--c',s.bg);
   b.setAttribute('aria-label',`Go to ${names[j+1]}`);b.innerHTML='<i></i>';b.onclick=()=>goSpread(j);
-  const show=()=>{pimg.src=thumbs[j];plab.textContent=names[j+1];pv.style.left=(b.offsetLeft+b.offsetWidth/2)+'px';pv.classList.add('on')};
-  b.addEventListener('pointerenter',show);b.addEventListener('focus',show);b.addEventListener('blur',()=>pv.classList.remove('on'));
+  const show=e=>{if(e&&e.pointerType==='touch')return;showIdx(j)};
+  b.addEventListener('pointerenter',show);b.addEventListener('focus',()=>showIdx(j));b.addEventListener('blur',()=>pv.classList.remove('on'));
   dots.appendChild(b);return b});
-dots.addEventListener('pointermove',e=>{dotEls.forEach(b=>{const r=b.getBoundingClientRect(),d=Math.abs(e.clientX-(r.left+r.width/2)),s=1+1.25*Math.max(0,1-d/105);
-  b.style.transform=`translateY(${-(s-1)*12}px) scale(${s})`})});
-dots.addEventListener('pointerleave',()=>{dotEls.forEach(b=>b.style.transform='');pv.classList.remove('on')});
+const magnify=x=>dotEls.forEach(b=>{const r=b.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2)),s=1+1.25*Math.max(0,1-d/105);
+  b.style.transform=`translateY(${-(s-1)*12}px) scale(${s})`});
+const nearest=x=>{let k=0,bd=1e9;dotEls.forEach((b,j)=>{const r=b.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2));if(d<bd){bd=d;k=j}});return k};
+dots.addEventListener('pointermove',e=>{magnify(e.clientX);if(scrub&&scrub.on){const j=nearest(e.clientX);if(j!==scrub.sel){scrub.sel=j;showIdx(j);navigator.vibrate&&navigator.vibrate(5)}}else if(scrub&&Math.abs(e.clientX-scrub.x)>14){clearTimeout(scrub.t);scrub=null}});
+dots.addEventListener('pointerleave',e=>{if(scrub&&scrub.on)return;dotEls.forEach(b=>b.style.transform='');pv.classList.remove('on')});
+// touch: hold the nav to slide between previews, let go to open the one you are on
+let scrub=null,suppress=false;
+dots.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const id=e.pointerId;
+  scrub={x:e.clientX,on:false,sel:0,t:setTimeout(()=>{if(!scrub)return;scrub.on=true;scrub.sel=nearest(scrub.x);try{dots.setPointerCapture(id)}catch(_){ }showIdx(scrub.sel);magnify(scrub.x);navigator.vibrate&&navigator.vibrate(10)},240)}});
+const endScrub=e=>{if(!scrub)return;clearTimeout(scrub.t);const s=scrub;scrub=null;
+  if(s.on){suppress=true;setTimeout(()=>suppress=false,350);dotEls.forEach(b=>b.style.transform='');pv.classList.remove('on');if(e.type==='pointerup')goSpread(s.sel)}};
+dots.addEventListener('pointerup',endScrub);dots.addEventListener('pointercancel',endScrub);
+dots.addEventListener('click',e=>{if(suppress){e.stopPropagation();e.preventDefault()}},true);
+dots.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ---------- background: the studio site's colours + its hero still ---------- */
+const BGS=[
+  {k:'table',n:'Night table',c:'#021a19',ui:'cream'},
+  {k:'ink',n:'Studio ink',c:'#062d31',ui:'cream'},
+  {k:'coral',n:'Coral',c:'#ff6848',ui:'ink'},
+  {k:'pink',n:'Pink',c:'#ff2d87',ui:'cream'},
+  {k:'aqua',n:'Aqua',c:'#00bfc4',ui:'ink'},
+  {k:'sun',n:'Sun',c:'#ffbc42',ui:'ink'},
+  {k:'paper',n:'Paper',c:'#f7ddad',ui:'ink'},
+  {k:'hero',n:'Site hero',c:'#7a3d2e',ui:'cream',img:true}];
+const bgpop=document.getElementById('bgpop'),bgbtn=document.getElementById('bgbtn');
+function setBg(k,save=true){const o=BGS.find(b=>b.k===k)||BGS[0],bd=document.body;
+  tbl.visible=o.k==='table';
+  bd.dataset.bg=o.k==='table'?'':o.img?'hero':'flat';if(!bd.dataset.bg)delete bd.dataset.bg;
+  bd.style.setProperty('--bgc',o.c);if(o.ui==='ink')bd.dataset.ui='ink';else delete bd.dataset.ui;
+  document.querySelector('meta[name=theme-color]').content=o.c;
+  bgpop.querySelectorAll('.sw').forEach(s=>s.setAttribute('aria-pressed',String(s.dataset.k===o.k)));
+  if(save)try{localStorage.setItem('iiw-bg',o.k)}catch(_){}}
+BGS.forEach(o=>{const b=document.createElement('button');b.type='button';b.className='sw';b.dataset.k=o.k;b.setAttribute('aria-pressed','false');
+  b.innerHTML=`<i style="--c:${o.c}${o.img?';background:url(../assets/smartlab-miami.webp) 60% center/cover':''}"></i>${o.n}`;b.onclick=()=>setBg(o.k);bgpop.appendChild(b)});
+bgbtn.onclick=()=>{const on=bgpop.hidden;bgpop.hidden=!on;bgbtn.setAttribute('aria-expanded',String(on))};
+addEventListener('pointerdown',e=>{if(!bgpop.hidden&&!bgpop.contains(e.target)&&!bgbtn.contains(e.target)){bgpop.hidden=true;bgbtn.setAttribute('aria-expanded','false')}});
+{let s='table';try{s=localStorage.getItem('iiw-bg')||'table'}catch(_){}setBg(s,false)}
 
 function ui(){
   document.body.classList.toggle('is-open',cur>0);
-  const end=cur===NL-1&&(!portrait()||side==='R');
+  const end=cur===NL;
   document.body.classList.toggle('at-end',end);
   dotEls.forEach((d,j)=>d.setAttribute('aria-current',String(j===cur-1)));
   document.getElementById('next').disabled=end;
@@ -564,8 +653,8 @@ document.getElementById('open').onclick=next;
 document.getElementById('next').onclick=next;
 document.getElementById('prev').onclick=prev;
 document.getElementById('home').onclick=close;
-addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();else if(e.key==='Escape')close()});
-let wl=0;addEventListener('wheel',e=>{const now=Date.now();if(now-wl<1100||Math.abs(e.deltaY)<25)return;wl=now;e.deltaY>0?next():prev()},{passive:true});
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();else if(e.key==='Escape'){if(!bgpop.hidden){bgpop.hidden=true;bgbtn.setAttribute('aria-expanded','false')}else close()}});
+let wl=0;addEventListener('wheel',e=>{if(e.ctrlKey)return;const now=Date.now();if(now-wl<1100||Math.abs(e.deltaY)<25)return;wl=now;e.deltaY>0?next():prev()},{passive:true});
 const copy=document.getElementById('copy');
 copy.onclick=()=>{const t='jamez.ichat@gmail.com',done=m=>{copy.textContent=m;setTimeout(()=>copy.textContent='Copy email',1800)};
   try{navigator.clipboard.writeText(t).then(()=>done('Copied'),()=>done(t))}catch(_){done(t)}};
