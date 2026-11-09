@@ -232,7 +232,8 @@ function ruleText(x,s,part){
       x.font='600 26px "Barlow Condensed"';tl.forEach((l,i)=>x.fillText(l,x0+26,y+68+i*31))}
     return y+bh};
   const h=lay(false,0),top=PH-78-h;
-  if(part==='title'){bigWord(x,s.word,x0+iw/2-10,top-118,iw+40,190,{fill:C,sh:I,ol:PK},-0.035);return}
+  // as big as the original flat spreads, spanning both pages but weighted to the right; the subject stands in front of it
+  if(part==='title'){bigWord(x,s.word,1210,300,1620,390,{fill:C,sh:I,ol:PK},-0.04);return}
   const g=x.createRadialGradient(x0+iw/2,PH+60,60,x0+iw/2,PH+60,PH*1.05);
   g.addColorStop(0,'rgba(4,28,30,.78)');g.addColorStop(.55,'rgba(4,28,30,.45)');g.addColorStop(1,'rgba(4,28,30,0)');
   x.fillStyle=g;x.fillRect(PW,0,PW,PH);
@@ -431,7 +432,7 @@ function settle(){
   const tl=tex(pageFrom(base,'L'),true),tr=tex(pageFrom(base,'R'));
   const lm=leaves[cur-1].mb.material,rm=leaves[cur].mf.material;
   swapped=[[lm,lm.map,tl],[rm,rm.map,tr]];lm.map=tl;rm.map=tr;lm.needsUpdate=rm.needsUpdate=true;
-  const plan=s.art?[['motif',s.art.dS,0],['title',s.art.dT||1,1],['word',s.art.dF,0]]:[['motif',.55,0],['word',1,1]];
+  const plan=s.art?[['title',s.art.dT||.35,1],['motif',s.art.dS,0],['word',s.art.dF,0]]:[['motif',.55,0],['word',1,1]];
   plan.forEach(([md,d,fl],k)=>{
     const mat=layerMat(drawSpread(s,md,LM));
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W,H),mat);
