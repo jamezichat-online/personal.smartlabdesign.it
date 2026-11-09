@@ -20,11 +20,15 @@
 }
 html,body{height:100%;margin:0;overflow:hidden;background:var(--ink-deep)}
 body{--fg:var(--cream);--fgm:var(--cream-mute);transition:background-color .5s}
+body:not([data-bg]){background:var(--table,var(--ink-deep)) center/cover no-repeat}
 body[data-bg=flat]{background:radial-gradient(ellipse 90% 80% at 50% 42%,var(--bgc),color-mix(in srgb,var(--bgc),#000 34%));--vig:.28}
 body[data-bg=hero]{background:linear-gradient(180deg,rgba(0,27,31,.5),transparent 30%,transparent 60%,rgba(0,25,29,.7)),url(../assets/smartlab-miami.webp) 57% center/cover no-repeat var(--ink-deep);--vig:.5}
 body[data-ui=ink]{--fg:var(--ink);--fgm:rgba(6,45,49,.62)}
 body{color:var(--cream);font-family:var(--ft);-webkit-font-smoothing:antialiased}
-#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;pointer-events:none}
+html,body{touch-action:none}body{cursor:pointer}
+.back{position:fixed;inset:0;pointer-events:none}
+.back button{pointer-events:auto}
 .vig{position:fixed;inset:0;pointer-events:none;opacity:var(--vig,1);transition:opacity .5s;background:radial-gradient(ellipse 80% 70% at 50% 45%,transparent 40%,rgba(1,14,14,.78) 100%)}
 .ui{position:fixed;inset:0;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .ui a,.ui button{pointer-events:auto}
@@ -52,7 +56,7 @@ body{color:var(--cream);font-family:var(--ft);-webkit-font-smoothing:antialiased
 .dot{width:30px;height:30px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;transform-origin:50% 100%;transition:transform .14s ease-out}
 .dot i{width:13px;height:13px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px var(--fgm);transition:box-shadow .2s}
 .dot[aria-current="true"] i{box-shadow:0 0 0 2px var(--fg),3px 3px 0 2px var(--pink)}
-.preview{position:absolute;bottom:calc(100% + 14px);left:0;width:212px;transform:translate(-50%,8px) scale(.92);transform-origin:50% 100%;opacity:0;pointer-events:none;
+.preview{position:absolute;left:0;bottom:0;width:212px;transform:translate(-50%,8px) scale(.92);transform-origin:50% 100%;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .25s cubic-bezier(.2,1.5,.4,1);background:var(--ink);border:2px solid var(--cream);border-radius:4px 18px 4px 18px;overflow:hidden;box-shadow:7px 7px 0 var(--pink)}
 .preview.on{opacity:1;transform:translate(-50%,0) scale(1)}
 .preview img{display:block;width:100%;aspect-ratio:2.04/1;object-fit:cover;max-width:100%}
@@ -76,7 +80,7 @@ body.is-open .intro{opacity:0;transform:translate(-50%,20px);pointer-events:none
 body.is-open .intro *{pointer-events:none}
 body.is-open .arrow,body.is-open .dots{opacity:1}
 body:not(.is-open) .arrow,body:not(.is-open) .dot{pointer-events:none}
-body.at-end .cta{opacity:1;visibility:visible}
+body.at-end .cta{opacity:1;visibility:visible;transition:opacity .5s 1.3s,visibility 0s 1.3s}
 .arrow:disabled{opacity:.2!important;cursor:default}
 
 .loader{position:fixed;inset:0;display:grid;place-items:center;background:var(--ink-deep);font:400 11px var(--fm);letter-spacing:.16em;text-transform:uppercase;color:var(--cream-mute);transition:opacity .8s;z-index:5}
@@ -100,9 +104,20 @@ body.at-end .cta{opacity:1;visibility:visible}
 </style>
 </head>
 <body>
+<div class="back">
+  <div class="dots" id="dots" role="group" aria-label="Pages"></div>
+
+  <div class="cta">
+    <a class="btn" href="https://sites.smartlabdesign.it" target="_blank" rel="noopener">See the work ↗</a>
+    <a class="btn alt" href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener">LinkedIn ↗</a>
+    <a class="btn" href="https://www.instagram.com/smartlabdesign/" target="_blank" rel="noopener">Instagram ↗</a>
+    <button class="btn" id="copy" type="button">Copy email</button>
+  </div>
+</div>
 <canvas id="gl" aria-label="Ideas Into Worlds, an interactive 3D book by SmartLabDesign"></canvas>
 
 <div class="ui">
+  <div class="preview" id="preview" aria-hidden="true"><img id="pimg" alt=""><span id="plab"></span></div>
   <button class="logo" id="home" aria-label="Close the book">Ideas <span>into</span><br>worlds</button>
 
   <div class="intro">
@@ -112,14 +127,7 @@ body.at-end .cta{opacity:1;visibility:visible}
 
   <button class="arrow prev" id="prev" aria-label="Previous page"><svg viewBox="0 0 46 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M45 10H2M11 1 2 10l9 9"/></svg></button>
   <button class="arrow next" id="next" aria-label="Next page"><svg viewBox="0 0 46 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 10h43M35 1l9 9-9 9"/></svg></button>
-  <div class="dots" id="dots" role="group" aria-label="Pages"><div class="preview" id="preview" aria-hidden="true"><img id="pimg" alt=""><span id="plab"></span></div></div>
 
-  <div class="cta">
-    <a class="btn" href="https://sites.smartlabdesign.it" target="_blank" rel="noopener">See the work ↗</a>
-    <a class="btn alt" href="https://www.linkedin.com/in/alessio-talluto/" target="_blank" rel="noopener">LinkedIn ↗</a>
-    <a class="btn" href="https://www.instagram.com/smartlabdesign/" target="_blank" rel="noopener">Instagram ↗</a>
-    <button class="btn" id="copy" type="button">Copy email</button>
-  </div>
 
   <button class="bgbtn" id="bgbtn" aria-label="Change background" aria-expanded="false" aria-controls="bgpop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-1.4-1.2-1.6-1.2-2.9 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1" fill="currentColor"/><circle cx="10.5" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7.5" r="1" fill="currentColor"/></svg></button>
   <div class="bgpop" id="bgpop" role="group" aria-label="Background" hidden></div>
@@ -331,7 +339,7 @@ function drawCover(){
   // WORLDS. in the studio site's italic (Barlow Condensed Italic), sized to the cover width
   {let fs=330;x.font=`italic 700 ${fs}px "Barlow Condensed"`;LS(x,'-2px');const mw=x.measureText('WORLDS.').width;fs=Math.min(fs*860/mw,330);
    x.font=`italic 700 ${fs}px "Barlow Condensed"`;LS(x,'-2px');x.strokeStyle=C;x.lineWidth=5;x.lineJoin='round';x.strokeText('WORLDS.',92,690)}
-  if(logoImg){const lh=210,lw=lh*logoImg.width/logoImg.height;x.save();x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=24;x.shadowOffsetY=8;x.drawImage(logoImg,PW-lw-92,86,lw,lh);x.restore()}
+  if(logoImg){const lh=160,lw=lh*logoImg.width/logoImg.height;x.save();x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=24;x.shadowOffsetY=8;x.drawImage(logoImg,PW-lw-46,74,lw,lh);x.restore()}
   x.fillStyle=C;x.globalAlpha=.6;x.font='500 18px "DM Mono"';LS(x,'3px');x.fillText('STUDIO HANDBOOK ✦ 2026',94,PH-70);x.globalAlpha=1;
   const g=x.createLinearGradient(0,0,90,0);g.addColorStop(0,'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,PW,PH);
   grain(x,PW,PH,.05);return c;
@@ -374,7 +382,9 @@ const ANI=renderer.capabilities.getMaxAnisotropy();
 const tex=(c,flip)=>{const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=ANI;if(flip){t.wrapS=THREE.ClampToEdgeWrapping;t.repeat.x=-1;t.offset.x=1}return t};
 
 const tbl=new THREE.Mesh(new THREE.PlaneGeometry(34,34),new THREE.MeshBasicMaterial({map:tex(drawTable())}));
-tbl.rotation.x=-Math.PI/2;tbl.position.y=-0.32;scene.add(tbl);
+tbl.rotation.x=-Math.PI/2;tbl.position.y=-0.32;tbl.visible=false;scene.add(tbl);
+// the table lives in CSS (not a 3D plane) so the page UI behind the transparent canvas stays visible
+{const tc=mk(1400,1400);tc.getContext('2d').drawImage(drawTable(),0,0,1400,1400);document.body.style.setProperty('--table',`url(${tc.toDataURL('image/jpeg',.82)})`)}
 
 const book=new THREE.Group();scene.add(book);
 
@@ -448,6 +458,7 @@ const Z={s:1,x:0,z:0}; // free zoom / pan on top of the preset view
 function applyProxy(){const zs=Z.s;cam.position.set(proxy.tx+(proxy.px-proxy.tx)/zs+Z.x,proxy.py/zs,proxy.tz+(proxy.pz-proxy.tz)/zs+Z.z);cam.lookAt(proxy.tx+Z.x,proxy.ty,proxy.tz+Z.z);book.position.x=proxy.bx;
   // shadow follows the cover's actual angle: one page wide when closed, two when open
   if(cur<=1&&cur!==NL){const t=leaves[0].t;shadow.scale.x=.5+.5*t;shadow.position.x=0.03+W/2*(1-t)}
+  else if(cur>=NL-1){const t=leaves[NL-1].t;shadow.scale.x=1-.5*t;shadow.position.x=0.03-W*t/2}
   else{shadow.scale.x=proxy.sx;shadow.position.x=0.03+proxy.sox}}
 function toView(dur=1.6){gsap.to(Z,{s:1,x:0,z:0,duration:RM?0:Math.min(dur,1),ease:'power2.inOut',overwrite:true});gsap.to(proxy,{...view(),duration:RM?0:dur,ease:'power3.inOut',overwrite:true})}
 function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();gsap.killTweensOf(proxy);Object.assign(proxy,view());Z.s=1;Z.x=Z.z=0}
@@ -546,7 +557,7 @@ addEventListener('pointermove',e=>{
   if(!(gyroOn&&e.pointerType!=='mouse')){ptr.x=e.clientX/innerWidth*2-1;ptr.y=e.clientY/innerHeight*2-1}
   if(drag){
     const dx=e.clientX-down.x;
-    if(!drag.active&&Math.abs(dx)>6){drag.active=true;gsap.killTweensOf(drag.L);unsettle();peel=false;canvas.style.cursor='grabbing';
+    if(!drag.active&&Math.abs(dx)>6){drag.active=true;gsap.killTweensOf(drag.L);unsettle();peel=false;document.body.style.cursor='grabbing';
       if(drag.L===leaves[0]){gsap.killTweensOf(thick,'l');thick.l=0;applyThick()}}
     if(drag.active){
       const p=(drag.dir>0?-dx:dx)/(drag.px*1.75);
@@ -555,13 +566,14 @@ addEventListener('pointermove',e=>{
     }
     return;
   }
-  if(e.target!==canvas||busy)return;
+  if(!isCv(e)||busy)return;
   const ob=overBook(e.clientX,e.clientY);
-  canvas.style.cursor=ob&&!portrait()?'grab':'default';
+  document.body.style.cursor=ob&&!portrait()?'grab':'default';
   if(cur===0)setPeel(ob);
 },{passive:true});
 
-canvas.addEventListener('pointerdown',e=>{
+const isCv=e=>e.target===canvas||e.target===document.body||e.target===document.documentElement;
+addEventListener('pointerdown',e=>{if(!isCv(e))return;
   tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(tp.size>=2){beginPinch();return}
   moved=false;canvas.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY};
@@ -573,7 +585,7 @@ canvas.addEventListener('pointerdown',e=>{
   else if(e.clientX<=innerWidth/2){L=leaves[cur-1];dir=-1}
   if(L){L.dir=dir;drag={L,dir,t0:L.t,active:false,px:pagePx(),lx:e.clientX,lt:performance.now(),v:0}}
 });
-canvas.addEventListener('pointerup',e=>{
+addEventListener('pointerup',e=>{
   tp.delete(e.pointerId);
   if(pinch){if(tp.size<2){pinch=null;down=null;panLast=null}return}
   if(panLast){panLast=null;if(moved){down=null;return}}
@@ -582,21 +594,21 @@ canvas.addEventListener('pointerup',e=>{
     const L=drag.L,prog=drag.dir>0?L.t:1-L.t,fling=drag.dir>0?drag.v<-.45:drag.v>.45;
     if(prog>.32||fling){const was=cur;side=drag.dir>0?'L':'R';flipTo(cur+drag.dir);toView(was===0||cur===0?1.6:1.2)}
     else{busy=true;gsap.to(L,{t:drag.dir>0?0:1,duration:.55,ease:'power3.out',overwrite:true,onUpdate(){deform(L)},onComplete(){busy=false;settle();setThick()}})}
-    drag=null;canvas.style.cursor='grab';return;
+    drag=null;document.body.style.cursor='grab';return;
   }
   drag=null;
   if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){dx<0?next():prev();return}
   if(Math.abs(dx)<8&&Math.abs(dy)<8){if(cur===0)next();else(e.clientX>innerWidth/2?next():prev())}
 });
-canvas.addEventListener('pointercancel',e=>{tp.delete(e.pointerId);if(tp.size<2)pinch=null;down=null;panLast=null});
-canvas.addEventListener('pointerleave',()=>{if(!drag&&cur===0)setPeel(false)});
+addEventListener('pointercancel',e=>{tp.delete(e.pointerId);if(tp.size<2)pinch=null;down=null;panLast=null});
+document.documentElement.addEventListener('pointerleave',()=>{if(!drag&&cur===0)setPeel(false)});
 
 /* ---------- nav: dock magnifier + section preview ---------- */
 const dots=document.getElementById('dots'),pv=document.getElementById('preview'),pimg=document.getElementById('pimg'),plab=document.getElementById('plab');
 const thumbs=spreadCanvases.map(c=>{const t=mk(424,208),x=t.getContext('2d');x.drawImage(c,0,0,424,208);return t.toDataURL('image/jpeg',.82)});
 spreadCanvases.length=0;
 const showIdx=j=>{const b=dotEls[j],dr=dots.getBoundingClientRect(),abs=dr.left+b.offsetLeft+b.offsetWidth/2,cl=Math.min(innerWidth-112,Math.max(112,abs));
-  pimg.src=thumbs[j];plab.textContent=names[j+1];pv.style.left=(cl-dr.left)+'px';pv.classList.add('on')};
+  pimg.src=thumbs[j];plab.textContent=names[j+1];pv.style.left=cl+'px';pv.style.bottom=(innerHeight-dr.top+14)+'px';pv.classList.add('on')};
 const dotEls=SPREADS.map((s,j)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.style.setProperty('--c',s.bg);
   b.setAttribute('aria-label',`Go to ${names[j+1]}`);b.innerHTML='<i></i>';b.onclick=()=>goSpread(j);
   const show=e=>{if(e&&e.pointerType==='touch')return;showIdx(j)};
@@ -629,7 +641,6 @@ const BGS=[
   {k:'hero',n:'Site hero',c:'#7a3d2e',ui:'cream',img:true}];
 const bgpop=document.getElementById('bgpop'),bgbtn=document.getElementById('bgbtn');
 function setBg(k,save=true){const o=BGS.find(b=>b.k===k)||BGS[0],bd=document.body;
-  tbl.visible=o.k==='table';
   bd.dataset.bg=o.k==='table'?'':o.img?'hero':'flat';if(!bd.dataset.bg)delete bd.dataset.bg;
   bd.style.setProperty('--bgc',o.c);if(o.ui==='ink')bd.dataset.ui='ink';else delete bd.dataset.ui;
   document.querySelector('meta[name=theme-color]').content=o.c;
