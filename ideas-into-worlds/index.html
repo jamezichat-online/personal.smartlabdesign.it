@@ -210,10 +210,44 @@ const RULES=[
  {k:'test',word:'TEST IT',bg:P,fill:CO,sh:I,ol:AQ,col:I,tipBg:AQ,tipFg:I,tipSh:PK,title:'Test it on real people.',body:'Show the work to someone who has never read the brief. Watch where they look first. Then fix what they missed.',tip:'Ask “what is this for?” and stay quiet for ten seconds.'}
 ];
 const SPREADS=[{type:'intro',bg:P},...RULES.map(r=>({type:'rule',...r})),{type:'final',bg:I}];
+// illustrated spreads: fixed background plate + subject + foreground, each its own parallax layer
+const ART={
+  listen:{bg:'assets/listen-bg.webp',subj:'assets/listen-subject.webp',fg:'assets/listen-fg.webp',sx:486,sy:100,sh:870,fgx:-190,dS:.6,dF:1.35}
+};
+const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
+await Promise.all(SPREADS.map(async s=>{const a=ART[s.k];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(loadImg));if(bg&&subj&&fg)s.art={...a,bg,subj,fg}}));
+const LM=.04; // layer overscan, so parallax never reveals an empty edge
 
-function drawSpread(s,mode='full'){
-  const c=mk(PW*2,PH),x=c.getContext('2d');
+function ruleCard(x,s){
+  const w=780,pad=46,x0=PW*2-w-86,iw=w-pad*2;
+  const lay=draw=>{let y=pad+20;
+    x.textAlign='left';x.textBaseline='alphabetic';
+    x.font='500 19px "DM Mono"';LS(x,'3px');if(draw){x.fillStyle=I;x.globalAlpha=.7;x.fillText(('Studio rule ✦ '+s.k).toUpperCase(),x0+pad,y0+y);x.globalAlpha=1}y+=112;
+    let fs=128;x.font=`400 ${fs}px "Archivo Black"`;LS(x,`${-fs*.05}px`);const mw=x.measureText(s.word).width;if(mw>iw){fs*=iw/mw;x.font=`400 ${fs}px "Archivo Black"`;LS(x,`${-fs*.05}px`)}
+    if(draw){x.fillStyle=I;x.fillText(s.word,x0+pad+6,y0+y+6);x.fillStyle=CO;x.fillText(s.word,x0+pad,y0+y)}y+=66;
+    x.font='800 44px "Barlow Condensed"';LS(x,'0px');for(const l of wrap(x,s.title.toUpperCase(),iw)){if(draw){x.fillStyle=I;x.fillText(l,x0+pad,y0+y)}y+=44}y+=12;
+    x.font='600 28px "Barlow Condensed"';for(const l of wrap(x,s.body,iw)){if(draw){x.fillStyle=I;x.fillText(l,x0+pad,y0+y)}y+=34}y+=14;
+    x.font='600 26px "Barlow Condensed"';const tl=wrap(x,s.tip,iw-52);const bh=58+tl.length*31;
+    if(draw){x.fillStyle=I;x.beginPath();x.roundRect(x0+pad+9,y0+y+9,iw,bh,[5,26,5,26]);x.fill();
+      x.fillStyle=AQ;x.strokeStyle=I;x.lineWidth=3;x.beginPath();x.roundRect(x0+pad,y0+y,iw,bh,[5,26,5,26]);x.fill();x.stroke();
+      x.fillStyle=I;x.font='500 16px "DM Mono"';LS(x,'3px');x.fillText('TRY THIS',x0+pad+26,y0+y+34);LS(x,'0px');
+      x.font='600 26px "Barlow Condensed"';tl.forEach((l,i)=>x.fillText(l,x0+pad+26,y0+y+68+i*31))}
+    return y+bh+pad};
+  let y0=0;const h=lay(false);y0=Math.max(60,PH-74-h);
+  x.fillStyle=PK;x.beginPath();x.roundRect(x0+16,y0+16,w,h,[8,52,8,52]);x.fill();
+  x.fillStyle=C;x.strokeStyle=I;x.lineWidth=4;x.beginPath();x.roundRect(x0,y0,w,h,[8,52,8,52]);x.fill();x.stroke();
+  lay(true);
+}
+
+function drawSpread(s,mode='full',m=0){
+  const ox=Math.round(PW*2*m),oy=Math.round(PH*m);
+  const c=mk(PW*2+ox*2,PH+oy*2),x=c.getContext('2d');x.translate(ox,oy);
   const F=mode==='full',B=F||mode==='base',MO=F||mode==='motif',WO=F||mode==='word';
+  if(s.art){const A=s.art,fx=PW*2*LM,fy=PH*LM;
+    if(B){x.drawImage(A.bg,0,0,PW*2,PH);ruleCard(x,s);grain(x,PW*2,PH,.025)}
+    if(MO)x.drawImage(A.subj,A.sx,A.sy,A.subj.width*A.sh/A.subj.height,A.sh);
+    if(WO)x.drawImage(A.fg,-fx+(A.fgx||0),-fy,PW*2+fx*2,PH+fy*2);
+    return c}
   if(B){x.fillStyle=s.bg;x.fillRect(0,0,PW*2,PH)}
   if(s.type==='intro'){
     if(B){x.fillStyle=AQ;x.fillRect(0,720,PW,PH-720);x.fillStyle=I;x.fillRect(0,716,PW,8);
@@ -376,20 +410,36 @@ let layers=[], swapped=[];
 const topY=()=>TOP+0.003;
 function unsettle(){
   swapped.forEach(([mat,orig,tmp])=>{mat.map=orig;mat.needsUpdate=true;tmp.dispose()});swapped=[];
-  layers.forEach(l=>{gsap.killTweensOf(l.mesh.scale);book.remove(l.mesh);l.mesh.geometry.dispose();l.mesh.material.map.dispose();l.mesh.material.dispose()});layers=[];
+  layers.forEach(l=>{book.remove(l.mesh);l.mesh.geometry.dispose();l.mat.uniforms.map.value.dispose();l.mat.dispose()});layers=[];
 }
+const LVS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const LFS=`uniform sampler2D map;uniform vec2 shift,rad;uniform float m,gain;varying vec2 vUv;
+float cut(vec2 p,vec2 c){return length((p-c)/rad)>1.?0.:1.;}
+void main(){vec4 c=texture2D(map,(vUv-shift+m)/(1.+2.*m));float a=c.a;vec2 p=vUv;
+ if(p.x<rad.x&&p.y<rad.y)a*=cut(p,rad);
+ if(p.x<rad.x&&p.y>1.-rad.y)a*=cut(p,vec2(rad.x,1.-rad.y));
+ if(p.x>1.-rad.x&&p.y<rad.y)a*=cut(p,vec2(1.-rad.x,rad.y));
+ if(p.x>1.-rad.x&&p.y>1.-rad.y)a*=cut(p,1.-rad);
+ gl_FragColor=vec4(c.rgb*gain,a);}`;
+function layerMat(cv){const t=new THREE.CanvasTexture(cv);t.anisotropy=ANI;
+  return new THREE.ShaderMaterial({uniforms:{map:{value:t},shift:{value:new THREE.Vector2()},m:{value:LM},rad:{value:new THREE.Vector2(RAD/(PW*2),RAD/PH)},gain:{value:1.04}},
+    vertexShader:LVS,fragmentShader:LFS,transparent:true,depthWrite:false})}
+const live={v:0};
 function settle(){
   unsettle();leaves.forEach(deform);if(cur===0)return;
   const s=SPREADS[cur-1],base=drawSpread(s,'base');
   const tl=tex(pageFrom(base,'L'),true),tr=tex(pageFrom(base,'R'));
   const lm=leaves[cur-1].mb.material,rm=leaves[cur].mf.material;
   swapped=[[lm,lm.map,tl],[rm,rm.map,tr]];lm.map=tl;rm.map=tr;lm.needsUpdate=rm.needsUpdate=true;
-  ['motif','word'].forEach((m,k)=>{
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W,H),new THREE.MeshLambertMaterial({map:tex(drawSpread(s,m)),transparent:true,depthWrite:false}));
+  ['motif','word'].forEach((md,k)=>{
+    const mat=layerMat(drawSpread(s,md,LM));
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W,H),mat);
     mesh.rotation.x=-Math.PI/2;mesh.position.y=topY()+k*0.002;mesh.renderOrder=3+k;book.add(mesh);
-    layers.push({mesh,d:k?1:.55,k});
-    if(!RM){gsap.fromTo(mesh.scale,{x:.93,y:.93},{x:1,y:1,duration:1,ease:'elastic.out(1,.55)',delay:k*.09})}
+    const d=s.art?(k?s.art.dF:s.art.dS):(k?1:.55);
+    layers.push({mesh,mat,d,k,float:!s.art&&k===1});
   });
+  // layers start exactly where the baked page drew them, then ease into the parallax
+  live.v=0;gsap.to(live,{v:1,duration:RM?0:.9,ease:'power2.out',overwrite:true});
 }
 
 /* ---------- flipping ---------- */
@@ -534,7 +584,7 @@ renderer.setAnimationLoop(()=>{
   tilt.x+=(ptr.x-tilt.x)*.06;tilt.y+=(ptr.y-tilt.y)*.06;
   const amt=cur===0?1:.55;
   book.rotation.set(tilt.y*.10*amt*k,proxy.ry+(cur===0?tilt.x*.12*k:0),-tilt.x*.07*amt*k);
-  layers.forEach(l=>{l.mesh.position.x=tilt.x*.035*l.d*k;l.mesh.position.z=tilt.y*.028*l.d*k+(l.k?Math.sin(tm*1.4)*.004*k:0)});
+  layers.forEach(l=>{const f=live.v*k*l.d;l.mat.uniforms.shift.value.set(tilt.x*.02*f,-tilt.y*.018*f+(l.float?Math.sin(tm*1.4)*.003*live.v*k:0))});
   dl.position.set(-1.6+tilt.x*1.2,3,1.4+tilt.y*1.2);
   renderer.render(scene,cam);
 });
