@@ -63,7 +63,7 @@ html,body{touch-action:none}body{cursor:pointer}
 .preview span{display:block;padding:8px 10px 9px;font:500 10px var(--fm);letter-spacing:.12em;text-transform:uppercase;color:var(--cream)}
 .arrow svg{transition:transform .25s cubic-bezier(.2,1.5,.4,1)}
 .next:hover svg{transform:translateX(7px)}.prev:hover svg{transform:translateX(-7px)}
-.cta{position:absolute;right:max(15vw,24px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:18px;opacity:0;visibility:hidden;transition:opacity .5s;width:min(300px,calc(100% - 32px))}
+.cta{position:absolute;left:calc(50% + var(--ctax,24vw));right:auto;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:stretch;gap:18px;opacity:0;visibility:hidden;transition:opacity .5s;width:min(300px,calc(100% - 32px))}
 .cta .btn{justify-content:center;min-height:52px;font-size:18px}
 .btn{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:2px solid var(--ink);border-radius:3px;background:var(--sun);color:var(--ink);
   font:800 15px var(--ft);text-transform:uppercase;letter-spacing:.03em;text-decoration:none;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:transform .2s,box-shadow .2s}
@@ -443,25 +443,30 @@ function deform(L){
 /* ---------- state / camera ---------- */
 let side='L', busy=false, flipToken=0;
 const portrait=()=>innerWidth/innerHeight<0.85;
-const proxy={px:0,py:3,pz:2,tx:0,ty:0,tz:0,bx:-W/2,ry:0.2,sx:.5,sox:W/2};
-function view(){
+const proxy={vo:0,px:0,py:3,pz:2,tx:0,ty:0,tz:0,bx:-W/2,ry:0.2,sx:.5,sox:W/2};
+const view=()=>({vo:0,...viewRaw()});
+function viewRaw(){
   const vf=cam.fov*Math.PI/180,a=innerWidth/innerHeight,hf=2*Math.atan(Math.tan(vf/2)*a),fitD=(w,h)=>Math.max(w/2/Math.tan(hf/2),h/2/Math.tan(vf/2));
   if(cur===0){const d=fitD(W*1.35,H*2.05);return{px:0,py:d*.8,pz:d*.6,tx:0,ty:0,tz:H*.24,bx:-W/2,ry:0.2,sx:.5,sox:W/2}}
   if(cur===NL){ // closed on the back cover: book on the left, empty background on the right for the contact buttons
     if(a<.85){const d=fitD(W*1.2,H*2.5);return{px:-W/2,py:d,pz:H*.34+d*.035,tx:-W/2,ty:0,tz:H*.34,bx:0,ry:0,sx:.5,sox:-W/2}}
-    const d=Math.max(fitD(W*2.7,0),fitD(0,H*1.55)),vw=2*d*Math.tan(hf/2),tx=-W/2+vw*.2;
-    return{px:tx,py:d,pz:d*.035+.03,tx,ty:0,tz:.03,bx:0,ry:0,sx:.5,sox:-W/2}}
+    // book centred under the camera (no spine wall visible); the composition is shifted with a view offset, capped so ultra-wide screens keep book and buttons together
+    const d=Math.max(fitD(W*2.7,0),fitD(0,H*1.55)),vw=2*d*Math.tan(hf/2),tx=-W/2,sh=Math.min(.2*vw,.54*W);
+    document.documentElement.style.setProperty('--ctax',(.66*W/vw*innerWidth)+'px');
+    return{vo:sh/vw,px:tx,py:d,pz:d*.035+.03,tx,ty:0,tz:.03,bx:0,ry:0,sx:.5,sox:-W/2}}
   const pt=portrait(),d=pt?fitD(W*1.1,H*1.45):fitD(2*W*1.16,H*1.42);const tx=pt?(side==='L'?-W/2:W/2):0;
   return{px:tx,py:d,pz:d*.035+.03,tx,ty:0,tz:.03,bx:0,ry:0,sx:1,sox:0};
 }
-const Z={s:1,x:0,z:0}; // free zoom / pan on top of the preset view
+let lastVo=0;const Z={s:1,x:0,z:0}; // free zoom / pan on top of the preset view
 function applyProxy(){const zs=Z.s;cam.position.set(proxy.tx+(proxy.px-proxy.tx)/zs+Z.x,proxy.py/zs,proxy.tz+(proxy.pz-proxy.tz)/zs+Z.z);cam.lookAt(proxy.tx+Z.x,proxy.ty,proxy.tz+Z.z);book.position.x=proxy.bx;
+  {const vo=Math.round(proxy.vo*1e4)/1e4;if(vo!==lastVo){lastVo=vo;if(vo)cam.setViewOffset(innerWidth,innerHeight,vo*innerWidth,0,innerWidth,innerHeight);else cam.clearViewOffset()}}
+  rBlock.visible=rBlock.visible&&!(cur>=NL&&leaves[NL-1].t>.05);
   // shadow follows the cover's actual angle: one page wide when closed, two when open
   if(cur<=1&&cur!==NL){const t=leaves[0].t;shadow.scale.x=.5+.5*t;shadow.position.x=0.03+W/2*(1-t)}
   else if(cur>=NL-1){const t=leaves[NL-1].t;shadow.scale.x=1-.5*t;shadow.position.x=0.03-W*t/2}
   else{shadow.scale.x=proxy.sx;shadow.position.x=0.03+proxy.sox}}
 function toView(dur=1.6){gsap.to(Z,{s:1,x:0,z:0,duration:RM?0:Math.min(dur,1),ease:'power2.inOut',overwrite:true});gsap.to(proxy,{...view(),duration:RM?0:dur,ease:'power3.inOut',overwrite:true})}
-function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();gsap.killTweensOf(proxy);Object.assign(proxy,view());Z.s=1;Z.x=Z.z=0}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;lastVo=-1;cam.updateProjectionMatrix();gsap.killTweensOf(proxy);Object.assign(proxy,view());Z.s=1;Z.x=Z.z=0}
 addEventListener('resize',resize);
 function setThick(){
   const lt=cur>=1?TOP-PG*1.5:0,grow=lt>thick.l;
