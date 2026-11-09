@@ -216,14 +216,14 @@ const SPREADS=[
 ];
 // illustrated spreads: fixed background plate + subject + foreground, each its own parallax layer
 const ART={
-  final:{bg:'assets/build-bg.webp',subj:'assets/build-subject.webp',fg:'assets/build-fg.webp',sx:200,sy:30,sh:1380,tcx:1335,tw:1400,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
+  final:{bg:'assets/build-bg.webp',subj:'assets/build-subject.webp',fg:'assets/build-fg.webp',sx:200,sy:30,sh:1380,iw:570,fgk:1.1220703125,tcx:1335,tw:1400,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
   intro:{bg:'assets/intro-bg.webp',subj:'assets/intro-subject.webp',fg:'assets/intro-fg.webp',side:'L',sx:1190,sy:45,sh:1300,tcx:690,tw:1280,fgx:150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
   system:{bg:'assets/system-bg.webp',subj:'assets/system-subject.webp',fg:'assets/system-fg.webp',side:'L',sx:1180,sy:50,sh:1260,tcx:640,tw:1150,fgx:150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
-  move:{bg:'assets/move-bg.webp',subj:'assets/move-subject.webp',fg:'assets/move-fg.webp',sx:250,sy:345,sh:640,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
+  move:{bg:'assets/move-bg.webp',subj:'assets/move-subject.webp',fg:'assets/move-fg.webp',sx:214,sy:265,sh:720,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
   listen:{bg:'assets/listen-bg.webp',subj:'assets/listen-subject.webp',fg:'assets/listen-fg.webp',sx:486,sy:150,sh:870,fgx:-190,shK:.55,shD:-.045,shY:26,shX:.56,dS:.6,dF:1.35},
-  idea:{bg:'assets/idea-bg.webp',subj:'assets/idea-subject.webp',fg:'assets/idea-fg.webp',sx:640,sy:236,sh:770,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
+  idea:{bg:'assets/idea-bg.webp',subj:'assets/idea-subject.webp',fg:'assets/idea-fg.webp',sx:624,sy:141,sh:865,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
   sketch:{bg:'assets/sketch-bg.webp',subj:'assets/sketch-subject.webp',fg:'assets/sketch-fg.webp',sx:250,sy:176,sh:820,fgx:-150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
-  test:{bg:'assets/test-bg.webp',subj:'assets/test-subject.webp',fg:'assets/test-fg.webp',side:'L',sx:985,sy:246,sh:755,fgx:150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
+  test:{bg:'assets/test-bg.webp',subj:'assets/test-subject.webp',fg:'assets/test-fg.webp',side:'L',sx:964,sy:151,sh:850,fgx:150,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35},
   borrow:{bg:'assets/borrow-bg.webp',subj:'assets/borrow-subject.webp',fg:'assets/borrow-fg.webp',sx:300,sy:96,sh:930,fgx:-120,shK:.55,shD:-.045,shY:26,shX:.5,dS:.6,dF:1.35}
 };
 const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
@@ -232,7 +232,7 @@ const LM=.04; // layer overscan, so parallax never reveals an empty edge
 
 // free text on the illustration: soft scrim, no box; only the tip keeps its box. The big word is its own layer.
 function ruleText(x,s,part){
-  const L=s.art&&s.art.side==='L',x0=L?118:1150,iw=810,sh=(t,X,Y)=>{x.fillStyle='rgba(6,45,49,.85)';x.fillText(t,X+3,Y+3);x.fillStyle=C;x.fillText(t,X,Y)};
+  const L=s.art&&s.art.side==='L',x0=L?118:1150,iw=(s.art&&s.art.iw)||810,sh=(t,X,Y)=>{x.save();x.shadowColor='rgba(4,28,30,.85)';x.shadowBlur=18;x.fillStyle='rgba(6,45,49,.85)';x.fillText(t,X+3,Y+3);x.restore();x.fillStyle='rgba(6,45,49,.85)';x.fillText(t,X+3,Y+3);x.fillStyle=C;x.fillText(t,X,Y)};
   const lay=(draw,y0)=>{let y=y0;x.textAlign='left';x.textBaseline='alphabetic';
     x.font='500 21px "DM Mono"';LS(x,'3px');if(draw)sh((s.kicker||('Studio rule ✦ '+s.k)).toUpperCase(),x0,y);y+=62;
     x.font='800 54px "Barlow Condensed"';LS(x,'0px');for(const l of wrap(x,s.title.toUpperCase(),iw)){if(draw)sh(l,x0,y);y+=54}y+=12;
@@ -246,9 +246,9 @@ function ruleText(x,s,part){
   const h=lay(false,0),top=PH-78-h;
   // as big as the original flat spreads, spanning both pages but weighted to the right; the subject stands in front of it
   if(part==='title'){bigWord(x,s.word,s.art.tcx||(L?PW*2-1210:1210),300,s.art.tw||1620,390,{fill:C,sh:I,ol:PK},L?0.035:-0.04);return}
-  // diagonal scrim: darkest at the outer bottom corner, dissolving toward the inner top corner, so the gutter has no dark band
-  const ox=L?0:PW*2,ix=L?PW:PW,g=x.createLinearGradient(ox,PH,L?PW:PW,0);
-  g.addColorStop(0,'rgba(4,28,30,.84)');g.addColorStop(.5,'rgba(4,28,30,.62)');g.addColorStop(.8,'rgba(4,28,30,.24)');g.addColorStop(1,'rgba(4,28,30,0)');
+  // diagonal scrim: darkest at the outer bottom corner, gone before it reaches the gutter, so no dark band shows where the pages meet
+  const ox=L?0:PW*2,g=x.createLinearGradient(ox,PH,PW,PH*.12);
+  g.addColorStop(0,'rgba(4,28,30,.82)');g.addColorStop(.3,'rgba(4,28,30,.5)');g.addColorStop(.5,'rgba(4,28,30,.16)');g.addColorStop(.62,'rgba(4,28,30,0)');
   x.fillStyle=g;x.fillRect(L?0:PW,0,PW,PH);
   lay(true,top+19);
 }
@@ -269,7 +269,7 @@ function drawSpread(s,mode='full',m=0){
       const g=x.createRadialGradient(fx0,fy0,4,fx0,fy0,w*.42);g.addColorStop(0,'rgba(20,10,30,.72)');g.addColorStop(1,'rgba(20,10,30,0)');
       x.save();x.translate(fx0,fy0);x.scale(1,.18);x.translate(-fx0,-fy0);x.fillStyle=g;x.beginPath();x.arc(fx0,fy0,w*.42,0,7);x.fill();x.restore();
       x.globalAlpha=1;x.drawImage(A.subj,A.sx,A.sy,w,h)}
-    if(WO)x.drawImage(A.fg,-fx+(A.fgx||0),-fy,PW*2+fx*2,PH+fy*2);
+    if(WO)x.drawImage(A.fg,-fx+(A.fgx||0),-fy,(PW*2+fx*2)*(A.fgk||1),PH+fy*2);
     return c}
   if(B){x.fillStyle=s.bg;x.fillRect(0,0,PW*2,PH)}
   if(s.type==='intro'){
