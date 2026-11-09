@@ -54,7 +54,7 @@ html,body{touch-action:none}body{cursor:pointer}
 .next{right:max(12px,env(safe-area-inset-right,0px))}
 .dots{position:absolute;left:50%;bottom:calc(52px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:flex-end;gap:2px;height:64px;padding:0 14px;opacity:0;transition:opacity .5s;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .dot{width:30px;height:30px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;transform-origin:50% 100%;transition:transform .14s ease-out}
-.dot i{width:13px;height:13px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px var(--fgm);transition:box-shadow .2s}
+.dot i{width:var(--w,13px);height:13px;border-radius:7px;transition:width .16s ease-out;background:var(--c);box-shadow:0 0 0 1.5px var(--fgm);transition:box-shadow .2s}
 .dot[aria-current="true"] i{box-shadow:0 0 0 2px var(--fg),3px 3px 0 2px var(--pink)}
 .preview{position:absolute;left:0;bottom:0;width:212px;transform:translate(-50%,8px) scale(.92);transform-origin:50% 100%;opacity:0;pointer-events:none;
   transition:opacity .2s,transform .25s cubic-bezier(.2,1.5,.4,1);background:var(--ink);border:2px solid var(--cream);border-radius:4px 18px 4px 18px;overflow:hidden;box-shadow:7px 7px 0 var(--pink)}
@@ -619,17 +619,18 @@ const dotEls=SPREADS.map((s,j)=>{const b=document.createElement('button');b.clas
   const show=e=>{if(e&&e.pointerType==='touch')return;showIdx(j)};
   b.addEventListener('pointerenter',show);b.addEventListener('focus',()=>showIdx(j));b.addEventListener('blur',()=>pv.classList.remove('on'));
   dots.appendChild(b);return b});
-const magnify=x=>dotEls.forEach(b=>{const r=b.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2)),s=1+1.25*Math.max(0,1-d/105);
-  b.style.transform=`translateY(${-(s-1)*12}px) scale(${s})`});
+const magnify=x=>dotEls.forEach(b=>{const r=b.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2)),f=Math.max(0,1-d/105);
+  b.style.transform=`translateY(${-Math.round(f*f*16)}px)`;b.style.setProperty('--w',(13+Math.round(f*f*f*15))+'px')});
+const resetDots=()=>dotEls.forEach(b=>{b.style.transform='';b.style.removeProperty('--w')});
 const nearest=x=>{let k=0,bd=1e9;dotEls.forEach((b,j)=>{const r=b.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2));if(d<bd){bd=d;k=j}});return k};
 dots.addEventListener('pointermove',e=>{magnify(e.clientX);if(scrub&&scrub.on){const j=nearest(e.clientX);if(j!==scrub.sel){scrub.sel=j;showIdx(j);navigator.vibrate&&navigator.vibrate(5)}}else if(scrub&&Math.abs(e.clientX-scrub.x)>14){clearTimeout(scrub.t);scrub=null}});
-dots.addEventListener('pointerleave',e=>{if(scrub&&scrub.on)return;dotEls.forEach(b=>b.style.transform='');pv.classList.remove('on')});
+dots.addEventListener('pointerleave',e=>{if(scrub&&scrub.on)return;resetDots();pv.classList.remove('on')});
 // touch: hold the nav to slide between previews, let go to open the one you are on
 let scrub=null,suppress=false;
 dots.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const id=e.pointerId;
   scrub={x:e.clientX,on:false,sel:0,t:setTimeout(()=>{if(!scrub)return;scrub.on=true;scrub.sel=nearest(scrub.x);try{dots.setPointerCapture(id)}catch(_){ }showIdx(scrub.sel);magnify(scrub.x);navigator.vibrate&&navigator.vibrate(10)},240)}});
 const endScrub=e=>{if(!scrub)return;clearTimeout(scrub.t);const s=scrub;scrub=null;
-  if(s.on){suppress=true;setTimeout(()=>suppress=false,350);dotEls.forEach(b=>b.style.transform='');pv.classList.remove('on');if(e.type==='pointerup')goSpread(s.sel)}};
+  if(s.on){suppress=true;setTimeout(()=>suppress=false,350);resetDots();pv.classList.remove('on');if(e.type==='pointerup')goSpread(s.sel)}};
 dots.addEventListener('pointerup',endScrub);dots.addEventListener('pointercancel',endScrub);
 dots.addEventListener('click',e=>{if(suppress){e.stopPropagation();e.preventDefault()}},true);
 dots.addEventListener('contextmenu',e=>e.preventDefault());
