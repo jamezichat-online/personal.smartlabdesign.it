@@ -212,7 +212,7 @@ const RULES=[
 const SPREADS=[{type:'intro',bg:P},...RULES.map(r=>({type:'rule',...r})),{type:'final',bg:I}];
 // illustrated spreads: fixed background plate + subject + foreground, each its own parallax layer
 const ART={
-  listen:{bg:'assets/listen-bg.webp',subj:'assets/listen-subject.webp',fg:'assets/listen-fg.webp',sx:486,sy:100,sh:870,fgx:-190,dS:.6,dF:1.35}
+  listen:{bg:'assets/listen-bg.webp',subj:'assets/listen-subject.webp',fg:'assets/listen-fg.webp',sx:486,sy:150,sh:870,fgx:-190,shK:.55,shD:-.045,shY:26,shX:.56,dS:.6,dF:1.35}
 };
 const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
 await Promise.all(SPREADS.map(async s=>{const a=ART[s.k];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(loadImg));if(bg&&subj&&fg)s.art={...a,bg,subj,fg}}));
@@ -246,7 +246,16 @@ function drawSpread(s,mode='full',m=0){
   if(s.art){const A=s.art,fx=PW*2*LM,fy=PH*LM;
     if(B){x.drawImage(A.bg,0,0,PW*2,PH);ruleText(x,s,'text');grain(x,PW*2,PH,.025)}
     if(F||mode==='title')ruleText(x,s,'title');
-    if(MO)x.drawImage(A.subj,A.sx,A.sy,A.subj.width*A.sh/A.subj.height,A.sh);
+    if(MO){const w=A.subj.width*A.sh/A.subj.height,h=A.sh,fx0=A.sx+w*(A.shX||.5),fy0=A.sy+h-(A.shY||6);
+      if(!A.sil){const c2=mk(A.subj.width,A.subj.height),q=c2.getContext('2d');q.drawImage(A.subj,0,0);q.globalCompositeOperation='source-in';q.fillStyle='#1a0f24';q.fillRect(0,0,c2.width,c2.height);A.sil=c2}
+      // cast shadow: silhouette laid on the ground, thrown toward the viewer and left (sun low on the right horizon)
+      x.save();x.translate(fx0,fy0);x.transform(1,0,A.shK||.6,A.shD||-.2,0,0);
+      for(let i=0;i<7;i++){x.globalAlpha=.11;const o=(i-3)*5;x.drawImage(A.sil,-w/2+o,-h+Math.abs(o),w,h)}
+      x.restore();
+      // contact shadow under the shoes
+      const g=x.createRadialGradient(fx0,fy0,4,fx0,fy0,w*.42);g.addColorStop(0,'rgba(20,10,30,.72)');g.addColorStop(1,'rgba(20,10,30,0)');
+      x.save();x.translate(fx0,fy0);x.scale(1,.18);x.translate(-fx0,-fy0);x.fillStyle=g;x.beginPath();x.arc(fx0,fy0,w*.42,0,7);x.fill();x.restore();
+      x.globalAlpha=1;x.drawImage(A.subj,A.sx,A.sy,w,h)}
     if(WO)x.drawImage(A.fg,-fx+(A.fgx||0),-fy,PW*2+fx*2,PH+fy*2);
     return c}
   if(B){x.fillStyle=s.bg;x.fillRect(0,0,PW*2,PH)}
