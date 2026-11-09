@@ -460,7 +460,8 @@ function viewRaw(){
 let lastVo=0;const Z={s:1,x:0,z:0}; // free zoom / pan on top of the preset view
 function applyProxy(){const zs=Z.s;cam.position.set(proxy.tx+(proxy.px-proxy.tx)/zs+Z.x,proxy.py/zs,proxy.tz+(proxy.pz-proxy.tz)/zs+Z.z);cam.lookAt(proxy.tx+Z.x,proxy.ty,proxy.tz+Z.z);book.position.x=proxy.bx;
   {const vo=Math.round(proxy.vo*1e4)/1e4;if(vo!==lastVo){lastVo=vo;if(vo)cam.setViewOffset(innerWidth,innerHeight,vo*innerWidth,0,innerWidth,innerHeight);else cam.clearViewOffset()}}
-  rBlock.visible=rBlock.visible&&!(cur>=NL&&leaves[NL-1].t>.05);
+  {const k=Math.min(1,leaves[NL-1].t*8);if(k>0){rBlock.scale.y=Math.max(thick.r*(1-k),1e-4);rBlock.visible=thick.r*(1-k)>1e-3}} // right stack drops away as soon as the last page leaves it (drag or click)
+  {const e=leaves[NL-1].t>.98?.012:0;lBlock.position.x=-e;lBlock.scale.x=-(W-e)/W;lBlock.scale.y=Math.max(thick.l*(e?.55:1),1e-4)} // closed on the back cover: pull the spine wall in so it can't z-fight with the page edge
   // shadow follows the cover's actual angle: one page wide when closed, two when open
   if(cur<=1&&cur!==NL){const t=leaves[0].t;shadow.scale.x=.5+.5*t;shadow.position.x=0.03+W/2*(1-t)}
   else if(cur>=NL-1){const t=leaves[NL-1].t;shadow.scale.x=1-.5*t;shadow.position.x=0.03-W*t/2}
