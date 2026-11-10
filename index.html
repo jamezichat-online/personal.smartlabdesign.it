@@ -124,6 +124,9 @@
     .project-card--void { box-shadow: 15px 15px 0 #a98bff; }
     .project-card--void::before { background-image: url("/voidsignal/assets/cover.jpg"); background-image: image-set(url("/voidsignal/assets/cover.webp") type("image/webp"), url("/voidsignal/assets/cover.jpg") type("image/jpeg")); background-position: center 30%; }
     .project-card--void::after { background: linear-gradient(90deg, rgba(3,3,4,.97), rgba(3,3,4,.74) 40%, rgba(3,3,4,.08) 76%), linear-gradient(0deg, rgba(3,3,4,.92), transparent 58%); }
+    .project-card--book { box-shadow: 15px 15px 0 var(--sun); }
+    .project-card--book::before { background-image: url("/ideas-into-worlds/assets/cover.jpg"); background-image: image-set(url("/ideas-into-worlds/assets/cover.webp") type("image/webp"), url("/ideas-into-worlds/assets/cover.jpg") type("image/jpeg")); background-position: 70% center; }
+    .project-card--book::after { background: linear-gradient(90deg, rgba(4,24,28,.96), rgba(4,24,28,.7) 38%, rgba(4,24,28,.04) 72%), linear-gradient(0deg, rgba(4,24,28,.9), transparent 55%); }
     .project-card:hover::before { transform: scale(1.045); filter: saturate(1.12); }
     .project-content { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; padding: clamp(28px, 5vw, 72px); }
     .project-meta { margin-bottom: 20px; color: var(--sun); font: 500 10px "DM Mono"; letter-spacing: .13em; text-transform: uppercase; }
@@ -513,6 +516,17 @@
               <div class="project-meta">06 / Brand experience · Fashion · Interactive shop / 2026</div>
               <h3 class="project-title">POMATA</h3>
               <p class="project-description">Sicilian attitude, illustrated t-shirts and a rotating runway. An editorial brand website where each look moves through the island’s landscapes, connected to the official shop.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+
+        <a class="project-card project-card--book" href="/ideas-into-worlds/" aria-label="Open the interactive book Ideas Into Worlds">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">07 / Interactive book · Illustration · WebGL / 2026</div>
+              <h3 class="project-title">Ideas Into<i>Worlds.</i></h3>
+              <p class="project-description">A studio handbook you can hold: a 3D flip-book with illustrated layered spreads, parallax, drag-to-turn pages and a back cover that opens onto the studio’s contacts.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
