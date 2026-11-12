@@ -7,6 +7,6 @@
     "render": "node engine/render.mjs reels/the-stage-lookbook/index.html --workers 2"
   },
   "devDependencies": {
-    "playwright": "1.59.0"
+    "playwright": "^1.59.0"
   }
 }
