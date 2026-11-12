@@ -12,7 +12,7 @@
     'The Grid': { cat: 'CYBER TECH', color: '#3fe6ea', tag: 'For the ones who live inside the machine.' },
   };
   const tribe = TRIBES[C.tribe] || TRIBES['The Stage'];
-  const lift = C.lift ?? 230, logoY = C.logoY ?? 255;
+  const lift = C.lift ?? 160, logoY = C.logoY ?? 190;
   // posizioni del template (calibrate su 1750 px di altezza, riportate a 1920)
   const Y = (pct) => 1750 * pct / 100 + (H - 1750) - lift;
   const G = { catX: 5.16 * W / 100, catY: Y(65.3), titleX: 5.16 * W / 100, titleY: Y(68.2), subY: Y(83),
@@ -68,7 +68,7 @@
     title.style.fontSize = fit.size + 'px'; title.style.letterSpacing = (G.titleSpacing * fit.size / G.titleSize) + 'px'; title.style.lineHeight = '1';
     const sub = $('div', 'sub', box, esc(s.subtitle || tribe.tag)); sub.style.left = G.titleX + 'px'; sub.style.top = G.subY + 'px';
     let pill = null;
-    if (s.cta) { pill = $('div', 'pill', box, esc(s.cta)); pill.style.left = G.titleX + 'px'; pill.style.top = (G.subY + 125) + 'px'; pill.style.color = tribe.color; }
+    if (s.cta) { pill = $('div', 'pill', box, esc(s.cta)); pill.style.left = G.titleX + 'px'; pill.style.top = (G.subY + 105) + 'px'; pill.style.color = tribe.color; }
     return { box, cat, title, sub, pill };
   });
   const frame = $('div', 'frame', stage); frame.style.zIndex = 70;
