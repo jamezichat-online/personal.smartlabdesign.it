@@ -1,0 +1,1 @@
+{"name":"voidsignal-reel-kit","private":true,"description":"Reel in HTML con il design della Scheda tribe ufficiale (motore: skill reel-director)","scripts":{"stills":"node $REEL_ENGINE/render.mjs reels/test-the-stage/index.html --stills auto --scale 0.4"},"devDependencies":{"playwright":"1.59.0"}}

@@ -1,0 +1,24 @@
+/* Reel kit · design della «Scheda tribe ufficiale» della console VoidSignal (1080 × 1920) */
+@font-face{font-family:'VS Anton';src:url('/fonts/anton.woff2') format('woff2');font-weight:400;font-style:normal}
+@font-face{font-family:'VS Instrument Serif';src:url('/fonts/instrument-serif-italic.woff2') format('woff2');font-weight:400;font-style:italic}
+@font-face{font-family:'VS Inter Tight';src:url('/fonts/inter-tight.woff2') format('woff2-variations');font-weight:100 900;font-style:normal}
+:root{--bg:#030304;--title:#ece9f2;--sub:#cfcad8;--radius:47.143px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;background:#000;overflow:hidden}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;border-radius:var(--radius);background:var(--bg)}
+.layer{position:absolute;inset:0}
+.media{position:absolute;left:0;top:0;width:1080px;overflow:hidden;will-change:clip-path}
+.media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.05) saturate(.9);transform-origin:50% 50%}
+.media.logo-scene{background:radial-gradient(60% 55% at 50% 50%,#101012,#030304)}
+.media.logo-scene img{filter:none;object-fit:contain;inset:auto;left:50%;top:50%;width:640px;height:auto;margin:-170px 0 0 -320px}
+.shade,.glow{position:absolute;left:0;width:1080px;pointer-events:none}
+.text{position:absolute;inset:0;pointer-events:none}
+.cat{position:absolute;font:500 24.686px/1 'VS Inter Tight',sans-serif;letter-spacing:8.393px;text-transform:uppercase;white-space:nowrap}
+.title{position:absolute;font:400 219.857px/1 'VS Anton',sans-serif;color:var(--title);text-transform:uppercase;white-space:nowrap;text-shadow:0 10px 60px rgba(0,0,0,.6)}
+.sub{position:absolute;font:italic 400 48px/1.15 'VS Instrument Serif',serif;color:var(--sub);width:615.6px}
+.rl-mask{display:inline-block;overflow:hidden;vertical-align:top;padding:.06em 0 .05em;margin:-.06em 0 -.05em}
+.rl-word{display:inline-block;will-change:transform}
+.pill{position:absolute;display:inline-flex;align-items:center;gap:14px;padding:22px 38px;border:2px solid currentColor;border-radius:999px;font:500 30px/1 'VS Inter Tight',sans-serif;letter-spacing:6px;text-transform:uppercase;white-space:nowrap;background:rgba(3,3,4,.55);transform-origin:0 50%}
+.frame{position:absolute;inset:0;border-radius:var(--radius);pointer-events:none;box-shadow:inset 0 0 0 2px rgba(236,233,242,.12)}
+.brand{position:absolute;width:160px;height:auto}
+canvas.rl-grain{position:absolute;inset:0;width:1080px;height:1920px;mix-blend-mode:overlay;pointer-events:none}
