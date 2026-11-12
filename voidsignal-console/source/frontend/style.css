@@ -13,3 +13,16 @@ body{font-size:15px}aside{overflow-y:auto}nav button{font-size:14px;padding:12px
 :root{--stage:#ff4a3d;--iron:#e8e1cf;--grid:#3fe6ea;--accent:#ff4a3d}
 .tribe-template-controls{grid-column:1/-1;border-top:1px solid #445431;padding-top:18px;margin-top:12px}.tribe-template-controls summary{font-size:14px;color:#dce6cd;cursor:pointer;margin-bottom:18px;line-height:1.5}.tribe-template-controls .control-block{border:1px solid #3b4c2c;padding:15px;margin:15px 0}.tribe-template-controls h4{font-size:15px;margin:0 0 18px}.tribe-template-controls .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.studio-controls input[type=color]{height:39px;padding:4px!important}.template-description{font-size:13px;color:#96ac7e;line-height:1.7}.logo-controls{border-top:1px solid #445431;padding-top:18px;margin-top:18px;grid-column:1/-1}.logo-controls h4{font-size:15px;margin:0 0 15px}
 @font-face{font-family:'VS Instrument Serif';src:url('./fonts/instrument-serif.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+
+/* Bounded editing workspace: long controls never stretch the scene preview. */
+@media(min-width:761px){
+.studio-workbench{height:clamp(440px,calc(100dvh - 180px),820px);grid-template-columns:130px minmax(150px,1fr) 280px;align-items:stretch;overflow:hidden}
+.studio-sequence{display:block;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable;padding:12px}
+.studio-sequence .sectionhead{gap:6px}.studio-scene strong{max-width:85px}
+.studio-preview{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;box-sizing:border-box;padding:15px;gap:14px}
+.studio-previewbar{margin:0;flex-wrap:wrap}.studio-preview canvas{width:100%;height:100%;min-height:0;max-width:100%;max-height:100%;object-fit:contain;box-shadow:none}.studio-preview>small{margin:0}
+.studio-controls{display:block;grid-column:auto;height:100%;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable;border-top:0;border-left:1px solid var(--line);padding:18px;box-sizing:border-box}
+.studio-controls>.formgrid{display:grid;grid-template-columns:1fr 1fr}.studio-controls:focus-visible{outline:2px solid #b7cd86;outline-offset:-3px}
+}
+@media(min-width:1250px){.studio-workbench{grid-template-columns:175px minmax(240px,1fr) 300px}.studio-scene strong{max-width:120px}}
+@media(max-width:760px){.studio-controls{display:block;max-height:65dvh;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}.studio-preview canvas{height:auto;max-height:55dvh}.studio-sequence{max-height:200px;overflow-y:auto;overscroll-behavior-y:contain}}
