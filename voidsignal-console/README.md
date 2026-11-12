@@ -40,3 +40,10 @@ Il logo esportato è il PNG originale fornito dal proprietario (public/brand-log
 La lettura del workspace applica tetti per tipo (contenuti e asset 1000, esperimenti 300, proposte e richieste IA 60, preferenze 5) e un ETag: i controlli periodici ogni 5 minuti, eseguiti solo a scheda visibile, ricevono 304 senza rileggere i dati. «Esporta workspace» usa /api/console?all=1 e scarica sempre l'elenco completo. Gli asset del brand serviti da /api/asset sono nella cache privata del browser per 24 ore. Gli indici opzionali sono in backend/migrations/0002_indexes.sql (npm run migrate:indexes, idempotente).
 
 Upload e download restano locali: nessun file lascia il dispositivo. La console richiede al browser l'archiviazione persistente (navigator.storage.persist) per ridurre il rischio che gli asset in IndexedDB vengano eliminati in caso di poco spazio; conservare comunque gli originali e gli export.
+
+## Scheda tribe ufficiale: testi riposizionabili (novembre 2026)
+
+- Nell'anteprima dello Studio, con il template «Scheda tribe ufficiale», categoria, titolo e sottotitolo si trascinano direttamente sul canvas; la maniglia in basso a destra del box selezionato li ridimensiona (titolo e categoria cambiano corpo e spaziatura, il sottotitolo corpo e larghezza del testo).
+- Da tastiera: frecce per spostare (0,5 %, con Maiusc 2 %), `+` e `-` per ridimensionare, Esc per deselezionare.
+- I valori restano quelli dei campi numerici già presenti (`titleX/Y`, `titleSize`, …): trascinamento e campi sono la stessa fonte di dati.
+- Titolo adattivo (attivo di default, disattivabile in «Titolo»): se il testo supera la larghezza disponibile si rimpicciolisce fino a metà del corpo impostato, oltre va su due righe. Il disegno e i box di trascinamento usano lo stesso calcolo (`cardLayout` in `tribe-template.ts`), quindi export PNG/video e anteprima coincidono.
