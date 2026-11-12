@@ -1,7 +1,7 @@
 # Reel kit · VoidSignal
 
 Reel in HTML con il design della **Scheda tribe ufficiale** della console (stessa geometria di `cardDefaults()`: media al 66 %, sfumatura 36–66 %, bagliore nel colore della tribe, categoria Inter Tight, titolo Anton, sottotitolo Instrument Serif corsivo, bordo e logo).
-Il motore di rendering è la skill `reel-director` (HTML → Playwright → ffmpeg, deterministico, audio sintetizzato).
+Il motore di rendering è incluso in `engine/` (copia della skill `reel-director`: HTML → Playwright → ffmpeg, deterministico, audio sintetizzato). Requisiti: Node 18+, `npm i` + `npx playwright install chromium`, ffmpeg, Python 3 con numpy e scipy.
 
 ## Struttura
 
@@ -22,7 +22,7 @@ Il motore di rendering è la skill `reel-director` (HTML → Playwright → ffmp
 ## Comandi (dalla cartella `reel-kit`)
 
 ```bash
-E=<cartella skill reel-director>/engine
+E=engine
 node $E/render.mjs reels/<nome>/index.html --stills auto --scale 0.4   # foglio di controllo
 node $E/render.mjs reels/<nome>/index.html --verify 6                  # determinismo
 node $E/render.mjs reels/<nome>/index.html --workers 2                 # master.mp4 + reel.mp4
