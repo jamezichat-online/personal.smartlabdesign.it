@@ -10,3 +10,11 @@ I sorgenti sono in source/. Per ricostruire, dalla cartella source: npm install,
 Il trasferimento Metricool avviene tramite i connettori autorizzati dell'automazione Codex: leggere i risultati reali e salvare una rilevazione nella tabella sync_runs con query parametrizzata. Non occorre esporre un endpoint pubblico di importazione, una chiave database o l'API Metricool a pagamento. Nessun dato privato viene salvato su GitHub.
 
 Non contiene funzioni per pubblicare o programmare post Instagram. Il calendario è solo editoriale.
+
+## Studio contenuti
+
+Lo Studio produce PNG (post/storie), ZIP con PNG ordinate (caroselli) e video animati da immagini senza audio (reel). L'encoder dipende dal browser: MP4 quando supportato, altrimenti WebM con indicazione esplicita della conversione richiesta per Instagram. La registrazione video va tenuta in primo piano. Massimo 10 scene e 60 secondi per video.
+
+ChatGPT Image è un flusso con intervento dell'utente: prompt e riferimento vengono preparati nello Studio, la generazione si esegue nel proprio account ChatGPT, e il file scaricato viene importato. Nessuna chiamata OpenAI API o utilizzo automatico dell'abbonamento dal sito.
+
+I file importati sono conservati in IndexedDB solo nel browser del dispositivo. Sul Cloudflare vengono salvati progetto, testi e riferimenti ai file locali, non i file. Su un altro dispositivo occorre ricollegare le immagini. La cancellazione dei dati del browser elimina quelle copie locali: conservare sempre gli originali e gli export. Gli asset pubblici del brand sono letti tramite un endpoint autenticato, limitato a https://voidsignalbrand.com/assets/, con controllo formato e dimensione.
