@@ -12,8 +12,10 @@ Il motore di rendering è la skill `reel-director` (HTML → Playwright → ffmp
 
 ## Adattamenti rispetto alla scheda della console
 
-- `lift` (default 230 px): i testi salgono per restare nell'area sicura; la UI di Instagram copre il bordo inferiore.
-- `logoY` (default 255 px): il logo scende sotto la barra superiore.
+- `lift` (default 160 px): i testi salgono per restare nell'area sicura; la UI di Instagram copre il bordo inferiore.
+- `logoY` (default 190 px): il logo scende sotto la barra superiore.
+- `mediaShift` (default 110 px, per scena `shiftY`): centra il prodotto nell'area visibile.
+- `shadeA` (default .8) e `glowA` (default .3): opacità della sfumatura scura e del bagliore nel colore della tribe; `glowY` (default .79) ne regola l'altezza.
 - Il titolo usa lo stesso adattamento della console: si rimpicciolisce fino a metà del corpo, oltre va su due righe.
 - Le scene cambiano a multipli di 15 frame (120 BPM) con stacco a tendina e testi che escono e rientrano a parole.
 
