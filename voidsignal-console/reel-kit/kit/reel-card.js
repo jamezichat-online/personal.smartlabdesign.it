@@ -37,10 +37,10 @@
     return { m, img };
   });
   const shade = $('div', 'shade', stage); shade.style.top = G.grad0 + 'px'; shade.style.height = (H - G.grad0) + 'px'; shade.style.zIndex = 40;
-  { const stop = (G.grad1 - G.grad0) / (H - G.grad0) * 100; shade.style.background = `linear-gradient(180deg, rgba(3,4,4,0) 0%, rgba(3,3,4,1) ${stop}%)`; }
+  { const stop = (G.grad1 - G.grad0) / (H - G.grad0) * 100; shade.style.background = `linear-gradient(180deg, rgba(3,4,4,0) 0%, rgba(3,3,4,${C.shadeA ?? .8}) ${stop}%)`; }
   const glow = $('div', 'glow', stage); glow.style.zIndex = 41; glow.style.top = '0'; glow.style.height = H + 'px';
   const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
-  const setGlow = (a) => { glow.style.background = `radial-gradient(ellipse ${W * .6}px ${H * .45}px at ${W * .2}px ${H}px, rgba(${hexRGB(tribe.color)},${a.toFixed(3)}) 0%, rgba(${hexRGB(tribe.color)},0) 70%)`; };
+  const setGlow = (a) => { glow.style.background = `radial-gradient(ellipse ${W * .9}px ${H * .34}px at ${W * .22}px ${H * (C.glowY ?? .79)}px, rgba(${hexRGB(tribe.color)},${a.toFixed(3)}) 0%, rgba(${hexRGB(tribe.color)},0) 70%)`; };
 
   // titolo: stessa logica di adattamento della console (una riga ridotta, altrimenti due righe)
   const meas = document.createElement('canvas').getContext('2d');
@@ -90,7 +90,7 @@
   // ---------- render(f): tutto dipende solo dal frame ----------
   const { interp, Ease, spring, revealWords } = RL;
   function render(f) {
-    setGlow(.18 + .05 * Math.max(0, 1 - ((f % 15) / 10)));
+    setGlow((C.glowA ?? .3) + .06 * Math.max(0, 1 - ((f % 15) / 10)));
     scenes.forEach((s, i) => {
       const me = mediaEls[i], tx = textEls[i];
       const on = f >= s.start && f < (s.last ? s.end + 1 : s.end + TR);
