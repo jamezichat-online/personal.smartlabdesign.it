@@ -33,7 +33,7 @@
   const mediaEls = scenes.map((s) => {
     const m = $('div', 'media' + (s.isEnd ? ' logo-scene' : ''), stage); m.style.height = G.mediaH + 'px'; m.style.zIndex = 1 + s.i;
     const img = $('img', '', m); img.src = s.isEnd ? '/assets/brand-logo.png' : s.media; img.alt = ''; img.decoding = 'sync';
-    if (!s.isEnd) img.style.objectPosition = `${s.x ?? 50}% ${s.y ?? 20}%`;
+    if (!s.isEnd) { img.style.objectPosition = `${s.x ?? 50}% ${s.y ?? 20}%`; img.style.top = (s.shiftY ?? C.mediaShift ?? 110) + 'px'; }
     return { m, img };
   });
   const shade = $('div', 'shade', stage); shade.style.top = G.grad0 + 'px'; shade.style.height = (H - G.grad0) + 'px'; shade.style.zIndex = 40;
