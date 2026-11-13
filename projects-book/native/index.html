@@ -233,9 +233,9 @@ const SPREADS=[
  {type:'final',bg:I,word:'THE WORK',fill:SU,sh:PK,ol:CO,kicker:'Last page ✦ Project edition',tipLabel:'OPEN THE PROJECTS',title:'Every project, one tap away.',body:'Each page in this book is a live project. Open it, scroll it, take it apart.',tip:'Void Signal ✦ Giggiooo Burger ✦ all the work at sites.smartlabdesign.it'}
 ];
 const ART={
-  void:{bg:'assets/void-bg.webp',tcx:1390,tw:1160,sx:150,sy:84,sh:900,shK:.55,shD:-.045,shY:20,shX:.5,dS:.6,dF:1.35},
-  giggi:{bg:'assets/giggi-bg.webp',sx:90,sy:330,sh:640,shK:.35,shD:-.03,shY:30,shX:.5,dS:.6,dF:1.35},
-  
+  void:{bg:'assets/void-bg.webp',subj:'assets/void-subj.webp',fg:'assets/void-fg.webp',tcx:1390,tw:1160,sx:100,sy:190,sh:790,fgx:-120,shK:.55,shD:-.045,shY:20,shX:.5,dS:.6,dF:1.35},
+  giggi:{bg:'assets/giggi-bg.webp',subj:'assets/giggi-subj.webp',fg:'assets/giggi-fg.webp',sx:90,sy:330,sh:640,fgx:-120,shK:.35,shD:-.03,shY:30,shX:.5,dS:.6,dF:1.35},
+  final:{bg:'assets/final-bg.webp',subj:'assets/void-subj.webp',fg:'assets/void-fg.webp',sx:80,sy:210,sh:780,tcx:1420,tw:1160,fgx:-120,shK:.55,shD:-.045,shY:20,shX:.5,dS:.6,dF:1.35}
 };
 const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
 await Promise.all(SPREADS.map(async s=>{const a=ART[s.k||s.type];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(loadImg));if(bg)s.art={...a,bg,subj,fg}}));
