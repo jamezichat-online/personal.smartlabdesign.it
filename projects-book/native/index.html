@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23062d31'/%3E%3Cpath d='M16 9c-3-1.6-6-1.6-9 0v15c3-1.6 6-1.6 9 0 3-1.6 6-1.6 9 0V9c-3-1.6-6-1.6-9 0z' fill='%23ffbc42' stroke='%23ff2d87' stroke-width='1.5'/%3E%3Cpath d='M16 9v15' stroke='%23062d31' stroke-width='1.5'/%3E%3C/svg%3E">
 <title>Made This Way (Project Edition) — SmartLabDesign</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700&family=DM+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* Layout: full-screen WebGL stage (3D book on a dark table), thin HTML UI layer on top: header, open button + dedication, arrows, dots, footer. */
 :root{
@@ -119,9 +119,9 @@ body.at-end .cta{opacity:1;visibility:visible;transition:opacity .5s 1.3s,visibi
   <div class="dots" id="dots" role="group" aria-label="Pages"></div>
 
   <div class="cta">
-    <a class="btn" href="/voidsignal/" target="_blank" rel="noopener">Void Signal ↗</a>
-    <a class="btn alt" href="/giggiooo-burger-v2/" target="_blank" rel="noopener">Giggiooo Burger ↗</a>
-    <a class="btn" href="/" target="_blank" rel="noopener">All the work ↗</a>
+    <a class="btn" href="/" target="_blank" rel="noopener">All the projects ↗</a>
+    <a class="btn alt" href="/voidsignal/" target="_blank" rel="noopener">Void Signal ↗</a>
+    <a class="btn" href="/giggiooo-burger-v2/" target="_blank" rel="noopener">Giggiooo Burger ↗</a>
   </div>
 </div>
 <canvas id="gl" aria-label="Made This Way, an interactive 3D book of SmartLabDesign projects"></canvas>
@@ -132,7 +132,7 @@ body.at-end .cta{opacity:1;visibility:visible;transition:opacity .5s 1.3s,visibi
 
   <div class="intro">
     <button class="open-btn" id="open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 5.5c3-1.4 6-1.4 9 .5 3-1.9 6-1.9 9-.5V19c-3-1.4-6-1.4-9 .5-3-1.9-6-1.9-9-.5z"/><path d="M12 6v13.5"/></svg>Open book</button>
-    <p class="ded">Projects the studio shipped, and how they were made.<br>Project Edition<small>Alessio, SmartLabDesign</small></p>
+    <p class="ded">Projects the studio shipped, and how they were made.<br>Project edition<small>Alessio, SmartLabDesign</small></p>
   </div>
 
   <button class="arrow prev" id="prev" aria-label="Previous page"><svg viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M26 11.4C20 9.5 13 11.3 2.6 10"/><path d="M24.5 9C18 10.8 11 9.3 3.4 10.7" stroke-width="1.1" opacity=".55"/><path d="M10.4 2.4C7.4 5.8 4.4 8.5 1.4 10.2 4.5 12.6 7.6 15.6 10.8 18.2"/></svg></button>
@@ -153,7 +153,7 @@ const I='#062d31',C='#fff0ce',P='#f7ddad',CO='#ff6848',PK='#ff2d87',AQ='#00bfc4'
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const W=1, H=0.98, PW=1024, PH=Math.round(1024*H), RAD=74, GAP=0.0034, SEG=56;
 
-try{ await Promise.race([Promise.all(['400 100px "Archivo Black"','800 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 20px "DM Mono"','italic 700 100px "Barlow Condensed"'].map(f=>document.fonts.load(f))), new Promise(r=>setTimeout(r,3500))]); }catch(e){}
+try{ await Promise.race([Promise.all(['400 100px "Archivo Black"','800 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 20px "DM Mono"','italic 700 100px "Barlow Condensed"','700 40px "Caveat"'].map(f=>document.fonts.load(f))), new Promise(r=>setTimeout(r,3500))]); }catch(e){}
 
 /* ---------- canvas helpers ---------- */
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
@@ -228,17 +228,512 @@ const M={
 /* ---------- spreads ---------- */
 const RULES=[];
 const SPREADS=[
- {type:'rule',k:'void',word:'VOID SIGNAL',pal:{word:{fill:C,sh:'#000',ol:'#a98bff'},tipBg:'#a98bff',tipSh:'#000'},kicker:'Project 01 ✦ Brand · Shop · Web · Social',tipLabel:'OPEN THE PROJECT',title:'A streetwear label, built end to end.',body:'It began as a myth: three tribes, The Stage, The Iron and The Grid, each with its own marks, colours and voice. From that story came the graphics, a storefront, a scroll-tuned website and an Instagram that invites people in.',tip:'sites.smartlabdesign.it/voidsignal: the tribes, the drops and the shop.'},
- {type:'rule',k:'giggi',word:'GIGGIOOO',pal:{word:{fill:'#f6e7c8',sh:'#2a1208',ol:'#e7b25a'},tipBg:'#e7b25a',tipSh:'#2a1208'},kicker:'Project 02 ✦ Brand experience',tipLabel:'OPEN THE PROJECT',title:'A burger you can take apart.',body:'A demo brand built to show a burger restaurant what its site could be: cinematic packaging, burgers that come apart layer by layer on scroll, six drinks and a merch line, all in one warm, appetising system.',tip:'sites.smartlabdesign.it/giggiooo-burger-v2: scroll the burger open.'},
- {type:'final',bg:I,word:'THE WORK',fill:SU,sh:PK,ol:CO,kicker:'Last page ✦ Project edition',tipLabel:'OPEN THE PROJECTS',title:'Every project, one tap away.',body:'Each page in this book is a live project. Open it, scroll it, take it apart.',tip:'Void Signal ✦ Giggiooo Burger ✦ all the work at sites.smartlabdesign.it'}
+ {type:'rule',k:"right",word:"THE RIGHT ONE",pal:{word:{fill:'#f1eee6',sh:'#080808',ol:'#ff3b24'},tipBg:'#ff5a3c',tipSh:'#080808'},kicker:"Project \u2726 Short film",tipLabel:'OPEN THE PROJECT',title:"A small disaster, a worried child, and Jack.",body:"A loose bolt, a broken bicycle and JACK, the tiny multi-tool brave enough to become the hero. A cinematic short written, shot and cut with generative tools for a Runway contest.",tip:"sites.smartlabdesign.it/the-right-one: watch the film."},
+ {type:'rule',k:"giggi",word:"GIGGIOOO",pal:{word:{fill:'#f6e7c8',sh:'#2a1208',ol:'#e7b25a'},tipBg:'#e7b25a',tipSh:'#2a1208'},kicker:"Project \u2726 Brand experience",tipLabel:'OPEN THE PROJECT',title:"A burger you can take apart.",body:"A demo brand built to show a burger restaurant what its site could be: cinematic packaging, burgers that come apart layer by layer on scroll, six drinks and a merch line, all in one warm, appetising system.",tip:"sites.smartlabdesign.it/giggiooo-burger-v2: scroll the burger open."},
+ {type:'rule',k:"frames",word:"3D FRAMES",pal:{word:{fill:'#eafffe',sh:'#021417',ol:'#ff3d9a'},tipBg:'#ffc83a',tipSh:'#ff3d9a'},kicker:"Project \u2726 WebGL tool",tipLabel:'OPEN THE PROJECT',title:"A clip, exploded into space.",body:"A WebGL tool that explodes any clip into a navigable space of frames, built for temporal QA of AI video, keyframe picking and motion assets.",tip:"sites.smartlabdesign.it/3d-frames: fly through a clip."},
+ {type:'rule',k:"void",word:"VOID SIGNAL",pal:{word:{fill:'#fff1ce',sh:'#000000',ol:'#a98bff'},tipBg:'#a98bff',tipSh:'#000000'},kicker:"Project \u2726 Brand \u00b7 Shop \u00b7 Web \u00b7 Social",tipLabel:'OPEN THE PROJECT',title:"A streetwear label, end to end.",body:"It began as a myth: three tribes, The Stage, The Iron and The Grid, each with its own marks, colours and voice. From that story came the graphics, a storefront, a scroll-tuned website and an Instagram that invites people in.",tip:"sites.smartlabdesign.it/voidsignal: the tribes, the drops and the shop."},
+ {type:'rule',k:"creative",word:"TYPE LENS",pal:{word:{fill:'#fff3e0',sh:'#2a0a3a',ol:'#ff4f8b'},tipBg:'#ffd166',tipSh:'#ff4f8b'},kicker:"Creative development \u2726 Type Lab",tipLabel:'OPEN THE PROJECT',title:"Type that reveals its story.",body:"Creative development around type: a Type Lab and Hidden Stories, where a real-time glass lens reveals the story under the letters.",tip:"sites.smartlabdesign.it/type-lens: move the lens over the type."},
+ {type:'rule',k:"pomata",word:"POMATA",pal:{word:{fill:'#1d2f6b',sh:'#fff1c4',ol:'#f2b705'},tipBg:'#f2b705',tipSh:'#c4472b'},kicker:"Project \u2726 Fashion brand",tipLabel:'OPEN THE PROJECT',title:"Sicilian swagger, wearable.",body:"Illustrated T-shirts, sun and Sicilian swagger: the POMATA collection, a runway you can explore and an official shop.",tip:"sites.smartlabdesign.it/pomata: the collection and the shop."}
 ];
 const ART={
-  void:{bg:'assets/void-bg.webp',subj:'assets/void-subj.webp',fg:'assets/void-fg.webp',tcx:1390,tw:1160,sx:100,sy:190,sh:790,fgx:-120,shK:.55,shD:-.045,shY:20,shX:.5,dS:.6,dF:1.35},
-  giggi:{bg:'assets/giggi-bg.webp',subj:'assets/giggi-subj.webp',fg:'assets/giggi-fg.webp',sx:90,sy:330,sh:640,fgx:-120,shK:.35,shD:-.03,shY:30,shX:.5,dS:.6,dF:1.35},
-  final:{bg:'assets/final-bg.webp',subj:'assets/void-subj.webp',fg:'assets/void-fg.webp',sx:80,sy:210,sh:780,tcx:1420,tw:1160,fgx:-120,shK:.55,shD:-.045,shY:20,shX:.5,dS:.6,dF:1.35}
+"void": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.5,
+"bg": "assets/void-bg.webp",
+"fg": "assets/void-fgn.webp",
+"tcx": 1430,
+"tw": 1100,
+"fgx": -60,
+"objs": [
+{
+"src": "assets/void-stage.webp",
+"sx": 84,
+"sy": 196,
+"sh": 780,
+"d": 0.45
+},
+{
+"src": "assets/void-grid.webp",
+"sx": 520,
+"sy": 196,
+"sh": 780,
+"d": 0.7
+},
+{
+"src": "assets/void-iron.webp",
+"sx": 296,
+"sy": 150,
+"sh": 830,
+"d": 1.05
+}
+],
+"notes": [
+{
+"t": "THE STAGE\nstreet rock",
+"x": 64,
+"y": 112,
+"size": 62,
+"rot": -5,
+"col": "#ff6a58",
+"ul": 1,
+"ar": [
+150,
+176,
+196,
+196,
+214,
+214
+]
+},
+{
+"t": "THE IRON\ngym",
+"x": 392,
+"y": 66,
+"size": 62,
+"rot": -2,
+"col": "#efe6d0",
+"ul": 1,
+"ar": [
+470,
+128,
+498,
+142,
+466,
+168
+]
+},
+{
+"t": "THE GRID\ncyber tech",
+"x": 668,
+"y": 112,
+"size": 62,
+"rot": 4,
+"col": "#4cecef",
+"ul": 1,
+"ar": [
+726,
+176,
+756,
+192,
+712,
+222
+]
+}
+]
+},
+"giggi": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.5,
+"bg": "assets/giggi-bg.webp",
+"fg": "assets/giggi-fgn.webp",
+"tcx": 1450,
+"tw": 1120,
+"fgx": -60,
+"objs": [
+{
+"src": "assets/giggi-liner.webp",
+"sx": 10,
+"sy": 560,
+"sh": 430,
+"d": 0.35,
+"flat": 1
+},
+{
+"src": "assets/giggi-burger.webp",
+"sx": 300,
+"sy": 330,
+"sh": 600,
+"d": 0.55
+},
+{
+"src": "assets/giggi-can.webp",
+"sx": 700,
+"sy": 520,
+"sh": 420,
+"d": 0.8
+},
+{
+"src": "assets/giggi-fries.webp",
+"sx": 70,
+"sy": 560,
+"sh": 380,
+"d": 1.0
+}
+],
+"notes": [
+{
+"t": "scroll to take it apart",
+"x": 270,
+"y": 270,
+"size": 58,
+"rot": -4,
+"col": "#f2c46a",
+"ul": 1,
+"ar": [
+330,
+300,
+330,
+330,
+372,
+350
+]
+},
+{
+"t": "six drinks",
+"x": 720,
+"y": 470,
+"size": 54,
+"rot": 4,
+"col": "#f2c46a",
+"ul": 1
+},
+{
+"t": "custom packaging",
+"x": 60,
+"y": 520,
+"size": 54,
+"rot": -5,
+"col": "#f2c46a",
+"ul": 1
+}
+]
+},
+"right": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.5,
+"bg": "assets/right-bg.webp",
+"fg": "assets/right-fgn.webp",
+"side": "L",
+"tcx": 590,
+"tw": 930,
+"fgx": 60,
+"objs": [
+{
+"src": "assets/right-girl.webp",
+"sx": 1200,
+"sy": 250,
+"sh": 700,
+"d": 0.5
+},
+{
+"src": "assets/right-jack.webp",
+"sx": 1735,
+"sy": 500,
+"sh": 370,
+"d": 0.8,
+"fly": 1,
+"fl": 1
+},
+{
+"src": "assets/right-bike.webp",
+"sx": 1360,
+"sy": 620,
+"sh": 340,
+"d": 1.0
+}
+],
+"notes": [
+{
+"t": "a worried child",
+"x": 1130,
+"y": 190,
+"size": 58,
+"rot": -4,
+"col": "#ffb25b",
+"ul": 1,
+"ar": [
+1290,
+222,
+1330,
+240,
+1318,
+270
+]
+},
+{
+"t": "a broken bike",
+"x": 1400,
+"y": 540,
+"size": 52,
+"rot": 3,
+"col": "#ffb25b",
+"ul": 1,
+"ar": [
+1470,
+572,
+1500,
+588,
+1488,
+624
+]
+},
+{
+"t": "JACK, 12-in-1",
+"x": 1650,
+"y": 390,
+"size": 58,
+"rot": 4,
+"col": "#ff6a48",
+"ul": 1,
+"ar": [
+1790,
+426,
+1830,
+440,
+1818,
+492
+]
+}
+]
+},
+"frames": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.5,
+"bg": "assets/frames-bg.webp",
+"fg": "assets/frames-fg.webp",
+"tcx": 1500,
+"tw": 980,
+"fgx": -60,
+"objs": [
+{
+"src": "assets/frames-deck.webp",
+"sx": 40,
+"sy": 190,
+"sh": 640,
+"d": 0.3,
+"fly": 1,
+"fl": 1
+},
+{
+"src": "assets/frames-stack.webp",
+"sx": 400,
+"sy": 330,
+"sh": 430,
+"d": 0.5,
+"fly": 1
+},
+{
+"src": "assets/frames-hero.webp",
+"sx": 250,
+"sy": 430,
+"sh": 340,
+"d": 1.1,
+"fly": 1,
+"fl": 1
+},
+{
+"src": "assets/frames-bar.webp",
+"sx": 300,
+"sy": 850,
+"sh": 96,
+"d": 0.9,
+"fly": 1
+}
+],
+"notes": [
+{
+"t": "72 frames, one clip",
+"x": 470,
+"y": 250,
+"size": 58,
+"rot": -4,
+"col": "#59eef1",
+"ul": 1,
+"ar": [
+590,
+286,
+640,
+310,
+650,
+360
+]
+},
+{
+"t": "pick the keyframe",
+"x": 290,
+"y": 372,
+"size": 50,
+"rot": -3,
+"col": "#ffc83a",
+"ul": 1
+},
+{
+"t": "the control deck",
+"x": 40,
+"y": 150,
+"size": 52,
+"rot": -3,
+"col": "#ffc83a",
+"ul": 1
+},
+{
+"t": "temporal QA for AI video",
+"x": 330,
+"y": 800,
+"size": 50,
+"rot": 2,
+"col": "#59eef1",
+"ul": 1
+}
+]
+},
+"creative": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.4,
+"bg": "assets/creative-bg.webp",
+"fg": null,
+"tcx": 1500,
+"tw": 980,
+"fgx": -60,
+"objs": [
+{
+"src": "assets/creative-car.webp",
+"sx": 330,
+"sy": 590,
+"sh": 300,
+"d": 0.45,
+"fly": 1
+},
+{
+"src": "assets/creative-lens.webp",
+"sx": 50,
+"sy": 250,
+"sh": 540,
+"d": 0.9,
+"fly": 1,
+"fl": 1
+},
+{
+"src": "assets/creative-type.webp",
+"sx": 640,
+"sy": 300,
+"sh": 560,
+"d": 1.1,
+"fly": 1
+}
+],
+"notes": [
+{
+"t": "real-time glass lens",
+"x": 70,
+"y": 200,
+"size": 54,
+"rot": -4,
+"col": "#ffc83a",
+"ul": 1,
+"ar": [
+220,
+236,
+260,
+250,
+250,
+300
+]
+},
+{
+"t": "Type Lab",
+"x": 700,
+"y": 250,
+"size": 58,
+"rot": 3,
+"col": "#59eef1",
+"ul": 1
+},
+{
+"t": "hidden stories",
+"x": 330,
+"y": 930,
+"size": 50,
+"rot": -2,
+"col": "#ffc83a",
+"ul": 1
+}
+]
+},
+"pomata": {
+"shK": 0.45,
+"shD": -0.04,
+"shY": 14,
+"shX": 0.5,
+"dF": 1.3,
+"bg": "assets/pomata-bg.webp",
+"fg": null,
+"tcx": 1500,
+"tw": 960,
+"fgx": -60,
+"objs": [
+{
+"src": "assets/pomata-m1.webp",
+"sx": 470,
+"sy": 170,
+"sh": 780,
+"d": 0.4,
+"fly": 1
+},
+{
+"src": "assets/pomata-m3.webp",
+"sx": 700,
+"sy": 200,
+"sh": 760,
+"d": 0.65,
+"fly": 1
+},
+{
+"src": "assets/pomata-m0.webp",
+"sx": 40,
+"sy": 200,
+"sh": 780,
+"d": 0.9,
+"fly": 1
+},
+{
+"src": "assets/pomata-m2.webp",
+"sx": 250,
+"sy": 150,
+"sh": 830,
+"d": 1.15,
+"fly": 1
+}
+],
+"notes": [
+{
+"t": "illustrated tees",
+"x": 60,
+"y": 130,
+"size": 56,
+"rot": -4,
+"col": "#fff1c4",
+"ul": 1
+},
+{
+"t": "four looks",
+"x": 560,
+"y": 120,
+"size": 52,
+"rot": 3,
+"col": "#ffd166",
+"ul": 1
+}
+]
+}
 };
 const loadImg=src=>new Promise(r=>{const im=new Image();im.decoding='async';im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
-await Promise.all(SPREADS.map(async s=>{const a=ART[s.k||s.type];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(loadImg));if(bg)s.art={...a,bg,subj,fg}}));
+await Promise.all(SPREADS.map(async s=>{const a=ART[s.k||s.type];if(!a)return;const [bg,subj,fg]=await Promise.all([a.bg,a.subj,a.fg].map(u=>u?loadImg(u):null));const objs=a.objs?await Promise.all(a.objs.map(async o=>({...o,img:await loadImg(o.src)}))):null;if(bg)s.art={...a,bg,subj,fg,objs}}));
 const LM=.04; // layer overscan, so parallax never reveals an empty edge
 
 // free text on the illustration: soft scrim, no box; only the tip keeps its box. The big word is its own layer.
@@ -263,6 +758,18 @@ function ruleText(x,s,part){
   x.fillStyle=g;x.fillRect(L?0:PW,0,PW,PH);
   lay(true,top+19);
 }
+function drawNotes(x,ns){ns.forEach(n=>{
+  const sz=n.size||46,col=n.col||'#fff7e6',halo='rgba(8,4,16,.82)';
+  x.save();x.lineCap='round';x.lineJoin='round';
+  if(n.ar){const [x1,y1,cx,cy,x2,y2]=n.ar,pth=()=>{x.beginPath();x.moveTo(x1,y1);x.quadraticCurveTo(cx,cy,x2,y2)},an=Math.atan2(y2-cy,x2-cx),hd=()=>{x.beginPath();x.moveTo(x2+Math.cos(an+2.7)*26,y2+Math.sin(an+2.7)*26);x.lineTo(x2,y2);x.lineTo(x2+Math.cos(an-2.7)*26,y2+Math.sin(an-2.7)*26)};
+    x.strokeStyle=halo;x.lineWidth=11;pth();x.stroke();hd();x.stroke();x.strokeStyle=col;x.lineWidth=5;pth();x.stroke();hd();x.stroke()}
+  x.translate(n.x,n.y);x.rotate((n.rot||0)*Math.PI/180);x.font='700 '+sz+'px Caveat,"Segoe Script","Bradley Hand",cursive';x.textAlign=n.align||'left';
+  const L=n.t.split('\n');
+  L.forEach((ln,i)=>{const y=i*sz*.92,f=i===0?sz:sz*.78;x.font='700 '+f+'px Caveat,"Segoe Script","Bradley Hand",cursive';x.strokeStyle=halo;x.lineWidth=f*.24;x.strokeText(ln,0,y);x.fillStyle=i===0?col:'#fff7e6';x.fillText(ln,0,y)});
+  if(n.ul){x.font='700 '+sz+'px Caveat,cursive';const w=x.measureText(L[0]).width,x0=n.align==='center'?-w/2:n.align==='right'?-w:0;
+    x.strokeStyle=halo;x.lineWidth=10;x.beginPath();x.moveTo(x0,sz*.18);x.quadraticCurveTo(x0+w*.5,sz*.3,x0+w,sz*.12);x.stroke();
+    x.strokeStyle=col;x.lineWidth=4.5;x.beginPath();x.moveTo(x0,sz*.18);x.quadraticCurveTo(x0+w*.5,sz*.3,x0+w,sz*.12);x.stroke()}
+  x.restore()})}
 function drawSpread(s,mode='full',m=0){
   const ox=Math.round(PW*2*m),oy=Math.round(PH*m);
   const c=mk(PW*2+ox*2,PH+oy*2),x=c.getContext('2d');x.translate(ox,oy);
@@ -270,16 +777,19 @@ function drawSpread(s,mode='full',m=0){
   if(s.art){const A=s.art,fx=PW*2*LM,fy=PH*LM;
     if(B){x.drawImage(A.bg,0,0,PW*2,PH);ruleText(x,s,'text');grain(x,PW*2,PH,.025)}
     if(F||mode==='title')ruleText(x,s,'title');
-    if(MO&&A.subj){const w=A.subj.width*A.sh/A.subj.height,h=A.sh,fx0=A.sx+w*(A.shX||.5),fy0=A.sy+h-(A.shY||6);
-      if(!A.sil){const c2=mk(A.subj.width,A.subj.height),q=c2.getContext('2d');q.drawImage(A.subj,0,0);q.globalCompositeOperation='source-in';q.fillStyle='#1a0f24';q.fillRect(0,0,c2.width,c2.height);A.sil=c2}
-      // cast shadow: silhouette laid on the ground, thrown toward the viewer and left (sun low on the right horizon)
-      x.save();x.translate(fx0,fy0);x.transform(1,0,A.shK||.6,A.shD||-.2,0,0);
-      for(let i=0;i<7;i++){x.globalAlpha=.11;const o=(i-3)*5;x.drawImage(A.sil,-w/2+o,-h+Math.abs(o),w,h)}
-      x.restore();
-      // contact shadow under the shoes
-      const g=x.createRadialGradient(fx0,fy0,4,fx0,fy0,w*.42);g.addColorStop(0,'rgba(20,10,30,.72)');g.addColorStop(1,'rgba(20,10,30,0)');
-      x.save();x.translate(fx0,fy0);x.scale(1,.18);x.translate(-fx0,-fy0);x.fillStyle=g;x.beginPath();x.arc(fx0,fy0,w*.42,0,7);x.fill();x.restore();
-      x.globalAlpha=1;x.drawImage(A.subj,A.sx,A.sy,w,h)}
+    {const OBJ=A.objs?A.objs.filter(o=>o.img):(A.subj?[{img:A.subj,sx:A.sx,sy:A.sy,sh:A.sh,shX:A.shX,shY:A.shY,shK:A.shK,shD:A.shD}]:[]);
+      OBJ.forEach((o,i)=>{if(!(MO||mode==='o'+i))return;
+        const w=o.img.width*o.sh/o.img.height,h=o.sh,fx0=o.sx+w*(o.shX||A.shX||.5),fy0=o.sy+h-(o.shY!=null?o.shY:(A.shY||6));
+        if(o.flat){x.drawImage(o.img,o.sx,o.sy,w,h);return}
+        if(o.fly){x.save();x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=36;x.shadowOffsetY=26;x.drawImage(o.img,o.sx,o.sy,w,h);x.restore();return}
+        if(!o.sil){const c2=mk(o.img.width,o.img.height),q=c2.getContext('2d');q.drawImage(o.img,0,0);q.globalCompositeOperation='source-in';q.fillStyle=A.shC||'#1a0f24';q.fillRect(0,0,c2.width,c2.height);o.sil=c2}
+        if(o.shK!==0){x.save();x.translate(fx0,fy0);x.transform(1,0,o.shK||A.shK||.6,o.shD||A.shD||-.2,0,0);
+          for(let k=0;k<7;k++){x.globalAlpha=.1;const q=(k-3)*5;x.drawImage(o.sil,-w/2+q,-h+Math.abs(q),w,h)}
+          x.restore()}
+        const g=x.createRadialGradient(fx0,fy0,4,fx0,fy0,w*.42);g.addColorStop(0,'rgba(20,10,30,.7)');g.addColorStop(1,'rgba(20,10,30,0)');
+        x.save();x.translate(fx0,fy0);x.scale(1,.18);x.translate(-fx0,-fy0);x.fillStyle=g;x.beginPath();x.arc(fx0,fy0,w*.42,0,7);x.fill();x.restore();
+        x.globalAlpha=1;x.drawImage(o.img,o.sx,o.sy,w,h)});
+      if(A.notes&&(F||mode==='notes'))drawNotes(x,A.notes)}
     if(WO&&A.fg){const gx=A.fgx||0,W0=PW*2+fx*2,k=A.fgk||(1+(Math.abs(gx)+10)/W0),fw=W0*k,fh=(PH+fy*2)*k; // layer is scaled up just enough to keep covering the page edge it was shifted away from
       x.drawImage(A.fg,-fx+gx-(gx>0?fw-W0:0),-fy-(fh-(PH+fy*2)),fw,fh)};
     return c}
@@ -306,9 +816,9 @@ function drawSpread(s,mode='full',m=0){
     if(B)block(x,{x0:1140,y:560,w:780,col:s.col,kicker:'Studio rule ✦ '+s.k,title:s.title,body:s.body,tip:s.tip,tipBg:s.tipBg,tipFg:s.tipFg,tipSh:s.tipSh});
   } else {
     if(MO)M.worlds(x);
-    if(WO)bigWord(x,s.word,1024,300,1760,380,{fill:SU,sh:PK,ol:CO});
-    if(B)block(x,{x0:1140,y:560,w:780,col:C,kicker:s.kicker,title:s.title,body:s.body,
-      lines:['sites.smartlabdesign.it/voidsignal','sites.smartlabdesign.it/giggiooo-burger-v2','sites.smartlabdesign.it']});
+    if(WO)bigWord(x,"LET'S BUILD",1024,300,1760,380,{fill:SU,sh:PK,ol:CO});
+    if(B)block(x,{x0:1140,y:560,w:780,col:C,kicker:'Last page ✦ your turn',title:'Got an idea?',body:'The studio is open to brand identities, cinematic websites, motion and interactive tools. Bring the scribble.',
+      lines:['sites.smartlabdesign.it','linkedin.com/in/alessio-talluto','jamez.ichat@gmail.com']});
   }
   if(B)grain(x,PW*2,PH,.04);
   return c;
@@ -498,7 +1008,7 @@ function settle(){
   const tl=tex(pageFrom(base,'L'),true),tr=tex(pageFrom(base,'R'));
   const lm=leaves[cur-1].mb.material,rm=leaves[cur].mf.material;
   swapped=[[lm,lm.map,tl],[rm,rm.map,tr]];lm.map=tl;rm.map=tr;lm.needsUpdate=rm.needsUpdate=true;
-  const plan=s.art?[['title',s.art.dT||.35,1],['motif',s.art.dS,0],['word',s.art.dF,0]]:[['motif',.55,0],['word',1,1]];
+  const plan=s.art?[['title',s.art.dT||.35,1],...(s.art.objs?s.art.objs.map((o,i)=>['o'+i,o.d,o.fl?1:0]):[['motif',s.art.dS||.6,0]]),...(s.art.fg?[['word',s.art.dF,0]]:[]),...(s.art.notes?[['notes',s.art.nd||1.6,1]]:[])]:[['motif',.55,0],['word',1,1]];
   plan.forEach(([md,d,fl],k)=>{
     const mat=layerMat(drawSpread(s,md,LM));
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W,H),mat);
