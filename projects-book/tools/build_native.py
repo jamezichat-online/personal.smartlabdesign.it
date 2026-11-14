@@ -17,7 +17,10 @@ def rep(s, a, b):
 DEF = dict(shK=.45, shD=-.04, shY=14, shX=.5, dF=1.35)
 
 # ----------------------------------------------------------------- content, in site order
-from book_data import SPREADS_DATA, ART_DATA, ENABLED
+import importlib
+ED = sys.argv[1] if len(sys.argv) > 1 else 'native'   # edition = output folder; 'native' is the original, anything else is a copy with its own data
+D = importlib.import_module('book_data' if ED == 'native' else 'book_data_' + ED)
+SPREADS_DATA, ART_DATA, ENABLED = D.SPREADS_DATA, D.ART_DATA, D.ENABLED
 
 def pal(p):
     return "pal:{word:{fill:'%s',sh:'%s',ol:'%s'},tipBg:'%s',tipSh:'%s'}," % (p['fill'], p['sh'], p['ol'], p['tip'], p['tipSh'])
@@ -27,8 +30,9 @@ def js_spreads():
     for d in SPREADS_DATA:
         if d['k'] not in ENABLED: continue
         side = "side:'L'," if d.get('side') == 'L' else ''
+        extra = ''.join('%s:%s,' % (f, json.dumps(d[f])) for f in ('url', 'name') if f in d)
         out.append("{type:'rule',k:%s,word:%s,%s%skicker:%s,tipLabel:'OPEN THE PROJECT',title:%s,body:%s,tip:%s}" % (
-            json.dumps(d['k']), json.dumps(d['word']), pal(d['pal']), '', json.dumps(d['kicker']), json.dumps(d['title']), json.dumps(d['body']), json.dumps(d['tip'])))
+            json.dumps(d['k']), json.dumps(d['word']), pal(d['pal']), extra, json.dumps(d['kicker']), json.dumps(d['title']), json.dumps(d['body']), json.dumps(d['tip'])))
     return 'const RULES=[];\nconst SPREADS=[\n ' + ',\n '.join(out) + '\n];\nconst ART=' + json.dumps({k: {**DEF, **v} for k, v in ART_DATA.items() if k in ENABLED}, indent=0) + ';\n'
 
 s = src
@@ -108,5 +112,7 @@ s = re.sub(r'<meta name="description" content="[^"]*">', '<meta name="descriptio
 s = s.replace("fs=Math.min(fs*860/mw,330);", "fs=Math.min(fs*860/mw,210);").replace("x.strokeText('WAY.',92,690)", "x.strokeText('WAY.',92,700)")
 s = s.replace("const copy=document.getElementById('copy');\ncopy.onclick", "const copy=document.getElementById('copy');\nif(copy)copy.onclick")
 s = s.replace('  <script src="/assets/consent.js" defer></script>\n', '')
-open(R + 'projects-book/native/index.html', 'w', encoding='utf-8').write(s)
-print('native ok', len([d for d in SPREADS_DATA if d['k'] in ENABLED]), 'spreads')
+if ED != 'native':
+    s = importlib.import_module(ED + '_engine').patch(s, D, rep)
+open(R + 'projects-book/%s/index.html' % ED, 'w', encoding='utf-8').write(s)
+print(ED, 'ok', len([d for d in SPREADS_DATA if d['k'] in ENABLED]), 'spreads')

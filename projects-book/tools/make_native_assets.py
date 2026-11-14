@@ -1,7 +1,9 @@
 """Native edition layer files. Every object is its own trimmed transparent webp (assets/<spread>-<name>.webp)."""
 import os
 from assetlib import *
-NA = R + 'projects-book/native/assets/'
+import sys
+ED = sys.argv[1] if len(sys.argv) > 1 else 'native'
+NA = R + 'projects-book/%s/assets/' % ED
 def A(n): return NA + n
 
 def build(spec):
@@ -22,5 +24,9 @@ import sys
 for extra in ('spec_void', 'spec_giggi', 'spec_p3'):
     pass
 if __name__ == '__main__':
-    from specs import SPECS
-    build(SPEC + SPECS)
+    if ED == 'native':
+        from specs import SPECS
+        build(SPEC + SPECS)
+    else:
+        import importlib
+        build(importlib.import_module('specs_' + ED).SPECS)
