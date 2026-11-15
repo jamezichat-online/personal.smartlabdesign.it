@@ -18,7 +18,7 @@ header{padding:clamp(28px,6vh,56px) 20px 0;text-align:center}
 h1{margin:12px 0 0;font:400 clamp(30px,4.4vw,54px)/1 "Archivo Black",sans-serif;letter-spacing:-.03em;text-wrap:balance}
 h1 b{color:var(--sun);font-weight:400}
 .sub{margin:14px auto 0;max-width:34ch;font-size:clamp(18px,1.6vw,22px);line-height:1.25;color:rgba(255,246,220,.78);text-wrap:balance}
-main{flex:1;width:100%;max-width:1080px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:clamp(20px,3vw,40px);padding:clamp(28px,5vh,52px) 20px 48px;align-content:center}
+main{flex:1;width:100%;max-width:1080px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,3vw,40px);padding:clamp(28px,5vh,52px) clamp(12px,3vw,20px) 48px;align-content:center}
 .book{display:flex;flex-direction:column;color:inherit;text-decoration:none;border:1.5px solid rgba(255,246,220,.22);border-radius:22px;background:rgba(2,26,25,.55);overflow:hidden;
   transition:transform .35s cubic-bezier(.2,0,0,1),box-shadow .35s cubic-bezier(.2,0,0,1),border-color .2s}
 .book:hover,.book:focus-visible{transform:translateY(-6px) rotate(-.4deg);border-color:var(--sun);box-shadow:9px 9px 0 var(--pink)}
@@ -26,14 +26,19 @@ main{flex:1;width:100%;max-width:1080px;display:grid;grid-template-columns:repea
 .book:focus-visible{outline:2px solid var(--sun);outline-offset:4px}
 .book:active{transform:scale(.98)}
 .book img{display:block;width:100%;height:auto;aspect-ratio:600/460;object-fit:cover;background:var(--deep)}
-.meta{padding:20px 24px 24px;display:flex;flex-direction:column;gap:8px}
+.meta{flex:1;padding:20px 24px 24px;display:flex;flex-direction:column;gap:8px}
 .tag{font:500 11px var(--fm);letter-spacing:.16em;text-transform:uppercase;color:var(--sun)}
 .meta h2{margin:0;font:400 clamp(26px,2.4vw,32px)/1 "Archivo Black",sans-serif;letter-spacing:-.03em}
-.meta p{margin:0;font-size:19px;line-height:1.25;color:rgba(255,246,220,.82)}
-.go{margin-top:10px;align-self:flex-start;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 20px;border:1.5px solid var(--cream);border-radius:999px;font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;transition:background-color .2s,color .2s,border-color .2s}
+.meta p{margin:0 0 10px;font-size:19px;line-height:1.25;color:rgba(255,246,220,.82)}
+.go{margin-top:auto;align-self:flex-start;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 20px;border:1.5px solid var(--cream);border-radius:999px;font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;transition:background-color .2s,color .2s,border-color .2s}
 .book:hover .go,.book:focus-visible .go{background:var(--sun);border-color:var(--sun);color:var(--ink)}
 footer{padding:0 20px 28px;font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,246,220,.5)}
 footer a{color:inherit}
+@media (max-width:640px){
+  .book{border-radius:16px}.book:hover,.book:focus-visible{box-shadow:5px 5px 0 var(--pink)}
+  .meta{padding:12px 12px 14px;gap:6px}.tag{font-size:9px;letter-spacing:.1em}.meta h2{font-size:17px}.meta p{font-size:15px}
+  .go{min-height:40px;padding:0 14px;font-size:10px}
+}
 @media (prefers-reduced-motion:reduce){.book{transition:none}.book:hover,.book:focus-visible{transform:none}}
 </style>
 </head>
