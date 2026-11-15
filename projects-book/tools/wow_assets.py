@@ -1,44 +1,42 @@
-"""Type Lens spread, rebuilt from the project's own graphics (type-lens/): the Ocean Drive scene, the Type Lab specimen and
-the 'Creative Force' secret that the glass lens reveals in Hidden Stories."""
-from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageChops
+"""Type Lens spread, rebuilt from the project's own graphics (type-lens/): the Ocean Drive scene of Hidden Stories as the background
+(the real GLSL lens is a live layer, see wow_live.js) and one card per experiment: Type Lab, Hidden Stories, Hidden Layers."""
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from assetlib import R, save
 T = R + 'type-lens/'; O = R + 'projects-book/wow/assets/'
 W, H = 2048, 1004
 
-# ---- background: whole scene at full height on the art page; the text page continues it out of focus
+# ---- background: the scene sits on the right-hand art page (so the hidden sign is reachable), the text page continues it out of focus
 src = Image.open(T + 'assets/ocean.webp').convert('RGB')
 k = H / src.height; sw = round(src.width * k)
 sc = src.resize((sw, H), Image.LANCZOS)
+x0 = W - sw
 bg = Image.new('RGB', (W, H))
-ext = sc.crop((sw - (W - sw) - 40, 0, sw, H)).transpose(Image.FLIP_LEFT_RIGHT)
-bg.paste(ext, (sw - 40, 0)); bg.paste(sc, (0, 0))
-soft = bg.filter(ImageFilter.GaussianBlur(26))
+ext = sc.crop((0, 0, x0 + 60, H)).transpose(Image.FLIP_LEFT_RIGHT)
+bg.paste(ext, (0, 0)); bg.paste(sc, (x0, 0))
+soft = bg.filter(ImageFilter.GaussianBlur(24))
 m = Image.new('L', (W, H), 0); d = ImageDraw.Draw(m)
-for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((x - 1050) / 230 * 255))))
+for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((1120 - x) / 340 * 255))))
 bg = Image.composite(soft, bg, m)
 save(bg, O + 'creative-bg.webp', 86)
+print('sign at', x0 + round(.855 * sw), round(.245 * H))
 
-# ---- the lens: magnified scene + the hidden graffiti, glass rim, highlight
-S = 2; D = 520; r = 236; c = D // 2
-cx, cy = 949, 481                                        # where the lens floats on the spread
-crop = bg.crop((cx - 190, cy - 190, cx + 190, cy + 190)).resize((D * S, D * S), Image.LANCZOS)
-crop = ImageEnhance.Brightness(crop.filter(ImageFilter.GaussianBlur(3 * S))).enhance(.5)
-g = Image.open(T + 'assets/secret-graffiti.webp').convert('RGBA'); gw = int(D * S * .86); g = g.resize((gw, round(g.height * gw / g.width)), Image.LANCZOS).rotate(7, expand=True, resample=Image.BICUBIC)
-inner = crop.convert('RGBA'); inner.alpha_composite(g, ((D * S - g.width) // 2, (D * S - g.height) // 2))
-mask = Image.new('L', (D * S, D * S), 0); ImageDraw.Draw(mask).ellipse((S * (c - r), S * (c - r), S * (c + r), S * (c + r)), fill=255)
-lens = Image.new('RGBA', (D * S, D * S), (0, 0, 0, 0)); lens.paste(inner, (0, 0), mask)
-ov = Image.new('RGBA', (D * S, D * S), (0, 0, 0, 0)); q = ImageDraw.Draw(ov)
-for i, (wd, col) in enumerate([(22, (10, 30, 34, 150)), (20, (255, 250, 238, 240)), (4, (120, 235, 240, 220))]):
-    rr = r + 9 - i * 5
-    q.ellipse((S * (c - rr), S * (c - rr), S * (c + rr), S * (c + rr)), outline=col, width=wd * S // 2)
-q.arc((S * (c - r + 26), S * (c - r + 26), S * (c + r - 26), S * (c + r - 26)), 200, 262, fill=(255, 255, 255, 190), width=7 * S)
-q.arc((S * (c - r + 26), S * (c - r + 26), S * (c + r - 26), S * (c + r - 26)), 30, 58, fill=(255, 255, 255, 90), width=4 * S)
-lens.alpha_composite(ov)
-save(lens.resize((D, D), Image.LANCZOS), O + 'creative-lens.webp', 92)
-
-# ---- Type Lab specimen card, straight from the tool
-cv = Image.open(T + 'cover.jpg').convert('RGB')
-print('cover', cv.size)
-card = cv.crop((40, 200, 992, 874)).convert('RGBA')
-cm = Image.new('L', card.size, 0); ImageDraw.Draw(cm).rounded_rectangle((0, 0, card.width - 1, card.height - 1), 14, fill=255); card.putalpha(cm)
-save(card, O + 'creative-card.webp', 92)
+# ---- one card per experiment, straight from the published tool
+FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'
+def card(img, label, dst, size=(560, 400), crop=None):
+    im = img.convert('RGB')
+    if crop: im = im.crop(crop)
+    k = max(size[0] / im.width, size[1] / im.height); im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
+    im = im.crop(((im.width - size[0]) // 2, (im.height - size[1]) // 2, (im.width + size[0]) // 2, (im.height + size[1]) // 2))
+    pad = 10; c = Image.new('RGBA', (size[0] + pad * 2, size[1] + pad * 2 + 34), (0, 0, 0, 0))
+    m = Image.new('L', c.size, 0); ImageDraw.Draw(m).rounded_rectangle((0, 30, c.width - 1, c.height - 1), 22, fill=255)
+    fr = Image.new('RGBA', c.size, (255, 244, 214, 255)); c.paste(fr, (0, 0), m)
+    mi = Image.new('L', size, 0); ImageDraw.Draw(mi).rounded_rectangle((0, 0, size[0] - 1, size[1] - 1), 14, fill=255)
+    c.paste(im.convert('RGBA'), (pad, 30 + pad), mi)
+    q = ImageDraw.Draw(c); f = ImageFont.truetype(FONT, 22); tw = q.textlength(label, font=f) + 34
+    q.rectangle((26 + 6, 0 + 6, 26 + tw + 6, 40 + 6), fill=(255, 61, 154, 255)); q.rectangle((26, 0, 26 + tw, 40), fill=(255, 200, 58, 255))
+    q.text((26 + 17, 8), label, font=f, fill=(4, 33, 31, 255))
+    save(c, dst, 90)
+cv = Image.open(T + 'cover.jpg'); cs = Image.open(T + 'cover-stories.jpg'); lb = Image.open(T + 'assets/layers-blueprint.webp')
+card(cv, 'TYPE LAB', O + 'creative-c0.webp', crop=(40, 190, 1000, 880))
+card(cs, 'HIDDEN STORIES', O + 'creative-c1.webp', crop=(30, 190, 1000, 880))
+card(lb, 'HIDDEN LAYERS', O + 'creative-c2.webp')

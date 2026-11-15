@@ -132,4 +132,64 @@ def patch(s, D, rep):
     s = rep(s, "    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,500,58,4);x.fill();", COVER_JS + "    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,500,58,4);x.fill();")
     s = rep(s, 'Projects the studio shipped, and how they were made.<br>Project edition', 'Six projects the studio shipped,<br>and how they were made.')
     s = s.replace('Made This Way (Project Edition) — SmartLabDesign', 'Made This Way — SmartLabDesign projects, as a pop-up book')
+    import os
+    s = live_patch(s, rep, os.path.dirname(os.path.abspath(__file__)))
+    return s
+
+
+# ====================================================================================================== live layers
+GLUE = r"""
+/* ---------- live layers (stack/hero/bar, orbit, rack, lens) ---------- */
+%LK%
+let lv=[],ptrT=-9;
+addEventListener('pointermove',e=>{if(e.pointerType==='mouse')ptrT=performance.now()},{passive:true});
+const LVV='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const LVF='uniform sampler2D map;uniform float gain;varying vec2 vUv;void main(){vec4 c=texture2D(map,vUv);gl_FragColor=vec4(c.rgb*gain,c.a);}';
+const liveP=(s,u)=>(s.art.live||[]).map((l,i)=>[l,i]).filter(([l])=>!!l.under===!!u).map(([l,i])=>['L'+i,l.d,l.fl?1:0]);
+function liveMake(s,i,d,fl,k){
+  const A=s.art,o=A.live[i],kd=LK[o.kind];if(!kd)return;
+  const L={o,A,d,fl:!!fl,k,e:RM?1:0,w:o.w,h:o.h,t0:tm,sx:0,sy:0,scl:1};
+  if(kd.init)kd.init(L,A,o);
+  let mat=L.mat;
+  if(!mat){L.cv=mk(L.w,L.h);L.ctx=L.cv.getContext('2d');L.tex=new THREE.CanvasTexture(L.cv);L.tex.minFilter=THREE.LinearFilter;L.tex.generateMipmaps=false;
+    mat=new THREE.ShaderMaterial({uniforms:{map:{value:L.tex},gain:{value:1.04}},vertexShader:LVV,fragmentShader:LVF,transparent:true,depthWrite:false});L.mat=mat;
+    L.bx=((o.x+L.w/2)/(2*PW)-.5)*2*W;L.bz=((o.y+L.h/2)/PH-.5)*H}
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(L.w*W/PW,L.h*H/PH),mat);
+  mesh.rotation.x=-Math.PI/2;mesh.renderOrder=3+k;mesh.position.set(L.bx||0,topY()+k*.002,L.bz||0);book.add(mesh);L.mesh=mesh;
+  if(!RM)gsap.to(L,{e:1,duration:1.25,delay:.08+k*.085,ease:'power3.out'});
+  lv.push(L);
+}
+function liveDrop(){lv.forEach(L=>{gsap.killTweensOf(L);book.remove(L.mesh);L.mesh.geometry.dispose();const u=L.mat.uniforms;Object.keys(u).forEach(n=>{const v=u[n].value;if(v&&v.isTexture&&n!=='page')v.dispose()});L.mat.dispose()});lv=[]}
+function liveStill(x,A){(A.live||[]).forEach(o=>{const kd=LK[o.kind];if(!kd||kd.gl||o.under||!kd.draw)return;
+  const L={o,A,w:o.w,h:o.h,still:1,e:1};if(kd.init)kd.init(L,A,o);const c=mk(L.w,L.h);kd.draw(c.getContext('2d'),0,L);x.drawImage(c,o.x,o.y)})}
+const rcast=new THREE.Raycaster(),vq=new THREE.Vector3(),vd=new THREE.Vector3(),vinv=new THREE.Matrix4();let lvP=0;
+function ptrSpread(){rcast.setFromCamera({x:ptr.x,y:-ptr.y},cam);vinv.copy(book.matrixWorld).invert();vq.copy(rcast.ray.origin).applyMatrix4(vinv);vd.copy(rcast.ray.direction).transformDirection(vinv);
+  if(Math.abs(vd.y)<1e-6)return null;const t=(topY()-vq.y)/vd.y;if(t<0)return null;return {x:(vq.x+vd.x*t)/(2*W)*2*PW+PW,y:((vq.z+vd.z*t)/H+.5)*PH}}
+function liveTick(){
+  if(!lv.length)return;const now=performance.now(),dt=Math.min(.05,Math.max(.001,(now-(lvP||now))/1000));lvP=now;
+  const kk=RM?0:1,cx={dt,ptrActive:false,px:0,py:0};
+  if(lv.some(L=>LK[L.o.kind].update)&&now-ptrT<2600&&!RM){const p=ptrSpread();if(p){cx.ptrActive=true;cx.px=p.x;cx.py=p.y}}
+  lv.forEach(L=>{const kd=LK[L.o.kind],e=L.e,f=e*kk*L.d,ph=L.k*1.9,t=tm-L.t0;
+    const sx=tilt.x*.034*f+(L.fl?Math.cos(tm*.9+ph)*.0012*e*kk:0),sy=-tilt.y*.03*f+(L.fl?Math.sin(tm*1.3+ph)*.0036*e*kk:0);
+    L.sx=sx*2*PW;L.sy=-sy*PH;
+    if(kd.update)kd.update(L,t,sx,sy,cx);
+    if(kd.draw&&L.ctx){L.ctx.clearRect(0,0,L.w,L.h);kd.draw(L.ctx,t,L);L.tex.needsUpdate=true}
+    const pop=L.o.pop!=null?L.o.pop:.6,sc=kd.noPop?L.scl:1+.04*pop*Math.sin(Math.PI*Math.min(1,e*1.15))*kk;
+    L.mesh.position.x=L.bx+sx*2*W;L.mesh.position.z=L.bz-sy*H;L.mesh.scale.set(sc,sc,1)});
+}
+"""
+
+
+def live_patch(s, rep, here):
+    lk = open(here + '/wow_live.js', encoding='utf-8').read()
+    s = rep(s, "const loadImg=src=>", "const loadImg=src=>")  # sanity
+    s = rep(s, "if(bg)s.art={...a,bg,subj,fg,objs}",
+            "const im={};if(a.imgs)await Promise.all(Object.entries(a.imgs).map(async([n,u])=>{im[n]=await loadImg(u)}));if(bg)s.art={...a,bg,subj,fg,objs,im}")
+    s = rep(s, "// leaves\nconst NL=SPREADS.length+1", GLUE.replace('%LK%', lk) + "// leaves\nconst NL=SPREADS.length+1")
+    s = rep(s, "function unsettle(){", "function unsettle(){liveDrop();")
+    s = rep(s, "const plan=s.art?[['title',s.art.dT||.35,1],...(s.art.objs?", "const plan=s.art?[['title',s.art.dT||.35,1],...(s.art.live?liveP(s,1):[]),...(s.art.objs?")
+    s = rep(s, "...(s.art.fg?[['word',s.art.dF,0]]:[])", "...(s.art.live?liveP(s,0):[]),...(s.art.fg?[['word',s.art.dF,0]]:[])")
+    s = rep(s, "const mat=layerMat(drawSpread(s,md,LM));", "if(/^L\\d+$/.test(md)){liveMake(s,+md.slice(1),d,fl,k);return}\n    const mat=layerMat(drawSpread(s,md,LM));")
+    s = rep(s, "dl.position.set(-1.6+tilt.x*1.2,3,1.4+tilt.y*1.2);", "liveTick();dl.position.set(-1.6+tilt.x*1.2,3,1.4+tilt.y*1.2);")
+    s = rep(s, "if(A.notes&&mode==='notes')drawNotes(x,A.notes)}", "if(A.notes&&mode==='notes')drawNotes(x,A.notes);if(F&&A.live)liveStill(x,A)}")
     return s
