@@ -38,17 +38,18 @@ function fit(ctx,im,sx,sy,sw,sh,q){ // draw an image cell onto a projected paral
   const [a,b,c]=q;ctx.save();ctx.setTransform((b[0]-a[0])/sw,(b[1]-a[1])/sw,(c[0]-a[0])/sh,(c[1]-a[1])/sh,a[0],a[1]);
   ctx.drawImage(im,sx,sy,sw,sh,0,0,sw,sh);ctx.restore();
 }
+const mir=(q,X0)=>{const m=p=>[2*X0-p[0],p[1],p[2]];return [m(q[1]),m(q[0]),m(q[3]),m(q[2])]};
 const quadPath=(ctx,q)=>{ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);ctx.lineTo(q[1][0],q[1][1]);ctx.lineTo(q[3][0],q[3][1]);ctx.lineTo(q[2][0],q[2][1]);ctx.closePath()};
 const cell=(im,n,cols,cw,ch)=>[(n%cols)*cw,Math.floor(n/cols)*ch,cw,ch];
 
 const fstack={init(L,A,o){},
   draw(ctx,t,L){const o=L.o,P=frCam(o),ck=frClock(L.still?0:t),th=L.A.im.thumbs;if(!th)return;
     ctx.lineJoin='round';
-    const hero=.2+.8*ck.pop;
+    const hero=.2+.8*ck.pop,X0=P(0,0,-FR.JS*DZ)[0];
     for(let s=FR.J;s>=-3;s--){ // slots, back to front
       const n=Math.round(ck.f)+s-FR.JS,sl=s-(ck.f-Math.round(ck.f)),z=-sl*DZ-0;
-      const far=clamp((FR.J-sl)/7,0,1),near=clamp((sl+3)/2.5,0,1),al=far*near;if(al<=.01)continue;
-      const q=frQuad(P,z,0,1,0),m=mod(n,FR.N),[sx,sy,sw,sh]=cell(th,m,12,256,144);
+      const far=clamp((FR.J-sl)/7,0,1),near=clamp((sl-4)/5,0,1),al=far*near;if(al<=.01)continue;
+      const q=mir(frQuad(P,z,0,1,0),X0),m=mod(n,FR.N),[sx,sy,sw,sh]=cell(th,m,12,256,144);
       const isA=Math.abs(sl-FR.JS)<.5;
       ctx.globalAlpha=al*(isA?1-hero*.92:1);
       ctx.save();quadPath(ctx,q);ctx.fillStyle='rgba(120,235,235,.13)';ctx.fill();ctx.restore();

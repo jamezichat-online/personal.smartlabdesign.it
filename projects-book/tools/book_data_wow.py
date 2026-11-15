@@ -23,7 +23,7 @@ SPREADS_DATA = [
        body='It began as a myth: three tribes, The Stage, The Iron and The Grid, each with its own marks, colours and voice. From that story came the graphics, a storefront, a website with an animated 3D rack of hanging pieces, and an Instagram that invites people in.',
        tip='sites.smartlabdesign.it/voidsignal ↗',
        pal=dict(fill='#fff1ce', sh='#000000', ol='#a98bff', tip='#a98bff', tipSh='#000000', scrim='10,3,20')),
-  dict(k='creative', url='/type-lens/', name='Type Lens', word='TYPE\nLENS', side='L', kicker='Creative development ✦ Type Lab',
+  dict(k='creative', url='/type-lens/', name='Type Lens', word='TYPE\nLENS', kicker='Creative development ✦ Type Lab',
        title='Type that reveals its story.',
        body='Three experiments in seeing, all through one real-time glass lens. Type Lab bends live type, Hidden Stories hides a secret in every scene, and Hidden Layers peels an image back to its blueprint, palette and prompt.',
        tip='sites.smartlabdesign.it/type-lens ↗',
@@ -33,7 +33,7 @@ SPREADS_DATA = [
        body='POMATA takes its name from the Sicilian “fare pomata”: going out, having fun, showing off with a grin. A T-shirt label of ironic illustrations and one-line jokes, built as a whole world: graphics, a collection, an interactive runway and an official shop. More than a style. A state of mind.',
        tip='sites.smartlabdesign.it/pomata ↗',
        pal=dict(fill='#c2342a', sh='#fff6dc', ol='#f2b705', tip='#f2b705', tipSh='#c4472b',
-                txt='#1d2f6b', txtSh='rgba(255,246,222,.9)', txtGlow='rgba(255,246,222,.95)', scrim='255,243,214', scrimK=.98)),
+                txt='#111111', txtSh='rgba(255,246,222,.9)', txtGlow='rgba(255,246,222,.95)', scrim='255,243,214', scrimK=.98)),
 ]
 
 GOLD = '#f2c46a'
@@ -71,15 +71,15 @@ ART_DATA = {
   'giggi': dict(
     bg='assets/giggi-bg.webp', fg='assets/giggi-fgn.webp', tcx=1500, tw=900, th=360, tcy=270, ta='left', dF=1.5, fgx=-60,
     objs=[
-      dict(src='assets/giggi-liner.webp', sx=270, sy=630, sh=250, d=.3, flat=1, pop=0),
-      dict(src='assets/giggi-fries.webp', sx=70, sy=462, sh=360, d=1.15),
-      *centred(exploded(545, 880), 545, GW),
-      dict(src='assets/giggi-panel.webp', sx=706, sy=250, sh=400, d=1.0, fly=1, fl=1, rot=3, glow='rgba(231,178,90,.35)', glowB=40),
+      dict(src='assets/giggi-liner.webp', sx=270, sy=664, sh=250, d=.3, flat=1, pop=0),
+      dict(src='assets/giggi-fries.webp', sx=700, sy=476, sh=360, d=1.15),
+      *centred(exploded(545, 852), 545, GW),
+      dict(src='assets/giggi-panel.webp', sx=22, sy=290, sh=490, d=.25, fly=1, fl=1, rot=-3, glow='rgba(231,178,90,.35)', glowB=40),
     ],
     notes=[
-      dict(t='scroll to take it apart', x=110, y=215, size=56, rot=-4, col=GOLD, ul=1, ar=[300, 244, 340, 262, 392, 290]),
-      dict(t='custom packaging', x=60, y=430, size=52, rot=-4, col=GOLD, ul=1),
-      dict(t='pick every ingredient', x=700, y=205, size=52, rot=3, col=GOLD, ul=1, ar=[830, 232, 850, 244, 846, 262]),
+      dict(t='scroll to take it apart', x=640, y=190, size=54, rot=3, col=GOLD, ul=1, ar=[690, 246, 660, 262, 640, 290]),
+      dict(t='custom packaging', x=640, y=915, size=52, rot=-3, col=GOLD, ul=1),
+      dict(t='pick every ingredient', x=40, y=205, size=54, rot=-3, col=GOLD, ul=1, ar=[200, 252, 220, 270, 216, 292]),
     ]),
   'frames': dict(
     bg='assets/frames-bg.webp', fg='assets/frames-fg.webp', tcx=1090 + 430, tw=860, dF=1.5, fgx=-60, **T2,
@@ -98,11 +98,7 @@ ART_DATA = {
       dict(t='pick the keyframe', x=560, y=832, size=50, rot=-2, col=YL, ul=1),
     ]),
   'void': dict(
-    bg='assets/void-bg.webp', fg='assets/void-fgn.webp', tcx=1030 + 430, tw=860, dF=1.5, fgx=-30, fgk=1.5, ta='left', th=350, tcy=262,
-    imgs=dict(t0='assets/rack-tee-0.webp', t1='assets/rack-tee-1.webp', t2='assets/rack-tee-3.webp', t3='assets/rack-tee-4.webp', t4='assets/rack-tee-6.webp', t5='assets/rack-tee-9.webp', t6='assets/rack-tee-12.webp', t7='assets/rack-tee-13.webp'),
-    live=[
-      dict(kind='rack', x=120, y=96, w=900, h=640, d=.22, under=1, keys=['t0','t1','t2','t3','t4','t5','t6','t7'], railY=40, th=330, dim=.36, pop=0),
-    ],
+    bg='assets/void-bg.webp', fg='assets/void-fgn.webp', tcx=1030 + 430, tw=860, dF=1.5, fgx=-30, fgk=1.25, fgy=70, ta='left', th=350, tcy=262,
     objs=[
       dict(src='assets/void-grid.webp',  sx=660, sy=262, sh=692, d=.45),
       dict(src='assets/void-stage.webp', sx=236, sy=222, sh=748, d=.9),
@@ -112,24 +108,23 @@ ART_DATA = {
       dict(t='THE STAGE\nstreet rock', x=150, y=140, size=62, rot=-5, col=STAGE, ul=1, ar=[250, 206, 292, 226, 306, 246]),
       dict(t='THE IRON\ngym', x=470, y=104, size=62, rot=-2, col=IRON, ul=1, ar=[548, 166, 576, 180, 546, 208]),
       dict(t='THE GRID\ncyber tech', x=770, y=150, size=62, rot=4, col=GRID, ul=1, ar=[826, 216, 856, 232, 818, 262]),
-      dict(t='the animated rack', x=140, y=770, size=52, rot=-3, col='#ffd166', ul=1, ar=[200, 735, 190, 700, 210, 660]),
     ]),
   'creative': dict(
-    bg='assets/creative-bg.webp', fg=None, side='L', tcx=118 + 380, tw=760, th=380, tcy=270, ta='left',
+    bg='assets/creative-bg.webp', fg=None, tcx=1030 + 430, tw=860, th=380, tcy=270, ta='left',
     objs=[
-      dict(src='assets/creative-c0.webp', sx=1088, sy=736, sh=210, d=.6, fly=1, rot=-5, fl=1),
-      dict(src='assets/creative-c1.webp', sx=1396, sy=752, sh=210, d=.8, fly=1, rot=2, fl=1),
-      dict(src='assets/creative-c2.webp', sx=1704, sy=736, sh=210, d=1.0, fly=1, rot=-3, fl=1),
+      dict(src='assets/creative-c0.webp', sx=60, sy=736, sh=210, d=.6, fly=1, rot=-5, fl=1),
+      dict(src='assets/creative-c1.webp', sx=368, sy=752, sh=210, d=.8, fly=1, rot=2, fl=1),
+      dict(src='assets/creative-c2.webp', sx=676, sy=736, sh=210, d=1.0, fly=1, rot=-3, fl=1),
     ],
     live=[
-      dict(kind='lens', x=1250, y=360, R=150, mag=1.8, d=1.25, tx=1850, ty=243, trot=-5, fs=40, msg=['SMARTLAB', 'DESIGN'], zone=[1030, 30, 2048, 700],
-           path=[[1240, 330, 1.7], [1380, 470, 1.4], [1850, 250, 3.6], [1600, 560, 1.3], [1230, 200, 1.4]]),
+      dict(kind='lens', x=240, y=330, R=150, mag=1.8, d=1.25, tx=868, ty=243, trot=-5, fs=40, msg=['SMARTLAB', 'DESIGN'], zone=[10, 30, 1024, 700],
+           path=[[240, 330, 1.7], [520, 470, 1.4], [868, 250, 3.6], [640, 560, 1.3], [300, 200, 1.4]]),
     ],
     notes=[
-      dict(t='Type Lab', x=1100, y=700, size=52, rot=-4, col=CY, ul=1),
-      dict(t='Hidden Stories', x=1410, y=716, size=52, rot=2, col=YL, ul=1),
-      dict(t='Hidden Layers', x=1730, y=700, size=52, rot=-3, col=CY, ul=1),
-      dict(t='drag the real lens', x=1500, y=90, size=54, rot=-3, col=YL, ul=1),
+      dict(t='Type Lab', x=72, y=700, size=52, rot=-4, col=CY, ul=1),
+      dict(t='Hidden Stories', x=380, y=716, size=52, rot=2, col=YL, ul=1),
+      dict(t='Hidden Layers', x=688, y=700, size=52, rot=-3, col=CY, ul=1),
+      dict(t='drag the real lens', x=560, y=90, size=54, rot=-3, col=YL, ul=1),
     ]),
   'pomata': dict(
     bg='assets/pomata-bg.webp', fg=None, tcx=1500, tw=900, th=250, tcy=300,

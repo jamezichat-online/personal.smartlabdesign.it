@@ -9,16 +9,18 @@ W, H = 2048, 1004
 src = Image.open(T + 'assets/ocean.webp').convert('RGB')
 k = H / src.height; sw = round(src.width * k)
 sc = src.resize((sw, H), Image.LANCZOS)
-x0 = W - sw
+x0 = -420
 bg = Image.new('RGB', (W, H))
-ext = sc.crop((0, 0, x0 + 60, H)).transpose(Image.FLIP_LEFT_RIGHT)
-bg.paste(ext, (0, 0)); bg.paste(sc, (x0, 0))
+bg.paste(sc, (x0, 0))
+right = x0 + sw
+ext = sc.crop((sw - (W - right), 0, sw, H)).transpose(Image.FLIP_LEFT_RIGHT)
+bg.paste(ext, (right, 0))
 soft = bg.filter(ImageFilter.GaussianBlur(24))
 m = Image.new('L', (W, H), 0); d = ImageDraw.Draw(m)
-for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((1120 - x) / 340 * 255))))
+for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((x - 1040) / 300 * 255))))
 bg = Image.composite(soft, bg, m)
 save(bg, O + 'creative-bg.webp', 86)
-print('sign at', x0 + round(.855 * sw), round(.245 * H))
+print('sign at', x0 + round(.855 * sw), round(.245 * H), 'right edge', right)
 
 # ---- one card per experiment, straight from the published tool
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'

@@ -31,7 +31,7 @@ COVER_JS = r"""  {const pick=(k,n)=>{const sp=SPREADS.find(q=>q.k===k),o=sp&&sp.
     const stick=(img,cx,cy,h,rot,p=7)=>{if(!img)return;const w=img.width*h/img.height,r=img.height/h,c2=mk(Math.ceil(w+p*4),Math.ceil(h+p*4)),q=c2.getContext('2d');
       for(let a=0;a<28;a++)q.drawImage(img,p*2+Math.cos(a*.2244)*p,p*2+Math.sin(a*.2244)*p,w,h);q.globalCompositeOperation='source-in';q.fillStyle='#fff8ea';q.fillRect(0,0,c2.width,c2.height);
       x.save();x.translate(cx,cy);x.rotate(rot*Math.PI/180);x.shadowColor='rgba(0,0,0,.5)';x.shadowBlur=18;x.shadowOffsetX=8;x.shadowOffsetY=12;x.drawImage(c2,-w/2-p*2,-h/2-p*2);x.shadowColor='transparent';x.drawImage(img,-w/2,-h/2,w,h);x.restore()};
-    stick(pick('frames','hero'),930,566,170,9);stick(pick('right','jack'),640,612,200,-14);stick(pick('creative','lens'),892,716,210,0,5);stick(pick('giggi','burger'),742,792,300,-4)}
+    }
 """
 
 CSS = """
@@ -185,6 +185,7 @@ def live_patch(s, rep, here):
     s = rep(s, "const loadImg=src=>", "const loadImg=src=>")  # sanity
     s = rep(s, "if(bg)s.art={...a,bg,subj,fg,objs}",
             "const im={};if(a.imgs)await Promise.all(Object.entries(a.imgs).map(async([n,u])=>{im[n]=await loadImg(u)}));if(bg)s.art={...a,bg,subj,fg,objs,im}")
+    s = rep(s, "-fy-(fh-(PH+fy*2)),fw,fh)", "-fy-(fh-(PH+fy*2))+(A.fgy||0),fw,fh)")
     s = rep(s, "// leaves\nconst NL=SPREADS.length+1", GLUE.replace('%LK%', lk) + "// leaves\nconst NL=SPREADS.length+1")
     s = rep(s, "function unsettle(){", "function unsettle(){liveDrop();")
     s = rep(s, "const plan=s.art?[['title',s.art.dT||.35,1],...(s.art.objs?", "const plan=s.art?[['title',s.art.dT||.35,1],...(s.art.live?liveP(s,1):[]),...(s.art.objs?")
