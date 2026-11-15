@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The books — SmartLabDesign</title>
+<meta name="description" content="Two interactive pop-up books by SmartLabDesign: Ideas Into Worlds and Made This Way.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#04211f;--deep:#021a19;--cream:#fff6dc;--sun:#ffc83a;--pink:#ff3d9a;--fm:"DM Mono",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--deep);color:var(--cream)}
+body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;font-family:"Barlow Condensed",sans-serif;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(900px 520px at 50% 0%,rgba(255,200,58,.09),transparent 70%),radial-gradient(700px 500px at 90% 100%,rgba(255,61,154,.08),transparent 70%),var(--deep)}
+header{padding:clamp(28px,6vh,56px) 20px 0;text-align:center}
+.kick{font:500 11px var(--fm);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,246,220,.6)}
+h1{margin:12px 0 0;font:400 clamp(30px,4.4vw,54px)/1 "Archivo Black",sans-serif;letter-spacing:-.03em;text-wrap:balance}
+h1 b{color:var(--sun);font-weight:400}
+.sub{margin:14px auto 0;max-width:34ch;font-size:clamp(18px,1.6vw,22px);line-height:1.25;color:rgba(255,246,220,.78);text-wrap:balance}
+main{flex:1;width:100%;max-width:1080px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:clamp(20px,3vw,40px);padding:clamp(28px,5vh,52px) 20px 48px;align-content:center}
+.book{display:flex;flex-direction:column;color:inherit;text-decoration:none;border:1.5px solid rgba(255,246,220,.22);border-radius:22px;background:rgba(2,26,25,.55);overflow:hidden;
+  transition:transform .35s cubic-bezier(.2,0,0,1),box-shadow .35s cubic-bezier(.2,0,0,1),border-color .2s}
+.book:hover,.book:focus-visible{transform:translateY(-6px) rotate(-.4deg);border-color:var(--sun);box-shadow:9px 9px 0 var(--pink)}
+.book:nth-child(2):hover,.book:nth-child(2):focus-visible{transform:translateY(-6px) rotate(.4deg)}
+.book:focus-visible{outline:2px solid var(--sun);outline-offset:4px}
+.book:active{transform:scale(.98)}
+.book img{display:block;width:100%;height:auto;aspect-ratio:600/460;object-fit:cover;background:var(--deep)}
+.meta{padding:20px 24px 24px;display:flex;flex-direction:column;gap:8px}
+.tag{font:500 11px var(--fm);letter-spacing:.16em;text-transform:uppercase;color:var(--sun)}
+.meta h2{margin:0;font:400 clamp(26px,2.4vw,32px)/1 "Archivo Black",sans-serif;letter-spacing:-.03em}
+.meta p{margin:0;font-size:19px;line-height:1.25;color:rgba(255,246,220,.82)}
+.go{margin-top:10px;align-self:flex-start;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 20px;border:1.5px solid var(--cream);border-radius:999px;font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;transition:background-color .2s,color .2s,border-color .2s}
+.book:hover .go,.book:focus-visible .go{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+footer{padding:0 20px 28px;font:500 11px var(--fm);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,246,220,.5)}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){.book{transition:none}.book:hover,.book:focus-visible{transform:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="kick">SmartLabDesign ✦ Pop-up books</div>
+  <h1>Pick a <b>book</b>.</h1>
+  <p class="sub">Two interactive books, built with the same moving-layers engine. Turn the pages on a desktop or a phone.</p>
+</header>
+<main>
+  <a class="book" href="/ideas-into-worlds/" aria-label="Open the book Ideas Into Worlds">
+    <img src="ideas.webp" width="600" height="460" alt="Cover of the book Ideas Into Worlds">
+    <div class="meta"><span class="tag">Studio handbook · 2026</span><h2>Ideas Into Worlds</h2>
+      <p>A field guide to how an idea becomes a world: the studio’s method, page by page.</p><span class="go">Open book ↗</span></div>
+  </a>
+  <a class="book" href="/projects-book/wow/" aria-label="Open the book Made This Way">
+    <img src="made.webp" width="600" height="460" alt="Cover of the book Made This Way">
+    <div class="meta"><span class="tag">Project edition · 2026</span><h2>Made This Way</h2>
+      <p>Six projects the studio shipped, and how they were made: the real tools, live inside the pages.</p><span class="go">Open book ↗</span></div>
+  </a>
+</main>
+<footer><a href="/">smartlabdesign.it</a></footer>
+</body>
+</html>
