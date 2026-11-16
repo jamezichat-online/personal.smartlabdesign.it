@@ -7,20 +7,16 @@ W, H = 2048, 1004
 
 # ---- background: the scene sits on the right-hand art page (so the hidden sign is reachable), the text page continues it out of focus
 src = Image.open(T + 'assets/ocean.webp').convert('RGB')
-k = H / src.height; sw = round(src.width * k)
-sc = src.resize((sw, H), Image.LANCZOS)
-x0 = -420
-bg = Image.new('RGB', (W, H))
-bg.paste(sc, (x0, 0))
-right = x0 + sw
-ext = sc.crop((sw - (W - right), 0, sw, H)).transpose(Image.FLIP_LEFT_RIGHT)
-bg.paste(ext, (right, 0))
-soft = bg.filter(ImageFilter.GaussianBlur(8))
-m = Image.new('L', (W, H), 0); d = ImageDraw.Draw(m)
-for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((x - 1060) / 260 * 140))))
-bg = Image.composite(soft, bg, m)
+k = W / src.width; sh = round(src.height * k); sw = W
+sc = src.resize((sw, sh), Image.LANCZOS)
+C = 0
+bg = sc.crop((0, C, W, C + H))
+# no blur: only a soft darkening behind the text column keeps the white title readable
+sh_ = Image.new('RGB', (W, H), (3, 20, 24)); m = Image.new('L', (W, H), 0); d = ImageDraw.Draw(m)
+for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((x - 1000) / 300 * 95))))
+bg = Image.composite(sh_, bg, m)
 save(bg, O + 'creative-bg.webp', 86)
-print('sign at', x0 + round(.855 * sw), round(.245 * H), 'right edge', right)
+print('sign at', round(.855 * sw), round(.245 * sh) - C, 'sh', sh)
 
 # ---- one card per experiment, straight from the published tool
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf'

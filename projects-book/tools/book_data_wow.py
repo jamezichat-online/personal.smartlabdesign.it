@@ -118,14 +118,14 @@ ART_DATA = {
       dict(src='assets/creative-c2.webp', sx=676, sy=736, sh=210, d=1.0, fly=1, rot=-3, fl=1),
     ],
     live=[
-      dict(kind='lens', x=240, y=330, R=150, mag=1.8, d=1.25, tx=868, ty=243, trot=-5, fs=40, msg=['SMARTLAB', 'DESIGN'], zone=[10, 30, 1024, 700],
-           path=[[240, 330, 1.7], [520, 470, 1.4], [868, 250, 3.6], [640, 560, 1.3], [300, 200, 1.4]]),
+      dict(kind='lens', x=780, y=330, R=150, mag=1.8, d=1.25, tx=1751, ty=334, trot=-5, fs=40, msg=['SMARTLAB', 'DESIGN'], zone=[10, 30, 2038, 700],
+           path=[[780, 330, 1.7], [520, 470, 1.4], [1751, 336, 3.6], [1300, 560, 1.3], [400, 200, 1.4]]),
     ],
     notes=[
       dict(t='Type Lab', x=72, y=700, size=52, rot=-4, col=CY, ul=1),
       dict(t='Hidden Stories', x=380, y=716, size=52, rot=2, col=YL, ul=1),
       dict(t='Hidden Layers', x=688, y=700, size=52, rot=-3, col=CY, ul=1),
-      dict(t='drag the real lens', x=560, y=90, size=54, rot=-3, col=YL, ul=1),
+      dict(t='drag the real lens', x=90, y=100, size=54, rot=-3, col=YL, ul=1),
     ]),
   'pomata': dict(
     bg='assets/pomata-bg.webp', fg=None, tcx=1500, tw=900, th=250, tcy=300,
