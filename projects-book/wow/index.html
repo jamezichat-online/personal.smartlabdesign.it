@@ -379,6 +379,18 @@ const ART={
 "fgx": -60,
 "objs": [
 {
+"src": "assets/giggi-panel.webp",
+"sx": 22,
+"sy": 290,
+"sh": 490,
+"d": 0.25,
+"fly": 1,
+"fl": 1,
+"rot": -3,
+"glow": "rgba(231,178,90,.35)",
+"glowB": 40
+},
+{
 "src": "assets/giggi-liner.webp",
 "sx": 270,
 "sy": 664,
@@ -481,18 +493,6 @@ const ART={
 "fl": 1,
 "shb": 22,
 "sho": 14
-},
-{
-"src": "assets/giggi-panel.webp",
-"sx": 22,
-"sy": 290,
-"sh": 490,
-"d": 0.25,
-"fly": 1,
-"fl": 1,
-"rot": -3,
-"glow": "rgba(231,178,90,.35)",
-"glowB": 40
 }
 ],
 "notes": [
@@ -574,20 +574,30 @@ const ART={
 "live": [
 {
 "kind": "fstack",
-"x": 318,
-"y": 150,
-"w": 700,
-"h": 720,
-"d": 0.6
+"x": 250,
+"y": 90,
+"w": 840,
+"h": 860,
+"d": 0.6,
+"cam": {
+"F": 1180,
+"cx": 0.436,
+"cy": 0.588
+}
 },
 {
 "kind": "fhero",
-"x": 318,
-"y": 150,
-"w": 700,
-"h": 720,
+"x": 250,
+"y": 90,
+"w": 840,
+"h": 860,
 "d": 1.15,
-"fl": 1
+"fl": 1,
+"cam": {
+"F": 1180,
+"cx": 0.436,
+"cy": 0.588
+}
 },
 {
 "kind": "fbar",
@@ -1144,7 +1154,7 @@ function frClock(t){
 const tc=n=>{const s=(n+.5)/FR.N*FR.DUR,m=Math.floor(s/60);return String(m).padStart(2,'0')+':'+(s%60).toFixed(3).padStart(6,'0')};
 function frCam(o){
   if(o._cam)return o._cam;
-  const C=o.cam||{x:-3.1,y:2.45,z:3.2,tx:.9,ty:.55,tz:-3.2,F:900,cx:.34,cy:.62};
+  const C=Object.assign({x:-3.1,y:2.45,z:3.2,tx:.9,ty:.55,tz:-3.2,F:900,cx:.34,cy:.62},o.cam||{});
   const f=[C.tx-C.x,C.ty-C.y,C.tz-C.z],fl=Math.hypot(...f);f.forEach((_,i)=>f[i]/=fl);
   let r=[-f[2],0,f[0]];const rl=Math.hypot(...r);r=r.map(v=>v/rl);
   const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];
@@ -1184,9 +1194,9 @@ const fstack={init(L,A,o){},
 const fhero={init(L,A,o){},
   draw(ctx,t,L){const o=L.o,P=frCam(o),ck=frClock(L.still?0:t),bg=L.A.im.big;if(!bg)return;
     const pop=ck.pop,rise=.2+.8*pop,sc=1+.34*pop,dy=.12+.62*rise*1.0,dz=.55*pop;
-    const z=-FR.JS*DZ,q=frQuad(P,z,dy,sc,dz),[sx,sy,sw,sh]=cell(bg,ck.n,8,448,252);
+    const z=-FR.JS*DZ,X0=P(0,0,z)[0],q=mir(frQuad(P,z,dy,sc,dz),X0),[sx,sy,sw,sh]=cell(bg,ck.n,8,448,252);
     // soft ground shadow where the frame left the stack
-    {const g=frQuad(P,z,0,1,0),cx=(g[2][0]+g[3][0])/2,cy=(g[2][1]+g[3][1])/2,rr=Math.max(4,Math.abs(g[3][0]-g[2][0])*.55);
+    {const g=mir(frQuad(P,z,0,1,0),X0),cx=(g[2][0]+g[3][0])/2,cy=(g[2][1]+g[3][1])/2,rr=Math.max(4,Math.abs(g[3][0]-g[2][0])*.55);
       ctx.save();ctx.translate(cx,cy);ctx.scale(1,.3);const rg=ctx.createRadialGradient(0,0,2,0,0,rr);rg.addColorStop(0,'rgba(0,10,12,'+(.45*rise)+')');rg.addColorStop(1,'rgba(0,10,12,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,rr,0,7);ctx.fill();ctx.restore()}
     ctx.save();ctx.shadowColor='rgba(255,70,160,'+(.35+.5*pop)+')';ctx.shadowBlur=28+30*pop;quadPath(ctx,q);ctx.fillStyle='#0c2224';ctx.fill();ctx.restore();
     fit(ctx,bg,sx,sy,sw,sh,q);

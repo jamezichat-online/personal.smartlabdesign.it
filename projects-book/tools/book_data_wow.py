@@ -40,6 +40,7 @@ GOLD = '#f2c46a'
 CY, YL = '#59eef1', '#ffc83a'
 AMBER, EMBER = '#ffb25b', '#ff6a48'
 STAGE, IRON, GRID = '#ff6a58', '#efe6d0', '#4cecef'
+CAM = dict(F=1180, cx=.436, cy=.588)           # 3D Frames block: bigger, a little to the right
 T2 = dict(ta='left', th=400, tcy=292)          # two-line poster title, left edge on the text column
 # giggiooo: ingredient sprites (logical height from the configurator), stacked as an exploded burger
 GX = [('top-brioche', 148.8), ('signature-a', 77.7), ('lattuga-a', 88.7), ('pomodoro-a', 58.4), ('bacon-a', 76.6), ('cheddar-a', 84.9), ('manzo-a', 67.3), ('bun-brioche', 105.8)]
@@ -71,10 +72,10 @@ ART_DATA = {
   'giggi': dict(
     bg='assets/giggi-bg.webp', fg='assets/giggi-fgn.webp', tcx=1500, tw=900, th=360, tcy=270, ta='left', dF=1.5, fgx=-60,
     objs=[
+      dict(src='assets/giggi-panel.webp', sx=22, sy=290, sh=490, d=.25, fly=1, fl=1, rot=-3, glow='rgba(231,178,90,.35)', glowB=40),
       dict(src='assets/giggi-liner.webp', sx=270, sy=664, sh=250, d=.3, flat=1, pop=0),
       dict(src='assets/giggi-fries.webp', sx=700, sy=476, sh=360, d=1.15),
       *centred(exploded(545, 852), 545, GW),
-      dict(src='assets/giggi-panel.webp', sx=22, sy=290, sh=490, d=.25, fly=1, fl=1, rot=-3, glow='rgba(231,178,90,.35)', glowB=40),
     ],
     notes=[
       dict(t='scroll to take it apart', x=640, y=190, size=54, rot=3, col=GOLD, ul=1, ar=[690, 246, 660, 262, 640, 290]),
@@ -88,8 +89,8 @@ ART_DATA = {
       dict(src='assets/frames-deck.webp', sx=8, sy=70, sh=910, d=.35, fly=1, glow='rgba(89,238,241,.55)', glowB=44),
     ],
     live=[
-      dict(kind='fstack', x=318, y=150, w=700, h=720, d=.6),
-      dict(kind='fhero',  x=318, y=150, w=700, h=720, d=1.15, fl=1),
+      dict(kind='fstack', x=250, y=90, w=840, h=860, d=.6, cam=CAM),
+      dict(kind='fhero',  x=250, y=90, w=840, h=860, d=1.15, fl=1, cam=CAM),
       dict(kind='fbar',   x=330, y=868, w=680, h=80, d=.95, fl=1),
     ],
     notes=[
