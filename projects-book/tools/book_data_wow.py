@@ -146,9 +146,9 @@ ART_DATA = {
     bg='assets/rose-bg.webp', fg=None, tcx=1500, tw=900, th=330, tcy=300,
     imgs={'post': 'assets/rose-bloom-post.webp'},
     live=[
-      dict(kind='video', x=210, y=470, w=810, h=534, d=1.0, fl=1, src='assets/rose-bloom.webm', srcs=['assets/rose-bloom.webm', 'assets/rose-bloom.mp4'], post='post', cw=700, ch=436, rot=-2.5, pop=.5),
+      dict(kind='video', x=137, y=252, w=750, h=500, d=1.0, fl=1, src='assets/rose-bloom.webm', srcs=['assets/rose-bloom.webm', 'assets/rose-bloom.mp4'], post='post', cw=640, ch=399, rot=-2.5, pop=.5),
     ],
     notes=[
-      dict(t='type it, watch it bloom', x=40, y=70, size=52, rot=-4, col='#f0c27b', ul=1),
+      dict(t='type it, watch it bloom', x=170, y=232, size=50, rot=-4, col='#f0c27b', ul=1),
     ]),
 }
