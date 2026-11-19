@@ -202,5 +202,26 @@ const lens={gl:1,
     L.scl=outBack(clamp(L.e,0,1));
   }};
 
-return {fstack,fhero,fbar,carousel,rack,lens,FR};
+/* ---------------------------------------------------------------- Rose's Gratitude Bloom: the real app's bloom, recorded from the live tool, as a paper card */
+const VID={};
+const video={init(L,A,o){let v=VID[o.src];if(!v){v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');v.preload='auto';v.crossOrigin='anonymous';
+    (o.srcs||[o.src]).forEach(u=>{const e=document.createElement('source');e.src=u;v.appendChild(e)});VID[o.src]=v}
+    L.v=v;L.post=A.im&&A.im[o.post];try{v.currentTime=0;const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}},
+  draw(ctx,t,L){const o=L.o,W=L.w,H=L.h,v=L.v,cw=o.cw||W*.86,ch=o.ch||cw*.62;
+    const ok=!L.still&&v&&v.readyState>=2&&v.videoWidth;if(!ok&&!L.post)return;
+    if(!L.still&&v&&v.paused&&v.readyState>=2){try{v.play().catch(()=>{})}catch(e){}}
+    ctx.save();ctx.translate(W/2,H/2+Math.sin(t*.9)*(L.still?0:3));ctx.rotate((o.rot||0)*Math.PI/180);
+    // contact shadow, paper, tape
+    ctx.save();ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=46;ctx.shadowOffsetY=26;ctx.fillStyle='#faf3e4';ctx.beginPath();ctx.roundRect(-cw/2-12,-ch/2-12,cw+24,ch+24,10);ctx.fill();ctx.restore();
+    ctx.save();ctx.beginPath();ctx.roundRect(-cw/2,-ch/2,cw,ch,4);ctx.clip();
+    if(ok)ctx.drawImage(v,-cw/2,-ch/2,cw,ch);else ctx.drawImage(L.post,-cw/2,-ch/2,cw,ch);ctx.restore();
+    ctx.fillStyle='rgba(233,224,195,.82)';[[-cw/2+30,-ch/2-14,-.38],[cw/2-30,-ch/2-14,.4]].forEach(([x,y,r])=>{ctx.save();ctx.translate(x,y);ctx.rotate(r);ctx.fillRect(-46,-13,92,26);ctx.restore()});
+    // live badge
+    const on=ok&&Math.floor(t*1.6)%2===0;ctx.fillStyle='#b73225';ctx.beginPath();ctx.roundRect(cw/2-168,ch/2+26,156,30,15);ctx.fill();
+    ctx.fillStyle='#fff3e0';ctx.font='500 15px '+MONO;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('LIVE CAPTURE',cw/2-132,ch/2+41);
+    ctx.fillStyle=on?'#fff3e0':'rgba(255,243,224,.35)';ctx.beginPath();ctx.arc(cw/2-148,ch/2+41,5,0,7);ctx.fill();
+    ctx.restore();
+  }};
+
+return {fstack,fhero,fbar,carousel,rack,lens,video,FR};
 })();

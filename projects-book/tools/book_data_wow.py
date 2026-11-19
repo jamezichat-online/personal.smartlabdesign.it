@@ -1,6 +1,6 @@
-"""'wow' copy of Made This Way: same six projects in site order, re-composed.
+"""'wow' copy of Made This Way: same projects in site order, re-composed.
 Coordinates are page pixels on the 2048 x 1004 spread. d = depth (higher = closer to the viewer, rises further off the page)."""
-ENABLED = ['right', 'giggi', 'frames', 'void', 'creative', 'pomata']
+ENABLED = ['right', 'giggi', 'frames', 'void', 'creative', 'pomata', 'rose']
 
 SPREADS_DATA = [
   dict(k='right', url='/the-right-one/', name='The Right One', word='THE RIGHT\nONE', side='L', kicker='Project ✦ Short film',
@@ -34,6 +34,11 @@ SPREADS_DATA = [
        tip='sites.smartlabdesign.it/pomata ↗',
        pal=dict(fill='#c2342a', sh='#fff6dc', ol='#f2b705', tip='#f2b705', tipSh='#c4472b',
                 txt='#111111', txtSh='rgba(255,246,222,.9)', txtGlow='rgba(255,246,222,.95)', scrim='255,243,214', scrimK=.98)),
+  dict(k='rose', url='/roses-gratitude/', name="Rose's Gratitude Bloom", word='GRATITUDE\nBLOOM', kicker="Project ✦ Interactive tool ✦ Rose's Flower Shop",
+       title='A thank-you that blooms.',
+       body="A message composer for Rose's Flower Shop, a personal tribute to Derrick Rose. Write a thank-you and watch vines and roses grow along the lettering, then choose the hand, the paper and the arrangement and export it as PNG, PDF, SVG, video or a shareable link.",
+       tip='sites.smartlabdesign.it/roses-gratitude ↗',
+       pal=dict(fill='#f3e7c8', sh='#1c0d08', ol='#c0392b', tip='#e9c9a0', tipSh='#7a1f15', scrim='20,8,4', scrimK=1.1)),
 ]
 
 GOLD = '#f2c46a'
@@ -136,5 +141,14 @@ ART_DATA = {
     notes=[
       dict(t='illustrated tees', x=60, y=130, size=56, rot=-4, col='#b73225', ul=1),
       dict(t='the runway turns', x=640, y=130, size=52, rot=3, col='#b73225', ul=1),
+    ]),
+  'rose': dict(
+    bg='assets/rose-bg.webp', fg=None, tcx=1500, tw=900, th=330, tcy=300,
+    imgs={'post': 'assets/rose-bloom-post.webp'},
+    live=[
+      dict(kind='video', x=20, y=330, w=1000, h=660, d=1.0, fl=1, src='assets/rose-bloom.webm', srcs=['assets/rose-bloom.webm', 'assets/rose-bloom.mp4'], post='post', cw=880, ch=548, rot=-2.5, pop=.5),
+    ],
+    notes=[
+      dict(t='type it, watch it bloom', x=60, y=120, size=56, rot=-4, col='#f0c27b', ul=1),
     ]),
 }

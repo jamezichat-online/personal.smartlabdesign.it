@@ -124,13 +124,13 @@ def patch(s, D, rep):
             "document.getElementById('live').textContent=names[cur];\n  {const sp=SPREADS[cur-1],g=document.getElementById('go'),on=!!(sp&&sp.url);document.body.classList.toggle('has-go',on);if(on){g.href=sp.url;document.getElementById('gon').textContent=sp.name;g.setAttribute('aria-label','Open the '+sp.name+' project in a new tab')}}")
     btns = ''.join('\n    <a class="btn" href="%s" target="_blank" rel="noopener">%s ↗</a>' % (d['url'], d['name']) for d in D.SPREADS_DATA if d['k'] in D.ENABLED)
     s = re.sub(r'<div class="cta">.*?</div>', '''<div class="cta all">
-    <h2>Six projects. <span>Yours next?</span></h2>
+    <h2>Seven projects. <span>Yours next?</span></h2>
     <p>Brand, web, motion and interactive tools, designed and built in one studio.</p>%s
     <a class="btn main" href="/#contact" target="_blank" rel="noopener">Start a project ↗</a>
   </div>''' % btns, s, count=1, flags=re.S)
     # ---------------------------------------------------------------- cover: the projects already popping out of the sun
     s = rep(s, "    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,500,58,4);x.fill();", COVER_JS + "    x.fillStyle=PK;x.beginPath();x.roundRect(102,102,500,58,4);x.fill();")
-    s = rep(s, 'Projects the studio shipped, and how they were made.<br>Project edition', 'Six projects the studio shipped,<br>and how they were made.')
+    s = rep(s, 'Projects the studio shipped, and how they were made.<br>Project edition', 'Seven projects the studio shipped,<br>and how they were made.')
     s = s.replace('Made This Way (Project Edition) — SmartLabDesign', 'Made This Way — SmartLabDesign projects, as a pop-up book')
     import os
     s = live_patch(s, rep, os.path.dirname(os.path.abspath(__file__)))
