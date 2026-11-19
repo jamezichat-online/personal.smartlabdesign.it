@@ -402,6 +402,11 @@
     .project-card--pomata::after { background: linear-gradient(90deg, rgba(26,18,12,.94), rgba(26,18,12,.58) 44%, rgba(26,18,12,.05) 78%), linear-gradient(0deg, rgba(26,18,12,.88), transparent 68%); }
     .project-card--pomata .project-title { font-style: normal; letter-spacing: -.085em; }
     @media(max-width:700px) { .project-card--pomata { box-shadow: 8px 8px 0 #b73225; } .project-card--pomata::before { background-position: 53% center; } }
+
+    .project-card--roses { box-shadow: 15px 15px 0 #b3202f; }
+    .project-card--roses::before { background-image: url("/roses-gratitude/assets/cover.jpg"); background-image: image-set(url("/roses-gratitude/assets/cover.webp") type("image/webp"), url("/roses-gratitude/assets/cover.jpg") type("image/jpeg")); background-position: 74% center; }
+    .project-card--roses::after { background: linear-gradient(90deg, rgba(22,16,10,.96), rgba(22,16,10,.7) 40%, rgba(22,16,10,.05) 74%), linear-gradient(0deg, rgba(22,16,10,.9), transparent 56%); }
+    @media(max-width:700px) { .project-card--roses { box-shadow: 8px 8px 0 #b3202f; } .project-card--roses::before { background-position: 72% center; } .project-card--roses .project-title { font-size: clamp(36px, 12.4vw, 50px); } .project-card--roses::after { background: linear-gradient(0deg, rgba(22,16,10,.97), rgba(22,16,10,.5) 66%, rgba(22,16,10,.1)); } }
   </style>
 <script defer src="https://smartlab-analytics.smartlabdesign-tools.workers.dev/tracker.js" referrerpolicy="no-referrer"></script>
   <script src="/assets/consent.js" defer></script>
@@ -528,6 +533,17 @@
               <div class="project-meta">07 / Interactive book · Illustration · WebGL / 2026</div>
               <h3 class="project-title">Ideas Into<i>Worlds.</i></h3>
               <p class="project-description">A studio handbook you can hold: a 3D flip-book with illustrated layered spreads, parallax, drag-to-turn pages and a back cover that opens onto the studio’s contacts.</p>
+            </div>
+            <span class="project-arrow" aria-hidden="true">↗</span>
+          </div>
+        </a>
+
+        <a class="project-card project-card--roses" href="/roses-gratitude/" aria-label="Open Gratitude Bloom, the floral message composer">
+          <div class="project-content">
+            <div>
+              <div class="project-meta">Interactive tool · Generative flowers · Message design / 2026</div>
+              <h3 class="project-title">Gratitude<i>Bloom.</i></h3>
+              <p class="project-description">A message composer that turns a thank-you into a floral dedication: live growth and bloom animation, custom lettering and paper, exported as PNG, PDF, SVG, video or a shareable link.</p>
             </div>
             <span class="project-arrow" aria-hidden="true">↗</span>
           </div>
