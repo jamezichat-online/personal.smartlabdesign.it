@@ -42,7 +42,7 @@ card(lb, 'HIDDEN LAYERS', O + 'creative-c2.webp')
 # ---- Gratitude Bloom (Rose's): the project's own cover, mirrored so the florist sits on the art page and the dark shop interior carries the text
 rc = Image.open(R + 'roses-gratitude/assets/cover.jpg').convert('RGB').transpose(Image.FLIP_LEFT_RIGHT)
 k = W / rc.width; rc = rc.resize((W, round(rc.height * k)), Image.LANCZOS)
-rb = rc.crop((0, 0, W, H))
+RC = 250; rb = rc.crop((0, RC, W, RC + H))
 sh_ = Image.new('RGB', (W, H), (14, 6, 3)); m = Image.new('L', (W, H), 0); d = ImageDraw.Draw(m)
 for x in range(W): d.line([(x, 0), (x, H)], fill=max(0, min(255, int((x - 980) / 260 * 120))))
 rb = Image.composite(sh_, rb, m)
