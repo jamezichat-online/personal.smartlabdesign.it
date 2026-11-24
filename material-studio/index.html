@@ -46,6 +46,8 @@ precision highp float;
 out vec4 color;
 uniform vec2 uRes;
 uniform float uFrameY;
+uniform float uGround;
+uniform vec4 uShadowBounds;
 uniform sampler2D uEnvironment;
 uniform vec2 uEnvironmentUV;
 uniform bool uHasEnvironment;
@@ -121,11 +123,11 @@ float thickness(vec3 p,vec3 direction,int index){
 }
 float softShadow(vec3 p,vec3 l){
   float sh=1.,t=.035;
-  for(int i=0;i<15;i++){
+  for(int i=0;i<25;i++){
     float d=surface(p+l*t).x;
     sh=min(sh,12.*d/t);
     t+=clamp(d,.04,.23);
-    if(t>1.5||sh<.02)break;
+    if(t>4.8||sh<.02)break;
   }
   return clamp(sh,0.,1.);
 }
@@ -198,16 +200,15 @@ void main(){
   vec3 march=-uForward;
   vec3 bg=uHasEnvironment?texture(uEnvironment,(gl_FragCoord.xy/uRes-.5)*uEnvironmentUV+.5).rgb:studio(uv);
   if(uHasEnvironment){
-    vec2 screen=gl_FragCoord.xy/uRes;
-    float unitSize=min(uRes.x,uRes.y);
-    float footprint=.78/uScale*unitSize;
-    vec2 screenPoint=screen*uRes;
-    vec2 center=vec2(uRes.x*.5+footprint*.11,uRes.y*(1.-uFrameY)-footprint*.92);
-    vec2 ground=(screenPoint-center)/vec2(footprint*1.13,footprint*.36);
-    float contact=exp(-dot(ground,ground)*1.9);
-    vec2 shadowOffset=vec2(.34,-.57);
-    float castShadow=exp(-dot(ground-shadowOffset,ground-shadowOffset)*.82);
-    bg*=1.-.22*contact-.11*castShadow;
+    vec2 groundScreen=uv*uScale;
+    if(groundScreen.x>uShadowBounds.x&&groundScreen.y>uShadowBounds.y&&groundScreen.x<uShadowBounds.z&&groundScreen.y<uShadowBounds.w){
+      vec3 groundNormal=normalize(.94*uUp+.34*uForward);
+      vec3 ground=ray-uForward*((dot(ray,groundNormal)-uGround)/dot(uForward,groundNormal));
+      vec3 windowLight=normalize(-.78*uRight+.58*uUp-.42*uForward);
+      float visibility=softShadow(ground+groundNormal*.006,windowLight);
+      float contact=exp(-max(surface(ground).x,0.)*16.);
+      bg*=1.-.32*(1.-visibility)-.12*contact;
+    }
   }
   float t=1.30;
   vec3 hit=vec3(10.);
@@ -253,18 +254,18 @@ void main(){
   vec3 gel=(studio(uv+shift)*.85+vec3(.56,.38,.19)*backlight)*extinction;
   gel+=vec3(.97,.30,.045)*(1.-extinction)*(.32+.48*backlight);
   float shadow=.82+.18*softShadow(p+geometric*.009,light);
-  vec3 rgb=mix(flesh*(.38+.95*diffuse+.10*fill+.055*rim)*shadow,gel*1.045,clear);
+  vec3 rgb=mix(flesh*(.51+1.05*diffuse+.17*fill+.065*rim)*shadow,gel*1.045,clear);
   rgb+=flesh*vec3(.26,.21,.085)*backlight*exp(-path*1.55);
   // Subtle warm transmission inside the juice vesicles, confined to the pulp.
   float pulp=1.-smoothstep(1.005,1.095,length(q.xy));
-  vec3 innerLight=vec3(1.,.48,.075)*(.045+.040*backlight)*pulp*exp(-path*.85);
+  vec3 innerLight=vec3(1.,.48,.075)*(.060+.050*backlight)*pulp*exp(-path*.85);
   rgb+=innerLight;
   float pockets=smoothstep(.02,.26,length(top.slope));
   rgb+=vec3(1.,.58,.17)*(.09+.18*hit.z)*backlight*pockets*exp(-path*1.4);
-  rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),64.)*(.06+.15*pockets+.10*hit.z)*diffuse;
+  rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),72.)*(.10+.25*pockets+.13*hit.z)*diffuse;
   rgb*=1.-air.y*.67;
   rgb+=vec3(.98,.86,.61)*air.x*(.5+.4*diffuse);
-  rgb+=((vec3(1.,.92,.80)*key*.95+vec3(1.,.74,.48)*strip*.10+vec3(.84,.93,1.)*glint*.045)*(.12+.88*fr)+vec3(.05)*fr);
+  rgb+=((vec3(1.,.92,.80)*key*1.45+vec3(1.,.74,.48)*strip*.10+vec3(.84,.93,1.)*glint*.045)*(.12+.88*fr)+vec3(.05)*fr);
   rgb=rgb*(2.51*rgb+.03)/(rgb*(2.43*rgb+.59)+.14);
   color=vec4(pow(clamp(rgb,0.,1.),vec3(.83)),1.);
 
@@ -326,7 +327,7 @@ const updateBloom=(()=>{
     const centerWeight=Math.max(0,1-x*x/.29**2-y*y/.31**2);
     const warm=Math.max(0,Math.min(1,(pixels[i]-pixels[i+2]-25)/72));
     const highlight=Math.max(0,Math.min(1,(luminance-176)/70));
-    pixels[i+3]=Math.round(centerWeight*Math.min(180,100*bright*bright+100*warm*highlight*highlight));
+    pixels[i+3]=Math.round(centerWeight*Math.min(180,140*bright*bright+145*warm*highlight*highlight));
    }else pixels[i+3]=Math.round(142*bright*bright);
   }
   output.putImageData(image,0,0);
@@ -689,7 +690,7 @@ try{
   gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
 }catch(error){fail(error);return;}
 gl.useProgram(program);
-const uniforms=Object.fromEntries(['uEnvironment','uEnvironmentUV','uHasEnvironment','uRes','uFrameY','uRight','uUp','uForward','uTouch','uPull','uWave','uPress','uScale','uPieces','uPressedPiece','uOffset[0]','uKick[0]','uHalf[0]'].map(name=>[name,gl.getUniformLocation(program,name)]));
+const uniforms=Object.fromEntries(['uEnvironment','uEnvironmentUV','uHasEnvironment','uRes','uFrameY','uGround','uShadowBounds','uRight','uUp','uForward','uTouch','uPull','uWave','uPress','uScale','uPieces','uPressedPiece','uOffset[0]','uKick[0]','uHalf[0]'].map(name=>[name,gl.getUniformLocation(program,name)]));
 let orangeEnvironment=null;
 window.addEventListener('environments-ready',event=>{if(event.detail!=='orange')return;if(orangeEnvironment)gl.deleteTexture(orangeEnvironment);orangeEnvironment=environmentTexture(gl,'orange');invalidate();});
 if(environmentImages.orange)orangeEnvironment=environmentTexture(gl,'orange');
@@ -716,6 +717,7 @@ function draw(time){
     if(reduced||Math.abs(pullTarget[axis]-pull[axis])+Math.abs(pullSpeed[axis])<.001){pull[axis]=pullTarget[axis];pullSpeed[axis]=0;}
   }
   const waveTime=reduced?9:Math.min(9,(time-releaseAt)/1000);
+  surfaceWaveTime=waveTime;
   const box=canvas.getBoundingClientRect();
   const pixel=Math.min(devicePixelRatio, Math.sqrt(1100000/(box.width*box.height)));
   const w=Math.max(1,Math.round(box.width*pixel)), h=Math.max(1,Math.round(box.height*pixel));
@@ -732,6 +734,8 @@ function draw(time){
     kicks.set(piece.goal.map((v,j)=>(v-piece.from[j])*kick),i*2);
     piece.planes.forEach((plane,j)=>planes.set(plane,i*15+j*3));
   });
+  const ground=nativeShadowFrame();
+  gl.uniform1f(uniforms.uGround,ground.ground);gl.uniform4fv(uniforms.uShadowBounds,ground.bounds);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,orangeEnvironment);
   gl.uniform1i(uniforms.uEnvironment,0);gl.uniform1i(uniforms.uHasEnvironment,!!orangeEnvironment);
   gl.uniform2fv(uniforms.uEnvironmentUV,orangeEnvironment?environmentUV(environmentImages.orange,w,h):[1,1]);
@@ -822,6 +826,124 @@ function setMode(newMode){
   update();
 }
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
+let surfaceWaveTime=9;
+// The shader maps deformed world coordinates back to the undeformed gel.
+// Droplets invert that same map instead of approximating the indentation.
+function nativeMaterialPoint(point,index){
+ const piece=pieces[index],impulse=[kicks[index*2],kicks[index*2+1]];
+ let x=point[0]-piece.offset[0],y=point[1]-piece.offset[1],z=point[2];
+ z+=(x*impulse[0]+y*impulse[1])*.93;
+ x+=impulse[0]*z*.77;y+=impulse[1]*z*.77;
+ if(index!==pressedPiece)return [x,y,z];
+ const dx=x-(touch[0]-piece.offset[0]),dy=y-(touch[1]-piece.offset[1]);
+ const dist=Math.hypot(dx,dy),falloff=Math.exp(-4*(dx*dx+dy*dy));
+ x-=pull[0]*(.24+.76*falloff)+dx*press*falloff*.37;
+ y-=pull[1]*(.24+.76*falloff)+dy*press*falloff*.37;
+ const wave=.058*Math.sin(10*dist-19*surfaceWaveTime)*Math.exp(-3.8*surfaceWaveTime-2.2*dist);
+ z+=press*(.28*falloff-.053*Math.exp(-14*(dist-.64)**2)+.033*x)+wave;
+ z-=(pull[0]*dx+pull[1]*dy)*falloff*.56;
+ return [x,y,z];
+}
+function nativeSurfacePoint(piece,x,y,side=1){
+ const index=pieces.indexOf(piece);if(index<0)return null;
+ const angle=Math.atan2(y,x),radius=Math.hypot(x,y);
+ const limit=1.116+.018*Math.cos(angle*3+.6)+.011*Math.sin(angle*7-.1)+.006*Math.sin(angle*13);
+ const edge=Math.max(0,radius-limit);if(edge>.072)return null;
+ const t=Math.max(0,Math.min(1,radius-.12));
+ const crown=.058*(1-t*t*(3-2*t))+.006*Math.sin(5*x+3*y)+.004*Math.sin(7*y-2*x);
+ const restHeight=side*(.155+crown+Math.sqrt(Math.max(0,.072**2-edge**2)));
+ let px=x,py=y,z=restHeight;
+ if(index===pressedPiece){
+  const ax=touch[0]-piece.offset[0],ay=touch[1]-piece.offset[1],p=.37*press;
+  for(let step=0;step<12;step++){
+   const dx=px-ax,dy=py-ay,f=Math.exp(-4*(dx*dx+dy*dy));
+   const ex=px-pull[0]*(.24+.76*f)-dx*p*f-x;
+   const ey=py-pull[1]*(.24+.76*f)-dy*p*f-y;
+   if(Math.hypot(ex,ey)<.000001)break;
+   const bx=.76*pull[0]+p*dx,by=.76*pull[1]+p*dy;
+   const a=1-p*f+8*dx*f*bx,b=8*dy*f*bx;
+   const c=8*dx*f*by,d=1-p*f+8*dy*f*by;
+   const determinant=a*d-b*c;if(Math.abs(determinant)<.00001)return null;
+   let sx=(d*ex-b*ey)/determinant,sy=(a*ey-c*ex)/determinant;
+   const limitStep=Math.max(1,Math.hypot(sx,sy)/.25);px-=sx/limitStep;py-=sy/limitStep;
+  }
+  const dx=px-ax,dy=py-ay,dist=Math.hypot(dx,dy),f=Math.exp(-4*dist*dist);
+  const wave=.058*Math.sin(10*dist-19*surfaceWaveTime)*Math.exp(-3.8*surfaceWaveTime-2.2*dist);
+  z-=press*(.28*f-.053*Math.exp(-14*(dist-.64)**2)+.033*x)+wave;
+  z+=(pull[0]*dx+pull[1]*dy)*f*.56;
+ }
+ const kx=kicks[index*2],ky=kicks[index*2+1];
+ px-=kx*z*.77;py-=ky*z*.77;z-=(px*kx+py*ky)*.93;
+ return [px+piece.offset[0],py+piece.offset[1],z];
+}
+function nativeGelDistance(point){
+ let nearest=Infinity;
+ for(let i=0;i<pieces.length;i++){
+  const q=nativeMaterialPoint(point,i),r=Math.hypot(q[0],q[1]),a=Math.atan2(q[1],q[0]);
+  const radius=1.116+.018*Math.cos(a*3+.6)+.011*Math.sin(a*7-.1)+.006*Math.sin(a*13);
+  const t=Math.max(0,Math.min(1,r-.12));
+  const crown=.058*(1-t*t*(3-2*t))+.006*Math.sin(q[0]*5+q[1]*3)+.004*Math.sin(q[1]*7-q[0]*2);
+  const dx=r-radius,dy=Math.abs(q[2])-.155-crown;
+  let distance=Math.min(Math.max(dx,dy),0)+Math.hypot(Math.max(dx,0),Math.max(dy,0))-.072;
+  if(pieces.length>1){
+   let edge=-10;for(const plane of pieces[i].planes)edge=Math.max(edge,q[0]*plane[0]+q[1]*plane[1]+plane[2]);
+   edge+=.012;const round=Math.max(0,.027-Math.abs(distance-edge));
+   distance=Math.max(distance,edge)+round*round/.108;
+  }
+  nearest=Math.min(nearest,distance);
+ }
+ return nearest;
+}
+function nativePointVisible(point){
+ if(Math.abs(nativeGelDistance(point))>.004)return false;
+ const epsilon=.002;
+ const gradient=[0,1,2].map(axis=>{
+  const a=point.slice(),b=point.slice();a[axis]+=epsilon;b[axis]-=epsilon;
+  return nativeGelDistance(a)-nativeGelDistance(b);
+ });
+ if(dot(gradient,camera.forward)<=.035*Math.hypot(...gradient))return false;
+ let distance=.025;
+ for(let i=0;i<25&&distance<3;i++){
+  const sample=nativeGelDistance(point.map((v,j)=>v+camera.forward[j]*distance));
+  if(sample<.001)return false;
+  distance+=Math.max(.018,Math.min(.25,sample*.9));
+ }
+ return true;
+}
+function nativeShadowFrame(){
+ const normal=camera.up.map((v,i)=>v*.94+camera.forward[i]*.34);
+ const length=Math.hypot(...normal);for(let i=0;i<3;i++)normal[i]/=length;
+ const light=camera.right.map((v,i)=>-.78*v+.58*camera.up[i]-.42*camera.forward[i]);
+ const lightLength=Math.hypot(...light);for(let i=0;i<3;i++)light[i]/=lightLength;
+ const points=[];
+ for(const piece of pieces){
+  for(let i=0;i<32;i++){
+   const a=i*Math.PI/16;
+   const limit=1.116+.018*Math.cos(a*3+.6)+.011*Math.sin(a*7-.1)+.006*Math.sin(a*13);
+   // Include the perimeter and cap to find the current lowest support point.
+   for(const radius of [0,.72,limit+.0718])for(const side of [-1,1]){
+    const x=radius*Math.cos(a),y=radius*Math.sin(a);
+    // Cut pieces retain only their own material coordinates.
+    if(!piece.planes.every(p=>p[0]*x+p[1]*y+p[2]<=.005))continue;
+    const point=nativeSurfacePoint(piece,x,y,side);if(point)points.push(point);
+   }
+  }
+  for(const vertex of piece.poly)for(const side of [-1,1]){
+   const point=nativeSurfacePoint(piece,...vertex,side);if(point)points.push(point);
+  }
+ }
+ const ground=Math.min(...points.map(p=>dot(p,normal)))-.018;
+ const denominator=Math.max(.08,dot(light,normal));
+ const bounds=[Infinity,Infinity,-Infinity,-Infinity];
+ for(const p of points){
+  const height=Math.max(0,(dot(p,normal)-ground)/denominator);
+  const land=p.map((v,i)=>v-light[i]*height);
+  const x=dot(land,camera.right),y=dot(land,camera.up);
+  bounds[0]=Math.min(bounds[0],x-.22);bounds[1]=Math.min(bounds[1],y-.22);
+  bounds[2]=Math.max(bounds[2],x+.22);bounds[3]=Math.max(bounds[3],y+.22);
+ }
+ return {ground,bounds};
+}
 const nativeWetSurface={
  texture:nativePulp,
  lightAngle:()=>Math.atan2(-.58,-.78),
@@ -829,21 +951,9 @@ const nativeWetSurface={
  scale:()=>Math.min(canvas.clientWidth,canvas.clientHeight)/camera.scale,
  gravity:()=>({down:[-camera.up[0],-camera.up[1]],tilt:Math.max(0,Math.min(1,(Math.abs(Math.cos(pitch))-.78)/.22))}),
  project(piece,x,y){
-  const a=Math.atan2(y,x),radius=Math.hypot(x,y);
-  const limit=1.116+.018*Math.cos(a*3+.6)+.011*Math.sin(a*7-.1)+.006*Math.sin(a*13);
-  const edge=Math.max(0,radius-limit);
-  if(edge>.072)return null;
-  const curve=Math.max(0,Math.min(1,(radius-.12)));
-  const crown=.058*(1-curve*curve*(3-2*curve))+.006*Math.sin(5*x+3*y)+.004*Math.sin(7*y-2*x);
-  let px=x+piece.offset[0],py=y+piece.offset[1],height=.155+crown+Math.sqrt(.072**2-edge**2);
-  if(pieces[pressedPiece]===piece){
-   const dx=px-touch[0],dy=py-touch[1],dist=Math.hypot(dx,dy),falloff=Math.exp(-4*dist*dist);
-   px+=pull[0]*(.24+.76*falloff)+dx*press*falloff*.37;
-   py+=pull[1]*(.24+.76*falloff)+dy*press*falloff*.37;
-   height-=press*(.28*falloff-.053*Math.exp(-14*(dist-.64)**2)+.033*x);
-   height+=(pull[0]*dx+pull[1]*dy)*falloff*.56;
-  }
-  const point=[px,py,height],scale=nativeWetSurface.scale();
+  const point=nativeSurfacePoint(piece,x,y);
+  if(!point||!nativePointVisible(point))return null;
+  const scale=nativeWetSurface.scale();
   return [canvas.clientWidth/2+dot(camera.right,point)*scale,canvas.clientHeight*orangePose.frameY-dot(camera.up,point)*scale];
  }
 };
@@ -1372,7 +1482,7 @@ const cpuWetSurface={
   const ix=Math.round(at[0]),iy=Math.round(at[1]);
   if(ix<0||ix>=canvasW||iy<0||iy>=canvasH)return null;
   const pixel=iy*canvasW+ix;
-  if(ids[pixel]>=0&&ids[pixel]!==piece.id&&depth[pixel]>at[2]+.012)return null;
+  if(ids[pixel]!==piece.id||depth[pixel]>at[2]+.025)return null;
   return [at[0]*view.clientWidth/canvasW,at[1]*view.clientHeight/canvasH];
  }
 };
@@ -1491,6 +1601,35 @@ function pattyContactShadow(obj){
    pixels[i]*=factor;pixels[i+1]*=factor;pixels[i+2]*=factor;
   }
  }
+}
+let orangeShadowCanvas;
+function cpuOrangeShadow(objects){
+ const c=camera,normal=unit(-c.sy*c.se*.94+c.eye[0]*.34,c.ce*.94+c.eye[1]*.34,-c.cy*c.se*.94+c.eye[2]*.34);
+ const light=c.orangeLights[0].direction;
+ const clouds=objects.map(obj=>{
+  const points=[];
+  for(const [x,z] of obj.poly)for(const y of [.025,orangeTop(x,z)]){
+   const p=deformOrange(obj.id,x,y,z).map((v,i)=>v+obj.home[i]+obj.pos[i]);points.push(p);
+  }
+  return points;
+ });
+ const all=clouds.flat(),ground=Math.min(...all.map(p=>scalar(p,normal)))-.018;
+ const denominator=Math.max(.08,scalar(light,normal));
+ orangeShadowCanvas??=document.createElement('canvas');
+ if(orangeShadowCanvas.width!==canvasW||orangeShadowCanvas.height!==canvasH){orangeShadowCanvas.width=canvasW;orangeShadowCanvas.height=canvasH;}
+ const painter=orangeShadowCanvas.getContext('2d',{willReadFrequently:true});painter.clearRect(0,0,canvasW,canvasH);
+ painter.fillStyle='rgba(0,0,0,.32)';painter.shadowColor='rgba(0,0,0,.20)';painter.shadowBlur=Math.max(2,c.s*.035);
+ for(const cloud of clouds){
+  const points=cloud.map(p=>{const height=Math.max(0,(scalar(p,normal)-ground)/denominator);return project(...p.map((v,i)=>v-light[i]*height)).slice(0,2);}).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cross=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+  const lower=[],upper=[];
+  for(const p of points){while(lower.length>1&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}
+  for(const p of points.slice().reverse()){while(upper.length>1&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}
+  const hull=lower.slice(0,-1).concat(upper.slice(0,-1));if(hull.length<3)continue;
+  painter.beginPath();painter.moveTo(...hull[0]);for(const p of hull.slice(1))painter.lineTo(...p);painter.closePath();painter.fill();
+ }
+ const shadow=painter.getImageData(0,0,canvasW,canvasH).data,pixels=pixelData.data;
+ for(let i=0;i<pixels.length;i+=4){const attenuation=1-shadow[i+3]/255;pixels[i]*=attenuation;pixels[i+1]*=attenuation;pixels[i+2]*=attenuation;}
 }
 function shadow(obj){
  if(kind==='burger'){pattyContactShadow(obj);return;}
@@ -1631,7 +1770,7 @@ function orangeLighting(){
   const up=[direction[1]*right[2]-direction[2]*right[1],direction[2]*right[0]-direction[0]*right[2],direction[0]*right[1]-direction[1]*right[0]];
   return {direction,right,up,size,power};
  }
- return [light([-.78,.58,-.42],[.34,.40],.64),light([.64,.36,-.68],[.27,.57],.10),light([.22,.82,.48],[.45,.69],.07)];
+ return [light([-.78,.58,-.42],[.34,.40],.80),light([.64,.36,-.68],[.27,.57],.10),light([.22,.82,.48],[.45,.69],.07)];
 }
 // The background stays fixed: rotate its light rig into object space on each orbit.
 function sushiLighting(){
@@ -1742,7 +1881,7 @@ function prepareObj(obj){
    const edge=max(0,scalar(n,rimBox.direction));
    const fill=max(0,scalar(n,fillBox.direction));
    const floorBounce=max(0,-ny);
-   let lit=orange?.38+.95*key+.10*fill+.055*edge+.09*floorBounce:.37+.69*key+.30*fill+.25*edge+.09*floorBounce;
+   let lit=orange?.51+1.05*key+.17*fill+.065*edge+.09*floorBounce:.37+.69*key+.30*fill+.25*edge+.09*floorBounce;
    if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(kind==='bear'?.025+.12*edge:.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
    let gloss;
    if(mesh.mat===2){
@@ -1755,7 +1894,7 @@ function prepareObj(obj){
     const specularCore=softboxReflection(mainLight,reflected);
     const softboxes=specularCore+softboxReflection(rimBox,reflected)+softboxReflection(fillBox,reflected);
     const reflection=mesh.mat===3?.63:.43;
-    gloss=orange?softboxes*(.16+.65*rim)+.045*specularCore**2:softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
+    gloss=orange?softboxes*(.22+.72*rim)+.065*specularCore**2:softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
     lit+=rim*(.09+.31*edge);
    }
    return [...project(x+X,y+Y,z+Z),lit,gloss,u,v,...(kind==='sushi'?[x+X,y+Y,z+Z,key]:[])];
@@ -1779,7 +1918,7 @@ function draw(now){
  for(const o of objects){for(let k=0;k<3;k++){let d=o.goal[k]-o.pos[k];if(abs(d)+abs(o.vel[k])<.001){o.pos[k]=o.goal[k];o.vel[k]=0;continue}o.vel[k]=(o.vel[k]+d*110*dt)*Math.exp(-10*dt);o.pos[k]+=o.vel[k]*dt;anim=true;}}
  pressV=(pressV+(pressGoal-press)*115*dt)*Math.exp(-7*dt);press+=pressV*dt;
  for(let k=0;k<2;k++){pv[k]=(pv[k]+(pullGoal[k]-pull[k])*105*dt)*Math.exp(-6.5*dt);pull[k]+=pv[k]*dt;}
- for(let o of objects)shadow(o);
+ if(kind==='orange')cpuOrangeShadow(objects);else for(let o of objects)shadow(o);
  const cooking=kind==='burger'&&updateGriddle(dt);
  if(kind==='burger'){updateMeatJuice();paintMeatJuice();}
  const prepared=kind==='sushi'?objects.map(prepareObj):null;
