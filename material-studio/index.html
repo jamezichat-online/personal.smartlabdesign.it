@@ -18,7 +18,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 </head>
 <body>
 <main>
-<header><h1>Citrus <em>Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
+<header><h1>Citrus <em>Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
 <div class="stage">
 <canvas id="view" aria-label="3D gelatinous orange slice" tabindex="0"></canvas>
 <div class="meta"><span>Orange</span><span id="count" aria-live="polite">1 piece</span></div>
@@ -267,7 +267,7 @@ void main(){
 </script>
 <script>
 const environmentImages={};
-const environmentSources={"sushi":"./assets/sushi.png","orange":"./assets/orange.png","bear":"./assets/bear.png","pudding":"./assets/pudding.png","cloud":"./assets/cloud.png"};
+const environmentSources={"sushi":"./assets/sushi.png","orange":"./assets/orange.png","bear":"./assets/bear.png","pudding":"./assets/pudding.png","burger":"./assets/griddle.jpg","cloud":"./assets/cloud.png"};
 for(const [key,src] of Object.entries(environmentSources)){
  const image=new Image();
  image.onload=()=>{
@@ -1109,10 +1109,80 @@ function makePudding(){
  },6);
  return body({id:0,parts:[mesh],home:[0,0,0],shade:1});
 }
-let bear,pudding;
-const sceneObjects=()=>kind==='pudding'?[pudding]:kind==='bear'?[bear]:kind==='sushi'?sushi:oranges;
-const framing={sushi:{zoom:.795,baseline:.676},orange:{zoom:.60,baseline:.535},pudding:{zoom:.688,baseline:.738},bear:{zoom:1,baseline:.88}};
-function defaultOrbits(){return {sushi:[.40,.42],orange:[.26,.73],bear:[.04,.19],pudding:[.18,.39]};}
+let pattyMips, meatContact=[0,0], meatJuice=[], nextJuice=0;
+function makePatty(){
+ const profile=[[.003,.035],[.70,.033],[1.05,.036],[1.25,.06],[1.34,.13],[1.37,.25],[1.35,.39],[1.30,.49],[1.13,.54],[.85,.56],[.42,.565],[.003,.565]];
+ const mesh=surface(152,72,(u,v)=>{
+  const t=v*(profile.length-1),i=Math.min(profile.length-2,Math.floor(t)),f=t-i;
+  function spline(axis){
+   const a=profile[Math.max(0,i-1)][axis],b=profile[i][axis],c=profile[i+1][axis],d=profile[Math.min(profile.length-1,i+2)][axis];
+   return b+(c-b)*f+.5*f*(1-f)*((2*b-a-c)*(1-f)+(2*c-b-d)*f);
+  }
+  const angle=-TAU*u,r=spline(0),h=spline(1);
+  const edge=(.038*sin(7*angle)+.025*cos(13*angle+.6)+.018*sin(27*angle))*smooth(.65,1.25,r);
+  const x=(r+edge)*cos(angle),z=.92*(r+edge)*sin(angle);
+  const crust=smooth(.05,.55,h)*(.057*(noise(7*x+12,7*z+9)-.5)+.031*(noise(18*x,18*z)-.5));
+  return [x,h+crust,z];
+ },7);
+ for(const vertex of mesh.points){
+  vertex[6]=vertex[0]/3.1+.5+vertex[1]*.15;
+  vertex[7]=vertex[2]/3.1+.5-vertex[1]*.10;
+ }
+ const size=384,texels=new Uint8ClampedArray(size*size*3);
+ for(let y=0,k=0;y<size;y++)for(let x=0;x<size;x++,k+=3){
+  const mottling=noise(x*.037,y*.036),crumb=noise(x*.17,y*.17),fibres=noise(x*.35,y*.55);
+  const sear=smooth(.18,.40,mottling*.64+crumb*.36);
+  const pore=smooth(.48,.94,1-crumb)*smooth(.38,.78,1-fibres);
+  const fat=smooth(.66,.89,crumb)*smooth(.51,.84,noise(x*.095+37,y*.10));
+  texels[k]=29+75*sear+49*crumb+19*fibres-46*pore+72*fat;
+  texels[k+1]=14+33*sear+29*crumb+12*fibres-26*pore+61*fat;
+  texels[k+2]=10+14*sear+16*crumb+7*fibres-16*pore+45*fat;
+ }
+ pattyMips=texturePyramid(texels,size,size);
+ return body({id:0,parts:[mesh],home:[0,0,0],shade:1});
+}
+function pressPatty(x,z){
+ meatContact=[x,z];
+ pressGoal=1;
+ updateMeatJuice(true);
+}
+function updateMeatJuice(initial=false){
+ if(meatJuice.length>=18||(!initial&&(!pressGoal||press<.14||t<nextJuice)))return;
+ const angle=Math.hypot(...meatContact)>.18?Math.atan2(meatContact[1],meatContact[0]):.95;
+ const a=angle+(Math.random()-.5)*2.0;
+ const radius=.085+Math.random()*.15;
+ meatJuice.push({a,radius,born:t});
+ nextJuice=t+.125+Math.random()*.09;
+}
+function paintMeatJuice(){
+ const pixels=pixelData.data;
+ for(const bead of meatJuice){
+  const age=t-bead.born,spread=1-Math.exp(-age*3.7);
+  const distance=1.33+spread*(.24+bead.radius*.6);
+  const x=cos(bead.a)*distance,z=sin(bead.a)*distance*.92;
+  const [cx,cy]=project(x,.003,z);
+  const rx=camera.s*bead.radius*(.12+.88*spread);
+  const ry=rx*Math.max(.22,camera.se)*.80;
+  for(let y=max(0,Math.floor(cy-ry));y<min(canvasH,cy+ry+1);y++){
+   for(let x=max(0,Math.floor(cx-rx));x<min(canvasW,cx+rx+1);x++){
+    const dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;
+    const r=dx*dx+dy*dy+.055*sin(10*dx+5*dy);
+    if(r>=1)continue;
+    const edge=1-smooth(.75,1,r),core=1-smooth(.16,.93,r);
+    const reflection=Math.exp(-35*(dx+.34)**2-22*(dy+.40)**2);
+    const k=(y*canvasW+x)*4;
+    pixels[k]=pixels[k]*(1-.25*edge)+edge*(9+24*core+93*reflection);
+    pixels[k+1]=pixels[k+1]*(1-.36*edge)+edge*(5+13*core+70*reflection);
+    pixels[k+2]=pixels[k+2]*(1-.43*edge)+edge*(3+5*core+42*reflection);
+   }
+  }
+ }
+}
+
+let bear,pudding,patty;
+const sceneObjects=()=>kind==='burger'?[patty]:kind==='pudding'?[pudding]:kind==='bear'?[bear]:kind==='sushi'?sushi:oranges;
+const framing={sushi:{zoom:.795,baseline:.676},orange:{zoom:.60,baseline:.535},pudding:{zoom:.688,baseline:.738},burger:{zoom:.83,baseline:.677},bear:{zoom:1,baseline:.88}};
+function defaultOrbits(){return {sushi:[.40,.42],orange:[.26,.73],bear:[.04,.19],pudding:[.18,.39],burger:[.16,.43]};}
 let oranges=[],camera={},pixelData,depth,backDepth,ids,canvasW,canvasH,frameSize,orbitState=defaultOrbits();
 const circles=112;
 function orangeTop(x,z){return .46+.058*(1-x*x-z*z)+.007*sin(6*x+3*z);}
@@ -1234,12 +1304,20 @@ function shadow(obj){
  let isGrain=obj.id>0&&kind==='sushi';
  if(isGrain&&(!obj.loose||obj.pos[1]>.5))return;
  let x=obj.home[0]+obj.pos[0],z=obj.home[2]+obj.pos[2],a=project(x,.01,z);
- const rx=camera.s*(isGrain?.20:kind==='sushi'?1.49:1.18),ry=rx*camera.se*(kind==='sushi'?.55:.85),opacity=isGrain?.22:.42/max(1,1+obj.pos[1]);
+ const rx=camera.s*(isGrain?.20:kind==='sushi'?1.49:kind==='burger'?1.46:1.18),ry=rx*camera.se*(kind==='sushi'?.55:.85),opacity=isGrain?.22:.42/max(1,1+obj.pos[1]);
  let d=pixelData.data;
  for(let y=max(0,Math.floor(a[1]-ry));y<min(canvasH,a[1]+ry);y++)for(let x=max(0,Math.floor(a[0]-rx));x<min(canvasW,a[0]+rx);x++){
   let v=((x-a[0])/rx)**2+((y-a[1])/ry)**2;if(v>1)continue;
   const contact=kind==='orange'?.11*Math.exp(-6*v):0;
-  const f=1-opacity*(1-v)**2-contact,k=(y*canvasW+x)*4;
+  let f=1-opacity*(1-v)**2-contact;
+  if(kind==='pudding'){
+   const dx=(x-a[0])/rx,dy=(y-a[1])/ry;
+   const foot=dx*dx+((dy-.19)/.81)**2;
+   const core=1-smooth(.55,.98,foot);
+   const penumbra=Math.exp(-3.1*((dx-.16)**2+(dy-.11)**2))*(1-smooth(.81,1,v));
+   f*=1-.33*core-.13*penumbra;
+  }
+  const k=(y*canvasW+x)*4;
   d[k]=d[k]*f+(kind==='orange'?8*Math.exp(-24*(v-.67)**2):0);d[k+1]*=f;d[k+2]*=f;
  }
 }
@@ -1250,7 +1328,7 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
  if(x0>x1||y0>y1)return;
  const pixels=pixelData.data,iw=1/area;
  const eye=mat===6&&!thicknessPass?camera.eye:null;
- const levels=mat===1?fishMips:mat===3||mat===5?orangeMips:null;
+ const levels=mat===7?pattyMips:mat===1?fishMips:mat===3||mat===5?orangeMips:null;
  const filter=levels?textureFootprint(a,b,c,dx,dy,ex,ey,iw,levels):null;
  for(let y=y0;y<=y1;y++){
   let l=((x0+.5-a[0])*ey-(y+.5-a[1])*ex)*iw,m=(dx*(y+.5-a[1])-dy*(x0+.5-a[0]))*iw;
@@ -1266,6 +1344,11 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     const texel=sampleTexture(filter,u,v);
     r=texel[0];g=texel[1];blue=texel[2];
     if(mat===3||mat===5){const bead=clamp((g-112)/50);shine+=(mat===5?.16:.09)*bead*bead;g+=mat===5?9:1;}
+    if(mat===7){
+     const glisten=smooth(74,135,r);
+     shine*=.42+.58*glisten;
+     shine+=.024*glisten*glisten;
+    }
     if(mat===1){const fat=clamp((g-96)/106);shine+=.035*fat;g+=.018*r;blue+=.013*r;}
    }else if(mat===6){
     // Filter the refracted backdrop by the distance light travels through the jelly.
@@ -1377,6 +1460,13 @@ function renderObj(obj){
     let ax=x-anchor[0],az=z-anchor[1],f=Math.exp(-3*(ax*ax+az*az));
     [x,y,z]=deformOrange(obj.id,x,y,z);nx-=ax*f*1.4*press;nz-=az*f*1.4*press;
    }
+   if(mesh.mat===7){
+    const dx=x-meatContact[0],dz=z-meatContact[1];
+    const dent=Math.exp(-1.25*(dx*dx+dz*dz))*clamp(press,0,1.15);
+    const expansion=1+.047*clamp(press,0,1.15)*smooth(.02,.38,y);
+    x*=expansion;z*=expansion;y=.026+(y-.026)*(1-.37*dent);
+    nx-=dx*dent*.19;nz-=dz*dent*.19;
+   }
    if(mesh.mat===6){
     if(kind==='pudding'){
      const level=clamp(y/1.55),squash=.17*press;
@@ -1433,23 +1523,24 @@ function draw(now){
  pressV=(pressV+(pressGoal-press)*115*dt)*Math.exp(-7*dt);press+=pressV*dt;
  for(let k=0;k<2;k++){pv[k]=(pv[k]+(pullGoal[k]-pull[k])*105*dt)*Math.exp(-6.5*dt);pull[k]+=pv[k]*dt;}
  for(let o of objects)shadow(o);
+ if(kind==='burger'){updateMeatJuice();paintMeatJuice();}
  for(let o of objects)renderObj(o);
  ctx.putImageData(pixelData,0,0);
  updateBloom(view,kind==='orange');
  if(kind==='orange')juice.refresh();
- if(anim||abs(pressGoal-press)+abs(pressV)+abs(pv[0])+abs(pv[1])>.001)invalidate();
+ if(anim||(kind==='burger'&&((pressGoal&&meatJuice.length<18)||meatJuice.some(bead=>t-bead.born<1.35)))||abs(pressGoal-press)+abs(pressV)+abs(pv[0])+abs(pv[1])>.001)invalidate();
 }
 function local(e){let b=view.getBoundingClientRect();return [(e.clientX-b.x)*canvasW/b.width,(e.clientY-b.y)*canvasH/b.height]}
 function message(s){originalHint.textContent=s;}
 function counts(){
- counter.textContent=kind==='pudding'?'1 jelly':kind==='bear'?'1 bear':kind==='sushi'?(grains.filter(g=>g.loose).length+' / '+totalRice+' grains separated'):(oranges.length===1?'1 piece':oranges.length+' pieces');
+ counter.textContent=kind==='burger'?'':kind==='pudding'?'1 jelly':kind==='bear'?'1 bear':kind==='sushi'?(grains.filter(g=>g.loose).length+' / '+totalRice+' grains separated'):(oranges.length===1?'1 piece':oranges.length+' pieces');
 }
 function spread(o,f){
  const a=o.id*2.39996,r=.66+1.07*sqrt(o.id/totalRice);
  o.goal=o.id===0?[0,1.05*f,-.19*f]:[(r*cos(a)-o.home[0]*.48)*f,(.05-o.home[1]+(o.id%5)*.06)*f,(r*sin(a)-o.home[2]*.47)*f];
  o.loose=!!f;
 }
-function reset(){press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState[kind]=defaultOrbits()[kind];zoom=framing[kind]?.zoom??1;counts();invalidate();}
+function reset(){if(kind==='burger')meatJuice=[];press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState[kind]=defaultOrbits()[kind];zoom=framing[kind]?.zoom??1;counts();invalidate();}
 function splitOrange(a,b){
  let dx=b[0]-a[0],dz=b[2]-a[2],len=Math.hypot(dx,dz);if(len<.17)return false;
  let n=[-dz/len,dx/len],next=[],changed=false,capacity=8-oranges.length;
@@ -1467,7 +1558,7 @@ function splitOrange(a,b){
  }
  oranges=next;oranges.forEach((o,i)=>o.id=i);if(changed)juice.show(cpuWetSurface);counts();invalidate();return changed;
 }
-const helpers={pudding:'Press the jelly and release to make it wobble. Drag the background to rotate.',bear:'Press or drag the bear to deform it. Drag the background to rotate.',move:'Press the nigiri to squeeze it. Drag to separate the ingredients or drag the background to rotate.',orbit:'Drag to rotate the object. Use the scroll wheel to zoom.',press:'Touch the pulp to create droplets. Turn the slice upright to make them slide.',cut:'Draw a cut across the slice from edge to edge.'};
+const helpers={burger:'Press the patty to release juices. Drag the background to rotate.',pudding:'Press the jelly and release to make it wobble. Drag the background to rotate.',bear:'Press or drag the bear to deform it. Drag the background to rotate.',move:'Press the nigiri to squeeze it. Drag to separate the ingredients or drag the background to rotate.',orbit:'Drag to rotate the object. Use the scroll wheel to zoom.',press:'Touch the pulp to create droplets. Turn the slice upright to make them slide.',cut:'Draw a cut across the slice from edge to edge.'};
 function mode(m){tool=m;sheet.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===m));message(helpers[m]);}
 view.onpointerdown=e=>{
  if(drag)return;
@@ -1475,6 +1566,10 @@ view.onpointerdown=e=>{
  const obj=sceneObjects().find(o=>o.id===id);
  drag={id:e.pointerId,at,last:at,obj,start:obj?.goal.slice(),orbit:e.button!==0||e.shiftKey||(!obj&&tool!=='cut')};view.setPointerCapture(e.pointerId);
  if(drag.orbit)return;
+ if(obj&&tool==='burger'){
+  const [x,,z]=groundAt(...at,.46);
+  pressPatty(x,z);
+ }
  if(obj&&(tool==='bear'||tool==='pudding')){
   const zBuffer=depth[Math.floor(at[1])*canvasW+Math.floor(at[0])];
   const height=zBuffer*camera.se-(at[1]-camera.originY)/camera.s*camera.ce;
@@ -1760,23 +1855,24 @@ function choose(k){
   return;
  }
 
- juice.hide();updateBloom.clear();kind=k;if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];if(k!=='bear')orbitState[k]=defaultOrbits()[k];zoom=framing[k].zoom;frameSize=null;
+ juice.hide();updateBloom.clear();kind=k;if(k==='burger'&&!patty)patty=makePatty();if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];if(k!=='bear')orbitState[k]=defaultOrbits()[k];zoom=framing[k].zoom;frameSize=null;
  document.querySelectorAll('[data-subject]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.subject===k));
- document.querySelector('h1').innerHTML=k==='pudding'?'Amber <em>Jelly</em>':k==='bear'?'Gummy <em>Bear</em>':k==='sushi'?'Salmon <em>Nigiri</em>':'Citrus <em>Gel</em>';
- document.querySelector('header p').textContent='Material Studio 3D';document.querySelector('.meta span').textContent=k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
+ document.querySelector('h1').innerHTML=k==='burger'?'Beef <em>Patty</em>':k==='pudding'?'Amber <em>Jelly</em>':k==='bear'?'Gummy <em>Bear</em>':k==='sushi'?'Salmon <em>Nigiri</em>':'Citrus <em>Gel</em>';
+ document.querySelector('header p').textContent='Material Studio 3D';document.querySelector('.meta span').textContent=k==='burger'?'Seared beef':k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
  let native=k==='orange'&&hasGPU;
  gpu.style.display=native?'block':'none';view.hidden=native;view.style.display=native?'none':'block';sheet.hidden=native;controls.style.display=native?'flex':'none';
  document.querySelector('#error').style.display='none';
- view.setAttribute('aria-label',k==='pudding'?'Deformable 3D amber jelly':k==='bear'?'Deformable 3D red gummy bear':k==='sushi'?'3D salmon and rice nigiri with separable ingredients':'Interactive 3D gelatinous orange slice');
+ view.setAttribute('aria-label',k==='burger'?'3D beef patty on a griddle. Hold Space to press.':k==='pudding'?'Deformable 3D amber jelly':k==='bear'?'Deformable 3D red gummy bear':k==='sushi'?'3D salmon and rice nigiri with separable ingredients':'Interactive 3D gelatinous orange slice');
  sheet.querySelectorAll('[data-for]').forEach(b=>b.hidden=b.dataset.for!==k);
  if(native){gpu.dispatchEvent(new Event('show-orange'));controls.querySelector('[aria-pressed=true]')?.click();counter.textContent=document.querySelector('#count').dataset.orangeCount||'1 piece';}
- else {if(k==='orange')juice.show(cpuWetSurface);mode(k==='pudding'?'pudding':k==='bear'?'bear':k==='sushi'?'move':'press');counts();invalidate();}
+ else {if(k==='orange')juice.show(cpuWetSurface);mode(k==='burger'?'burger':k==='pudding'?'pudding':k==='bear'?'bear':k==='sushi'?'move':'press');counts();invalidate();}
 }
 document.querySelectorAll('[data-subject]').forEach(b=>b.onclick=()=>{if(kind==='orange'&&hasGPU)counter.dataset.orangeCount=counter.textContent;choose(b.dataset.subject);});
 sheet.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>mode(b.dataset.tool));
 document.querySelector('#explode').onclick=()=>{materialFoley.play('rice-separate',.72);for(let o of sushi)spread(o,1);counts();mode('move');message('Salmon and rice grains separated. You can grab each element.');invalidate();};
-document.querySelector('#reform').onclick=()=>{if(kind==='cloud'){cloudScene.reset();return;}reset();mode(kind==='pudding'?'pudding':kind==='bear'?'bear':kind==='sushi'?'move':'press');};
+document.querySelector('#reform').onclick=()=>{if(kind==='cloud'){cloudScene.reset();return;}reset();mode(kind==='burger'?'burger':kind==='pudding'?'pudding':kind==='bear'?'bear':kind==='sushi'?'move':'press');};
 view.addEventListener('keydown',event=>{
+ if(event.code==='Space'&&kind==='burger'){event.preventDefault();if(!event.repeat)pressPatty(0,0);invalidate();return;}
  if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){
   event.preventDefault();bearContact=[0,1.55,.43];pressGoal=1;if(!event.repeat)materialFoley.play(kind==='bear'?'bear-press':'jelly-press',.79);invalidate();return;
  }
@@ -1785,8 +1881,8 @@ view.addEventListener('keydown',event=>{
  event.preventDefault();const orbit=orbitState[kind];orbit[0]+=step[0];
  orbit[1]=clamp(orbit[1]+step[1],kind==='bear'?-.12:.19,1.48);invalidate();
 });
-view.addEventListener('keyup',event=>{if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){if(pressGoal)materialFoley.play(kind==='pudding'?'jelly-release':'bear-release',.66);pressGoal=0;invalidate();}});
-view.addEventListener('blur',()=>{if(kind==='bear'&&!drag){pressGoal=0;invalidate();}});
+view.addEventListener('keyup',event=>{if(event.code==='Space'&&kind==='burger'){pressGoal=0;invalidate();return;}if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){if(pressGoal)materialFoley.play(kind==='pudding'?'jelly-release':'bear-release',.66);pressGoal=0;invalidate();}});
+view.addEventListener('blur',()=>{if((kind==='bear'||kind==='burger')&&!drag){pressGoal=0;invalidate();}});
 new ResizeObserver(invalidate).observe(stage);
 choose('cloud');
 })();
