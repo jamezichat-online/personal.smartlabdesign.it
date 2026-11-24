@@ -35,7 +35,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 <details class="audio-credits"><summary>Sound credits</summary><ul>
 <li>Orange: <a href="https://freesound.org/people/aarrnnoo/sounds/516189/">Splash and squishy gross sound</a> by aarrnnoo, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
 <li>Rice: <a href="https://freesound.org/people/ScouseMouseJB/sounds/536709/">Rice pour.wav</a> by ScouseMouseJB, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
-<li>Salmon, gummy bear and patty press: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
+<li>Salmon and gummy bear: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
 <li>Amber jelly: <a href="https://freesound.org/people/DoctorMelon/sounds/818572/">Jelly Sucked Up a Metal Straw</a> by DoctorMelon, CC0.</li>
 <li>Cloud: <a href="https://freesound.org/people/sqeeeek/sounds/381853/">Wind gust short</a> by sqeeeek, CC0.</li>
 <li>Griddle: beef-patty sizzle generated with Pollo AI, edited to loop with the heat level.</li>
@@ -337,7 +337,7 @@ const materialFoley = (() => {
   toggle.hidden = true;
   return { play() {}, stop() {}, setSizzle() {} };
  }
- const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust','beef-sizzle','beef-press'];
+ const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust','beef-sizzle'];
  const buffers = new Map(), pending = new Map(), last = new Map(), active = new Set();
  let ctx, master, enabled = false, nextDrop = 0, sizzleSource, sizzleGain;
  function load(name) {
@@ -1201,8 +1201,11 @@ function updateGriddle(dt){
  griddleHeat+=(Number(griddleOn)-griddleHeat)*(1-Math.exp(-dt*(griddleOn?1.08:.48)));
  const cooking=smooth(.15,.86,griddleHeat);
  searProgress=Math.min(1,searProgress+cooking*dt*.047);
- const level=cooking*(.86-.39*searProgress)+cooking*Math.max(0,press)*.33;
- materialFoley.setSizzle(Math.min(1,level));
+ // Pressure releases juice onto the hot plate: modulate the frying recording.
+ const compression=Math.max(0,Math.min(1,press));
+ const onset=Math.max(0,Math.min(1,pressV*.16));
+ const level=cooking*(.66-.25*searProgress+.49*compression+.23*onset);
+ materialFoley.setSizzle(Math.min(1.25,level));
  const label=griddleOn?(griddleHeat<.4?'Heating':'Sizzling'):griddleHeat>.06?'Cooling':'Griddle off';
  if(label!==griddleStatus){
   griddleStatus=label;
@@ -1220,23 +1223,23 @@ function updateGriddle(dt){
 function paintCookingVapour(){
  const heat=smooth(.13,.98,griddleHeat);
  if(heat<.025)return;
- const moisture=.98-.44*searProgress+Math.max(0,press)*.23;
- const now=t*.49,wind=.20;
+ const moisture=1.15-.38*searProgress+Math.max(0,press)*.65;
+ const now=t*.39,wind=.29;
  ctx.save();
- for(let stream=0;stream<6;stream++){
+ for(let stream=0;stream<10;stream++){
   const a=stream*2.39996,z=sin(a)*.91,x=cos(a)*1.05;
-  const phase=(now+stream/6)%1;
+  const phase=(now+stream/10)%1;
   const fade=sin(phase*PI)**1.65*heat*moisture;
-  const lift=.18+phase*1.16;
+  const lift=.17+phase*1.90;
   const drift=phase*phase*wind+.12*sin(phase*9+stream*2.2)*phase;
-  for(let wisp=0;wisp<3;wisp++){
-   const h=lift+wisp*.11;
+  for(let wisp=0;wisp<4;wisp++){
+   const h=lift+wisp*.14;
    const [px,py]=project(x+drift+wisp*.036,h,z+.13*sin(h*4+stream));
-   const size=camera.s*(.065+.15*phase+wisp*.025);
+   const size=camera.s*(.085+.22*phase+wisp*.032);
    if(size<1)continue;
    const gradient=ctx.createRadialGradient(px,py,0,px,py,size);
-   gradient.addColorStop(0,'rgba(235,232,220,'+(fade*(.105-wisp*.022))+')');
-   gradient.addColorStop(.45,'rgba(217,216,206,'+(fade*(.06-wisp*.012))+')');
+   gradient.addColorStop(0,'rgba(235,232,220,'+(fade*(.155-wisp*.027))+')');
+   gradient.addColorStop(.45,'rgba(217,216,206,'+(fade*(.095-wisp*.018))+')');
    gradient.addColorStop(1,'rgba(217,212,199,0)');
    ctx.fillStyle=gradient;
    ctx.fillRect(px-size,py-size,size*2,size*2);
@@ -1247,7 +1250,6 @@ function paintCookingVapour(){
 
 function pressPatty(x,z){
  meatContact=[x,z];
- materialFoley.play('beef-press',.48,x*.38);
  pressGoal=1;
  updateMeatJuice(true);
 }
@@ -1421,7 +1423,31 @@ function bearShadow(){
   }
  }
 }
+function pattyContactShadow(obj){
+ // Project the contact ellipse onto the griddle, including squash and cooking shrinkage.
+ const c=camera,pixels=pixelData.data;
+ const size=(1-.10*searProgress)*(1+.035*clamp(press,0,1.15));
+ const rx=1.34*size,rz=rx*.92;
+ const center=project(obj.home[0]+obj.pos[0],.002,obj.home[2]+obj.pos[2]);
+ const extent=c.s*rx*1.36,ey=extent*Math.max(.025,Math.abs(c.se));
+ for(let y=max(0,Math.floor(center[1]-ey));y<min(canvasH,center[1]+ey);y++){
+  for(let x=max(0,Math.floor(center[0]-extent));x<min(canvasW,center[0]+extent);x++){
+   const u=(x+.5-center[0])/c.s,v=(y+.5-center[1])/(c.s*Math.max(.025,Math.abs(c.se)));
+   const wx=u*c.cy+v*c.sy,wz=-u*c.sy+v*c.cy;
+   const radius=Math.hypot(wx/rx,wz/rz);
+   // Tight ambient occlusion at the lower crust; soft cast shadow toward the right.
+   const core=.54*(1-smooth(.88,1.045,radius));
+   const rim=.24*Math.exp(-Math.pow((radius-.98)/.075,2));
+   const castR=Math.hypot((u-.10)/(rx*1.12),(v-.07)/(rz*1.09));
+   const cast=.20*(1-smooth(.80,1.16,castR));
+   const factor=(1-core)*(1-rim)*(1-cast);
+   const i=(y*canvasW+x)*4;
+   pixels[i]*=factor;pixels[i+1]*=factor;pixels[i+2]*=factor;
+  }
+ }
+}
 function shadow(obj){
+ if(kind==='burger'){pattyContactShadow(obj);return;}
  if(kind==='bear'){bearShadow();return;}
  let isGrain=obj.id>0&&kind==='sushi';
  if(isGrain&&(!obj.loose||obj.pos[1]>.5))return;
