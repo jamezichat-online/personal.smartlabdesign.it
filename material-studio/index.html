@@ -131,6 +131,22 @@ float softShadow(vec3 p,vec3 l){
   }
   return clamp(sh,0.,1.);
 }
+// Broad window penumbra: softness grows with receiver-to-blocker distance.
+vec2 groundShadow(vec3 p,vec3 light){
+  float visibility=1.,travel=.022,blockerDistance=0.;
+  for(int i=0;i<42;i++){
+    float distance=surface(p+light*travel).x;
+    float cone=mix(8.,3.2,smoothstep(.12,3.5,travel));
+    float sampleVisibility=cone*distance/max(.025,travel);
+    if(sampleVisibility<visibility){visibility=sampleVisibility;blockerDistance=travel;}
+    if(distance<.0015||visibility<.008)break;
+    travel+=clamp(distance*.82,.018,.34);
+    if(travel>8.)break;
+  }
+  // Let any residual at the tracing horizon disappear continuously.
+  visibility=mix(clamp(visibility,0.,1.),1.,smoothstep(6.5,8.,blockerDistance));
+  return vec2(visibility,blockerDistance);
+}
 struct Tissue{vec3 tint;vec2 slope;};
 Tissue tissue(vec3 q,vec3 pixelX,vec3 pixelY){
   vec2 xy=q.xy-vec2(.025,-.031);
@@ -205,9 +221,12 @@ void main(){
       vec3 groundNormal=normalize(.94*uUp+.34*uForward);
       vec3 ground=ray-uForward*((dot(ray,groundNormal)-uGround)/dot(uForward,groundNormal));
       vec3 windowLight=normalize(-.78*uRight+.58*uUp-.42*uForward);
-      float visibility=softShadow(ground+groundNormal*.006,windowLight);
+      vec2 shadow=groundShadow(ground+groundNormal*.006,windowLight);
       float contact=exp(-max(surface(ground).x,0.)*16.);
-      bg*=1.-.32*(1.-visibility)-.12*contact;
+      vec2 boundary=min(groundScreen-uShadowBounds.xy,uShadowBounds.zw-groundScreen);
+      float edgeFade=smoothstep(0.,.38,min(boundary.x,boundary.y));
+      float distanceFade=mix(1.,.76,smoothstep(.4,4.,shadow.y));
+      bg*=1.-edgeFade*(.32*(1.-shadow.x)*distanceFade+.12*contact);
     }
   }
   float t=1.30;
@@ -939,8 +958,9 @@ function nativeShadowFrame(){
   const height=Math.max(0,(dot(p,normal)-ground)/denominator);
   const land=p.map((v,i)=>v-light[i]*height);
   const x=dot(land,camera.right),y=dot(land,camera.up);
-  bounds[0]=Math.min(bounds[0],x-.22);bounds[1]=Math.min(bounds[1],y-.22);
-  bounds[2]=Math.max(bounds[2],x+.22);bounds[3]=Math.max(bounds[3],y+.22);
+  const padding=.68+.10*height;
+  bounds[0]=Math.min(bounds[0],x-padding);bounds[1]=Math.min(bounds[1],y-padding);
+  bounds[2]=Math.max(bounds[2],x+padding);bounds[3]=Math.max(bounds[3],y+padding);
  }
  return {ground,bounds};
 }
@@ -1618,7 +1638,7 @@ function cpuOrangeShadow(objects){
  orangeShadowCanvas??=document.createElement('canvas');
  if(orangeShadowCanvas.width!==canvasW||orangeShadowCanvas.height!==canvasH){orangeShadowCanvas.width=canvasW;orangeShadowCanvas.height=canvasH;}
  const painter=orangeShadowCanvas.getContext('2d',{willReadFrequently:true});painter.clearRect(0,0,canvasW,canvasH);
- painter.fillStyle='rgba(0,0,0,.32)';painter.shadowColor='rgba(0,0,0,.20)';painter.shadowBlur=Math.max(2,c.s*.035);
+ painter.fillStyle='rgba(0,0,0,.32)';painter.shadowColor='rgba(0,0,0,.20)';painter.shadowBlur=Math.max(3,c.s*.08);
  for(const cloud of clouds){
   const points=cloud.map(p=>{const height=Math.max(0,(scalar(p,normal)-ground)/denominator);return project(...p.map((v,i)=>v-light[i]*height)).slice(0,2);}).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
   const cross=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
