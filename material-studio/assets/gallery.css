@@ -15,7 +15,19 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   background: #100b09;
 }
 .material-home[hidden] { display: none; }
+.material-home::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 57% 40% at 50% 54%,
+    color-mix(in srgb, var(--accent) 15%, transparent),
+    color-mix(in srgb, var(--accent) 5%, transparent) 54%, transparent 100%);
+  transition: opacity .3s ease;
+}
 .material-home.is-transitioning { background: transparent; pointer-events: none; }
+.material-home.is-transitioning::before { opacity: 0; }
 .material-home h1,
 .material-home p {
   width: min(100% - 2 * clamp(20px, 4vw, 64px), 1480px);
@@ -48,11 +60,13 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   align-items: center;
   width: max-content;
   margin-inline: auto;
-  padding: clamp(32px, 7vh, 76px) clamp(24px, 4vw, 64px);
+  padding: clamp(62px, 10vh, 90px) clamp(24px, 4vw, 64px) clamp(76px, 12vh, 106px);
 }
 .material-card {
-  --card-width: clamp(172px, 15vw, 248px);
+  --card-width: clamp(172px, 16vw, 252px);
+  --front: calc(var(--stack-order) + 100);
   position: relative;
+  z-index: var(--stack-order);
   display: block;
   flex: 0 0 var(--card-width);
   width: var(--card-width);
@@ -64,9 +78,11 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   cursor: pointer;
   scroll-snap-align: center;
   -webkit-tap-highlight-color: transparent;
+  transition: z-index 0s .24s;
 }
-.material-card + .material-card { margin-inline-start: -8px; }
-.material-card:focus-visible { z-index: 2; outline: 2px solid #ffac66; outline-offset: 7px; }
+.material-card + .material-card { margin-inline-start: calc(-1 * clamp(17px, 2vw, 29px)); }
+.material-card:focus-visible { z-index: var(--front); transition-delay: 0s; outline: none; }
+.material-card:focus-visible .material-card-art { outline: 2px solid var(--accent); outline-offset: 4px; }
 .material-card-art {
   position: absolute;
   inset: 0;
@@ -76,8 +92,40 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   background: #2a1911;
   outline: 1px solid #fff1db40;
   outline-offset: -1px;
-  box-shadow: 0 18px 28px #0006;
-  transform: perspective(950px) translate3d(0,var(--lift,0px),0) rotateX(var(--pitch,0deg)) rotateY(var(--yaw,-16deg));
+  box-shadow: 12px 14px 22px -5px #0009, 2px 4px 7px #0007;
+  transform: perspective(1100px)
+    translate3d(calc(var(--pointer-x, 0) * 4px), calc(var(--pointer-y, 0) * 3px - var(--approach, 0) * 7px), calc(var(--approach, 0) * 62px))
+    rotateX(calc(var(--pointer-y, 0) * -4deg))
+    rotateY(calc(20deg - var(--approach, 0) * 10deg + var(--pointer-x, 0) * 5deg));
+}
+.material-card-title,
+.material-card-description {
+  position: absolute;
+  inset-inline: -7%;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(var(--label-shift));
+  transition: opacity .23s ease, transform .34s cubic-bezier(.23, 1, .32, 1);
+  text-align: center;
+}
+.material-card-title {
+  --label-shift: 7px;
+  bottom: calc(100% + 18px);
+  color: #f9ecdf;
+  font: 400 clamp(19px, 1.9vw, 27px)/1.1 Georgia, serif;
+  letter-spacing: -.035em;
+}
+.material-card-description {
+  --label-shift: -7px;
+  top: calc(100% + 16px);
+  color: #e3cbbb;
+  font: 400 12px/1.45 system-ui, sans-serif;
+}
+.material-card:focus-visible :is(.material-card-title, .material-card-description) {
+  opacity: 1;
+  transform: translateY(0);
 }
 .material-card-art img,
 .material-flight-art img,
@@ -122,12 +170,17 @@ body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
   .material-home { padding-block: clamp(22px, 6vh, 56px); }
   .material-track { padding-inline: max(24px, calc((100vw - 250px) / 2)); }
   .material-card { --card-width: min(65vw, 250px); }
-  .material-card + .material-card { margin-inline-start: 8px; }
+  .material-card + .material-card { margin-inline-start: -14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .material-card-art { transform: none; }
+  .material-card-title, .material-card-description { transition: none; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .material-card:hover { z-index: 3; }
+  .material-card:hover { z-index: var(--front); transition-delay: 0s; }
+  .material-card:hover :is(.material-card-title, .material-card-description) {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

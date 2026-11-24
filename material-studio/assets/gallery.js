@@ -5,9 +5,18 @@ const studio = document.querySelector('#materialStudio');
 const homeRoot = document.querySelector('#materialHome');
 const homeButton = document.querySelector('#materialHomeButton');
 const stage = studio.querySelector('.stage');
+const interactions = {
+  sushi: 'Press and stretch the salmon. Pull apart individual rice grains.',
+  orange: 'Squeeze to release juice, tilt to move the droplets, or cut the slice.',
+  bear: 'Press or drag the gummy bear to stretch and deform it.',
+  pudding: 'Press, then release to make the jelly wobble.',
+  burger: 'Heat the griddle to sear the patty. Press it to release juices.',
+  cloud: 'Rotate the cloud or sweep through it to disperse the vapour.'
+};
 const materials = [...studio.querySelectorAll('[data-subject]')].map(button => ({
   id: button.dataset.subject,
   title: button.textContent,
+  description: interactions[button.dataset.subject],
   preview: './assets/previews/' + button.dataset.subject + '.webp',
   button
 }));
@@ -16,22 +25,20 @@ const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, index, onOpen }) {
+function MaterialCard({ material, stackOrder, onOpen }) {
   const art = useRef(null);
   const controls = useRef(null);
-  const restingYaw = -15 + (index % 3) * 2;
-  const restingPitch = (index % 2 ? -1 : 1) * 2;
-  const restingLift = [-3, 5, 9, 4, -1, 5][index % 6];
+  const descriptionId = 'material-description-' + material.id;
 
   useEffect(() => {
-    const options = { stiffness: 185, damping: 22, mass: .75 };
+    const options = { stiffness: 190, damping: 23, mass: .77 };
     const x = springValue(0, options);
     const y = springValue(0, options);
     const lift = springValue(0, options);
     const paint = () => {
-      art.current.style.transform = 'perspective(950px) translate3d(' + x.get() * 4 + 'px,' +
-        (restingLift + y.get() * 4 - lift.get() * 8) + 'px,' + lift.get() * 9 + 'px) rotateX(' +
-        (restingPitch - y.get() * 5) + 'deg) rotateY(' + (restingYaw + x.get() * 7) + 'deg)';
+      art.current.style.setProperty('--pointer-x', x.get());
+      art.current.style.setProperty('--pointer-y', y.get());
+      art.current.style.setProperty('--approach', lift.get());
     };
     const values = [x, y, lift];
     const subscriptions = values.map(value => value.on('change', paint));
@@ -40,7 +47,7 @@ function MaterialCard({ material, index, onOpen }) {
       subscriptions.forEach(unsubscribe => unsubscribe());
       values.forEach(value => value.destroy());
     };
-  }, [restingYaw, restingPitch, restingLift]);
+  }, []);
 
   function move(event) {
     if (!controls.current || !finePointer.matches || reducedMotion.matches || event.pointerType === 'touch') return;
@@ -58,12 +65,15 @@ function MaterialCard({ material, index, onOpen }) {
 
   return h('button', {
     className: 'material-card', type: 'button', 'aria-label': material.title,
-    'data-card': material.id, onPointerMove: move, onPointerLeave: settle,
-    onClick: () => onOpen(material)
-  }, h('span', {
-    className: 'material-card-art', ref: art,
-    style: { '--yaw': restingYaw + 'deg', '--pitch': restingPitch + 'deg', '--lift': restingLift + 'px' }
-  }, h('img', { src: material.preview, alt: '', draggable: false })));
+    'aria-describedby': material.description ? descriptionId : undefined,
+    'data-card': material.id, style: { '--stack-order': stackOrder },
+    onPointerMove: move, onPointerLeave: settle, onClick: () => onOpen(material)
+  },
+    h('span', { className: 'material-card-art', ref: art, 'aria-hidden': 'true' },
+      h('img', { src: material.preview, alt: '', draggable: false })),
+    h('span', { className: 'material-card-title', 'aria-hidden': 'true' }, material.title),
+    material.description && h('span', { className: 'material-card-description', id: descriptionId }, material.description)
+  );
 }
 
 function motionTransform(from, to) {
@@ -77,7 +87,7 @@ function fly(layer, origin, destination, image, selected, opening, index, liveIm
   Object.assign(card.style, {
     left: origin.box.left + 'px', top: origin.box.top + 'px',
     width: origin.box.width + 'px', height: origin.box.height + 'px',
-    zIndex: selected ? '20' : String(index + 1)
+    zIndex: selected ? String(materials.length + 2) : String(origin.order)
   });
   const art = document.createElement('div');
   art.className = 'material-flight-art';
@@ -115,7 +125,7 @@ function measureCards(gallery) {
   return new Map([...gallery.querySelectorAll('[data-card]')].map(card => {
     const box = card.getBoundingClientRect();
     const visible = box.right > rail.left && box.left < rail.right;
-    return [card.dataset.card, { box, visible, tilt: getComputedStyle(card.firstElementChild).transform }];
+    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: getComputedStyle(card.firstElementChild).transform }];
   }));
 }
 
@@ -235,7 +245,7 @@ function Gallery() {
   },
     h('h1', { id: 'materialHomeTitle' }, 'Material Studio ', h('em', null, '3D')),
     h('div', { className: 'material-rail' }, h('div', { className: 'material-track' },
-      materials.map((material, index) => h(MaterialCard, { key: material.id, material, index, onOpen: open }))
+      materials.map((material, index) => h(MaterialCard, { key: material.id, material, stackOrder: materials.length - index, onOpen: open }))
     )),
     h('p', null, 'Choose a material. Explore its nature.')
   );
