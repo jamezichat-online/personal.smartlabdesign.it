@@ -7,7 +7,7 @@
 <style>
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#100b09;color:#f9ecdf;--accent:#ffac66}
 *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:clamp(14px,4vw,50px)}
-main{width:min(1220px,100%)}header{display:flex;justify-content:space-between;align-items:end;margin:0 0 20px;gap:16px}h1{margin:0;font:clamp(48px,8vw,104px)/.85 Georgia,serif;letter-spacing:-.06em;font-weight:400}h1 em{color:var(--accent);font-weight:400}header p{font:12px/1.25 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.13em;color:#d8ad91;margin:0 0 4px;text-align:right}
+main{width:min(1220px,100%)}header{display:flex;justify-content:space-between;align-items:end;margin:0 0 20px;gap:16px}h1{margin:-.15em 0;padding:.02em .14em .02em .02em;font:clamp(48px,8vw,104px)/1.15 Georgia,serif;letter-spacing:-.06em;font-weight:400;isolation:isolate;contain:paint}h1 em{color:var(--accent);font-weight:400}header p{font:12px/1.25 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.13em;color:#d8ad91;margin:0 0 4px;text-align:right}
 .stage{position:relative;overflow:hidden;border:1px solid #5a3729;border-radius:20px;background:#25130f;height:clamp(400px,65svh,740px);isolation:isolate}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outline-offset:-4px}canvas[data-mode="cut"]{cursor:crosshair}canvas:active{cursor:grabbing}canvas[data-mode="cut"]:active{cursor:crosshair}
 .meta{position:absolute;top:18px;left:18px;right:18px;display:flex;justify-content:space-between;pointer-events:none;color:#ffe6cb;font:11px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}.meta span:empty{display:none}.meta span{border:1px solid #ffc49440;border-radius:100px;padding:7px 10px;background:#27140dbb}
@@ -18,7 +18,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 </head>
 <body>
 <main>
-<header><h1>Citrus <em>Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
+<header><h1><span id="materialTitleName">Citrus</span> <em id="materialTitleAccent">Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
 <div class="stage">
 <canvas id="view" aria-label="3D gelatinous orange slice" tabindex="0"></canvas>
 <div class="meta"><span>Orange</span><span id="count" aria-live="polite">1 piece</span></div>
@@ -291,6 +291,17 @@ void main(){
 }
 </script>
 <script>
+const materialTitles={
+ sushi:['Salmon','Nigiri'],orange:['Citrus','Gel'],bear:['Gummy','Bear'],
+ pudding:['Amber','Jelly'],burger:['Beef','Patty'],cloud:['Volumetric','Cloud']
+};
+function setMaterialTitle(kind){
+ const [name,accent]=materialTitles[kind];
+ const nameNode=document.querySelector('#materialTitleName').firstChild;
+ const accentNode=document.querySelector('#materialTitleAccent').firstChild;
+ if(nameNode.data!==name)nameNode.data=name;
+ if(accentNode.data!==accent)accentNode.data=accent;
+}
 const environmentImages={};
 const environmentSources={"sushi":"./assets/sushi.png","orange":"./assets/orange.png","bear":"./assets/bear.png","pudding":"./assets/pudding.png","burger":"./assets/griddle.jpg","cloud":"./assets/cloud.png"};
 for(const [key,src] of Object.entries(environmentSources)){
@@ -2406,7 +2417,7 @@ function choose(k){
   juice.hide();updateBloom.clear();kind=k;drag=null;view.hidden=true;
   view.style.display=gpu.style.display=controls.style.display='none';sheet.hidden=false;
   sheet.querySelectorAll('[data-for]').forEach(button=>button.hidden=button.dataset.for!==k);
-  document.querySelector('h1').innerHTML='Volumetric <em>Cloud</em>';
+  setMaterialTitle(k);
   document.querySelector('header p').textContent='Material Studio 3D';
   document.querySelector('.meta span').textContent='Vapour';
   counter.textContent=cloudReady?'':'WebGL 2 required';
@@ -2417,7 +2428,7 @@ function choose(k){
 
  juice.hide();updateBloom.clear();kind=k;if(k==='burger'&&!patty)patty=makePatty();if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];if(k!=='bear')orbitState[k]=defaultOrbits()[k];zoom=framing[k].zoom;frameSize=null;
  document.querySelectorAll('[data-subject]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.subject===k));
- document.querySelector('h1').innerHTML=k==='burger'?'Beef <em>Patty</em>':k==='pudding'?'Amber <em>Jelly</em>':k==='bear'?'Gummy <em>Bear</em>':k==='sushi'?'Salmon <em>Nigiri</em>':'Citrus <em>Gel</em>';
+ setMaterialTitle(k);
  document.querySelector('header p').textContent='Material Studio 3D';document.querySelector('.meta span').textContent=k==='burger'?'Seared beef':k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
  let native=k==='orange'&&hasGPU;
  gpu.style.display=native?'block':'none';view.hidden=native;view.style.display=native?'none':'block';sheet.hidden=native;controls.style.display=native?'flex':'none';
