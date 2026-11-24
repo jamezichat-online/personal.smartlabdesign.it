@@ -35,7 +35,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 <details class="audio-credits"><summary>Sound credits</summary><ul>
 <li>Orange: <a href="https://freesound.org/people/aarrnnoo/sounds/516189/">Splash and squishy gross sound</a> by aarrnnoo, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
 <li>Rice: <a href="https://freesound.org/people/ScouseMouseJB/sounds/536709/">Rice pour.wav</a> by ScouseMouseJB, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
-<li>Gummy bear: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
+<li>Salmon and gummy bear: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
 <li>Amber jelly: <a href="https://freesound.org/people/DoctorMelon/sounds/818572/">Jelly Sucked Up a Metal Straw</a> by DoctorMelon, CC0.</li>
 <li>Cloud: <a href="https://freesound.org/people/sqeeeek/sounds/381853/">Wind gust short</a> by sqeeeek, CC0.</li>
 </ul><p>Recordings were trimmed and level-adjusted for interaction.</p></details>
@@ -322,13 +322,13 @@ const materialFoley = (() => {
   toggle.hidden = true;
   return { play() {}, stop() {} };
  }
- const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','wind-gust'];
+ const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust'];
  const buffers = new Map(), pending = new Map(), last = new Map(), active = new Set();
  let ctx, master, enabled = false, nextDrop = 0;
  function load(name) {
   if (buffers.has(name)) return Promise.resolve();
   if (pending.has(name)) return pending.get(name);
-  const job = fetch('./assets/sfx/' + name + '.wav')
+  const job = fetch('./assets/sfx/' + name + '.wav' + (['rice-grain','rice-separate'].includes(name) ? '?v=2' : ''))
    .then(response => {
     if (!response.ok) throw new Error('Audio unavailable: ' + name);
     return response.arrayBuffer();
@@ -1454,7 +1454,7 @@ view.onpointerdown=e=>{
   let a=groundAt(...at,hitHeight);
   anchor=[a[0]-obj.pos[0]-obj.home[0],a[2]-obj.pos[2]-obj.home[2]];activeOrange=obj.id;pressGoal=1;
   if(tool==='press'){materialFoley.play('orange-press',.86,anchor[0]*.55);juice.touch(obj,anchor);}
-  else materialFoley.play('rice-grain',.57,2*at[0]/canvasW-1);
+  else materialFoley.play(obj.id===0?'salmon-touch':'rice-grain',obj.id===0?.68:.43,2*at[0]/canvasW-1);
  }
  if(tool==='cut'){let trace=document.querySelector('#trace');trace.hidden=false;trace.style.width='0';}
  invalidate();
@@ -1468,7 +1468,7 @@ view.onpointermove=e=>{
   pullGoal=[clamp(dx*camera.cy,-.55,.55),clamp(-dy/max(.55,camera.ce),-.52,.52)];
  }else if(tool==='move'&&drag.obj){let o=drag.obj;
   if(Math.hypot(dx,dy)<.045&&!drag.moved)return;
-  if(!drag.moved)materialFoley.play(o.id===0?"rice-separate":"rice-grain",.77,2*a[0]/canvasW-1);
+  if(!drag.moved)materialFoley.play(o.id===0?"salmon-lift":"rice-grain",o.id===0?.70:.46,2*a[0]/canvasW-1);
   drag.moved=true;o.loose=true;counts();
   pullGoal=[clamp(dx*.7,-.44,.44),clamp(dy*.55,-.34,.34)];
   let x=dx*camera.cy+dy*camera.sy*.65,z=-dx*camera.sy+dy*camera.cy*.65;
@@ -1742,7 +1742,7 @@ function choose(k){
 }
 document.querySelectorAll('[data-subject]').forEach(b=>b.onclick=()=>{if(kind==='orange'&&hasGPU)counter.dataset.orangeCount=counter.textContent;choose(b.dataset.subject);});
 sheet.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>mode(b.dataset.tool));
-document.querySelector('#explode').onclick=()=>{materialFoley.play('rice-separate',.91);for(let o of sushi)spread(o,1);counts();mode('move');message('Salmon and rice grains separated. You can grab each element.');invalidate();};
+document.querySelector('#explode').onclick=()=>{materialFoley.play('rice-separate',.72);for(let o of sushi)spread(o,1);counts();mode('move');message('Salmon and rice grains separated. You can grab each element.');invalidate();};
 document.querySelector('#reform').onclick=()=>{if(kind==='cloud'){cloudScene.reset();return;}reset();mode(kind==='pudding'?'pudding':kind==='bear'?'bear':kind==='sushi'?'move':'press');};
 view.addEventListener('keydown',event=>{
  if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){
