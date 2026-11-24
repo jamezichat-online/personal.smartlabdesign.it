@@ -1310,19 +1310,45 @@ function makeBear(){
 }
 
 function makePudding(){
- // Revolve a rounded mould profile from its underside to the recessed crown.
- const profile=[[.001,.025],[.9,.025],[1.05,.04],[1.11,.095],[1.12,.18],[1.095,.33],[.93,1.34],[.90,1.45],[.86,1.51],[.77,1.55],[.65,1.54],[.55,1.49],[.47,1.39],[.42,1.33],[.34,1.305],[.001,1.305]];
- const mesh=surface(168,90,(u,v)=>{
-  const t=v*(profile.length-1),i=Math.min(profile.length-2,Math.floor(t)),f=t-i;
-  const curve=j=>{
-   const a=profile[Math.max(0,i-1)][j],b=profile[i][j],c=profile[i+1][j],d=profile[Math.min(profile.length-1,i+2)][j];
-   return b+(c-b)*f+.5*f*(1-f)*((b-a-c+b)*(1-f)+(c-b-d+c)*f);
-  };
-  const angle=-TAU*u,r=curve(0),y=curve(1),rib=cos(14*angle);
+ // One watertight surface. A C2 B-spline avoids the shoulder overshoot of the old interpolated profile.
+ const profile=[[0,.025],[.9,.025],[1.05,.04],[1.11,.095],[1.12,.18],[1.095,.33],[.93,1.34],[.90,1.45],[.86,1.51],[.77,1.55],[.65,1.54],[.55,1.49],[.47,1.39],[.42,1.33],[.34,1.305],[0,1.305]];
+ const degree=3,last=profile.length-1,knots=[];
+ for(let i=0;i<profile.length+degree+1;i++)knots.push(i<=degree?0:i>=profile.length?1:(i-degree)/(profile.length-degree));
+ function section(v){
+  v=clamp(v);if(v===1)return profile[last].slice();
+  let span=degree;while(span<last&&v>=knots[span+1])span++;
+  const points=Array.from({length:degree+1},(_,j)=>profile[span-degree+j].slice());
+  for(let level=1;level<=degree;level++)for(let j=degree;j>=level;j--){
+   const i=span-degree+j,weight=(v-knots[i])/(knots[i+degree-level+1]-knots[i]||1);
+   points[j]=points[j-1].map((value,axis)=>mix(value,points[j][axis],weight));
+  }
+  return points[degree];
+ }
+ function shape(u,v){
+  const [r,y]=section(v),angle=-TAU*u,rib=cos(14*angle);
   const radius=r*(1+.044*rib*smooth(.34,.74,r));
   return [radius*cos(angle),y+.018*rib*smooth(1.34,1.50,y),radius*sin(angle)];
- },6);
- return body({id:0,parts:[mesh],home:[0,0,0],shade:1});
+ }
+ const sides=168,rings=112,points=[[0,.025,0,0,-1,0,0,0]],tri=[],epsilon=.00005;
+ for(let ring=1;ring<rings;ring++)for(let side=0;side<sides;side++){
+  const u=side/sides,v=ring/rings,position=shape(u,v);
+  const left=shape(u-epsilon,v),right=shape(u+epsilon,v),below=shape(u,v-epsilon),above=shape(u,v+epsilon);
+  const du=right.map((value,i)=>value-left[i]),dv=above.map((value,i)=>value-below[i]);
+  const normal=unit(du[1]*dv[2]-du[2]*dv[1],du[2]*dv[0]-du[0]*dv[2],du[0]*dv[1]-du[1]*dv[0]);
+  points.push([...position,...normal,u,v]);
+ }
+ const top=points.length;points.push([0,1.305,0,0,1,0,0,1]);
+ for(let side=0;side<sides;side++){
+  const next=(side+1)%sides,a=1+side,b=1+next;
+  tri.push([0,b,a]);
+  for(let ring=0;ring<rings-2;ring++){
+   const c=a+ring*sides,d=b+ring*sides;
+   tri.push([c,d,d+sides],[c,d+sides,c+sides]);
+  }
+  const c=1+(rings-2)*sides+side,d=1+(rings-2)*sides+next;
+  tri.push([top,c,d]);
+ }
+ return body({id:0,parts:[{points,tri,mat:6}],home:[0,0,0],shade:1});
 }
 let pattyMips, meatContact=[0,0], meatJuice=[], nextJuice=0;
 function makePatty(){
