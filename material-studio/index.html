@@ -18,7 +18,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 </head>
 <body>
 <main>
-<header><h1>Citrus <em>Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
+<header><h1>Citrus <em>Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="cloud">Cloud</button></nav>
 <div class="stage">
 <canvas id="view" aria-label="3D gelatinous orange slice" tabindex="0"></canvas>
 <div class="meta"><span>Orange</span><span id="count" aria-live="polite">1 piece</span></div>
@@ -308,127 +308,6 @@ const updateBloom=(()=>{
  render.clear=()=>output.clearRect(0,0,mask.width,mask.height);
  return render;
 })();
-const materialAudio=(()=>{
- const button=document.querySelector('#sound');
- const AudioEngine=window.AudioContext||window.webkitAudioContext;
- if(!AudioEngine){button.hidden=true;return {play(){},squeeze(){}};}
- let context,master,noise,enabled=false,lastSqueeze=0;
- const lastPlayed=new Map();
- button.addEventListener('click',async ()=>{
-  enabled=!enabled;
-  button.setAttribute('aria-pressed',String(enabled));
-  button.textContent=enabled?'Sound on':'Sound off';
-  if(!enabled){master?.gain.setTargetAtTime(0,context.currentTime,.025);return;}
-  if(!context){
-   context=new AudioEngine();master=context.createGain();master.gain.value=0;
-   const limiter=context.createDynamicsCompressor();
-   limiter.threshold.value=-19;limiter.ratio.value=5;
-   master.connect(limiter).connect(context.destination);
-   noise=context.createBuffer(1,context.sampleRate*2,context.sampleRate);
-   const samples=noise.getChannelData(0);
-   for(let i=0;i<samples.length;i++)samples[i]=2*Math.random()-1;
-  }
-  try{
-   await context.resume();
-   if(enabled){
-    master.gain.setTargetAtTime(.58,context.currentTime,.025);
-    play('grain',.45);
-   }
-  }catch{
-   enabled=false;button.textContent='Sound off';button.setAttribute('aria-pressed','false');
-  }
- });
- function envelope(volume,start,attack,duration,pan){
-  const gain=context.createGain();
-  gain.gain.setValueAtTime(0,start);
-  gain.gain.linearRampToValueAtTime(volume,start+attack);
-  gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
-  if(context.createStereoPanner){
-   const stereo=context.createStereoPanner();stereo.pan.value=pan;
-   gain.connect(stereo).connect(master);
-  }else gain.connect(master);
-  return gain;
- }
- function air(start,duration,attack,low,high,q,volume,pan){
-  const source=context.createBufferSource(),filter=context.createBiquadFilter();
-  source.buffer=noise;filter.type='bandpass';filter.Q.value=q;
-  filter.frequency.setValueAtTime(low,start);filter.frequency.exponentialRampToValueAtTime(high,start+duration);
-  source.connect(filter).connect(envelope(volume,start,attack,duration,pan));
-  source.start(start,Math.random()*.55);source.stop(start+duration);
- }
- function body(start,duration,low,high,volume,pan){
-  const oscillator=context.createOscillator();
-  oscillator.frequency.setValueAtTime(low,start);oscillator.frequency.exponentialRampToValueAtTime(high,start+duration);
-  oscillator.connect(envelope(volume,start,.006,duration,pan));
-  oscillator.start(start);oscillator.stop(start+duration);
- }
- function play(type,strength=1,pan=0,delay=0){
-  if(!enabled||context?.state!=='running')return;
-  const now=context.currentTime+delay,previous=lastPlayed.get(type)??-Infinity;
-  const minimum={drop:.15,wind:.21,wet:.085,grain:.07}[type]??.075;
-  if(now-previous<minimum)return;
-  lastPlayed.set(type,now);
-  const variation=.89+Math.random()*.23,v=Math.max(.06,Math.min(1,strength))*variation;
-  pan=Math.max(-.8,Math.min(.8,pan));
-  switch(type){
-   case 'wet':
-    for(let i=0;i<3;i++){
-     const t=now+i*(.024+Math.random()*.018);
-     air(t,.095,.010,390*variation,1400*variation,.9,.25*v,pan);
-     body(t,.039,255*variation,150,.105*v,pan);
-    }
-    break;
-   case 'drop':
-    body(now,.071,410*variation,720*variation,.19*v,pan);
-    air(now,.043,.005,2150,1170,1.5,.19*v,pan);
-    break;
-   case 'cut':
-    air(now,.22,.024,1360,385,.84,.34*v,pan);
-    air(now+.052,.085,.008,2740,1950,1.3,.13*v,pan);
-    body(now+.12,.09,139,66,.085*v,pan);
-    break;
-   case 'bear':
-    air(now,.14,.026,410,1240,2.1,.21*v,pan);
-    body(now+.018,.085,210*variation,158,.11*v,pan);
-    break;
-   case 'jelly':
-    air(now,.185,.034,260,760,1,.19*v,pan);
-    body(now,.13,124*variation,75,.13*v,pan);
-    break;
-   case 'wobble':
-    for(let i=0;i<3;i++){
-     const t=now+i*.094;
-     air(t,.09,.02,390,165,1.05,.14*v/(i+1),pan);
-     body(t,.095,(145-i*19)*variation,78,.085*v/(i+1),pan);
-    }
-    break;
-   case 'rice':
-    air(now,.12,.018,680,1980,1.1,.20*v,pan);
-    body(now,.07,138,82,.07*v,pan);
-    break;
-   case 'grain':
-    air(now,.067,.005,2250*variation,740,.82,.20*v,pan);
-    break;
-   case 'salmon':
-    air(now,.21,.028,860,295,.9,.25*v,pan);
-    body(now,.066,194,120,.05*v,pan);
-    break;
-   case 'wind':
-    air(now,.38+.28*v,.06,310+420*v,235,.56,.32*v,pan);
-    air(now+.014,.42,.08,1660+1100*v,645,.64,.27*v,pan);
-    break;
-  }
- }
- function squeeze(pressure,change){
-  if(!enabled||context?.state!=='running'||pressure<.12||change<.002)return;
-  const now=context.currentTime;
-  if(now-lastSqueeze<.095)return;
-  lastSqueeze=now;
-  play('wet',Math.min(.80,.34+change*4.2));
- }
- return {play,squeeze};
-})();
-
 const juice=(()=>{
  const stage=document.querySelector('.stage'),layer=document.createElement('canvas');
  layer.className='juice';layer.setAttribute('aria-hidden','true');stage.append(layer);
@@ -486,7 +365,6 @@ const juice=(()=>{
    else hi=mid;
   }
   bead.at=bead.at.map((p,i)=>p+(next[i]-p)*lo);
-  materialAudio.play("drop",.42+bead.size*7,bead.at[0]*.65);
   bead.velocity=[0,0];bead.pinned=true;
   return false;
  }
@@ -594,12 +472,7 @@ const juice=(()=>{
  }
  return {
   show(next){surface=next;beads=[];previous=0;for(const piece of surface.pieces())add(piece,null,Math.max(3,Math.round(17/surface.pieces().length)));wake();},
-  touch(piece,contact){
-   if(!surface)return;
-   add(piece,contact,7+Math.floor(Math.random()*5));
-   materialAudio.play('drop',.37,contact[0]*.55,.19);
-   wake();
-  },
+  touch(piece,contact){if(surface){add(piece,contact,7+Math.floor(Math.random()*5));wake();}},
   hide(){surface=null;beads=[];wake();},
   refresh:wake
  };
@@ -643,14 +516,12 @@ function basis(){
 function draw(time){
   frame=0;
   const dt=Math.min(.035,Math.max(.009,(time-previous)/1000));previous=time;
-  const previousPressure=press;
   if(reduced){press=target;velocity=0;}else{
     velocity+=(target-press)*110*dt;
     velocity*=Math.exp(-7.5*dt);
     press+=velocity*dt;
     if(Math.abs(press-target)+Math.abs(velocity)<.0015){press=target;velocity=0;}
   }
-  if(target>0)materialAudio.squeeze(press,Math.max(press-previousPressure,Math.hypot(...pullSpeed)*.023));
   for(let axis=0;axis<2;axis++){
     pullSpeed[axis]+=(pullTarget[axis]-pull[axis])*108*dt;
     pullSpeed[axis]*=Math.exp(-6.4*dt);
@@ -793,7 +664,6 @@ canvas.addEventListener('show-orange',showNativeJuice);
 function wetPiece(index,xy){
  const part=pieces[index];
  juice.touch(part,xy.map((v,j)=>v-part.offset[j]));
- materialAudio.play("wet",.80,xy[0]*.58);
 }
 function poke(screen){
   const current=project(screen);
@@ -833,10 +703,7 @@ canvas.addEventListener('pointermove',event=>{
 });
 canvas.addEventListener('pointerup',event=>{
   if(!gesture||event.pointerId!==gesture.id)return;
-  if(!gesture.orbit&&mode==='cut'){
-    if(split(project(gesture.start),project(point(event))))materialAudio.play('cut');
-    else update(pieces.length>=8?'You have reached 8 pieces. Select Reset to start again.':'Start and end your cut beyond the edges of the piece.');
-  }
+  if(!gesture.orbit&&mode==='cut'&&!split(project(gesture.start),project(point(event))))update(pieces.length>=8?'You have reached 8 pieces. Select Reset to start again.':'Start and end your cut beyond the edges of the piece.');
   clearGesture();
 });
 canvas.addEventListener('pointercancel',clearGesture);
@@ -1487,14 +1354,12 @@ view.onpointerdown=e=>{
   const zBuffer=depth[Math.floor(at[1])*canvasW+Math.floor(at[0])];
   const height=zBuffer*camera.se-(at[1]-camera.originY)/camera.s*camera.ce;
   bearContact=groundAt(...at,height);pressGoal=1;
-  materialAudio.play(tool==='bear'?'bear':'jelly',.84,2*at[0]/canvasW-1);
  }
  if(obj&&(tool==='move'||tool==='press')){
   const hitHeight=tool==='press'?.48:(depth[Math.floor(at[1])*canvasW+Math.floor(at[0])]*camera.se-(at[1]-camera.originY)/camera.s*camera.ce);
   let a=groundAt(...at,hitHeight);
   anchor=[a[0]-obj.pos[0]-obj.home[0],a[2]-obj.pos[2]-obj.home[2]];activeOrange=obj.id;pressGoal=1;
-  if(tool==='press'){juice.touch(obj,anchor);materialAudio.play('wet',.78,anchor[0]*.55);}
-  else materialAudio.play(obj.id===0?'rice':'grain',.68,2*at[0]/canvasW-1);
+  if(tool==='press')juice.touch(obj,anchor);
  }
  if(tool==='cut'){let trace=document.querySelector('#trace');trace.hidden=false;trace.style.width='0';}
  invalidate();
@@ -1508,17 +1373,15 @@ view.onpointermove=e=>{
   pullGoal=[clamp(dx*camera.cy,-.55,.55),clamp(-dy/max(.55,camera.ce),-.52,.52)];
  }else if(tool==='move'&&drag.obj){let o=drag.obj;
   if(Math.hypot(dx,dy)<.045&&!drag.moved)return;
-  if(!drag.moved)materialAudio.play(o.id===0?"salmon":"grain",.90,2*a[0]/canvasW-1);
   drag.moved=true;o.loose=true;counts();
   pullGoal=[clamp(dx*.7,-.44,.44),clamp(dy*.55,-.34,.34)];
   let x=dx*camera.cy+dy*camera.sy*.65,z=-dx*camera.sy+dy*camera.cy*.65;
   o.goal=[clamp(drag.start[0]+x,-2.05,2.05),clamp(max(drag.start[1],o.id===0?.64:.20)-dy*.51,.08,1.45),clamp(drag.start[2]+z,-1.3,1.3)];
- }else if(tool==='press'&&drag.obj){materialAudio.squeeze(.8,Math.hypot(a[0]-drag.last[0],a[1]-drag.last[1])/camera.s);let a0=groundAt(...drag.at,.48),a1=groundAt(...a,.48);pullGoal=[clamp(a1[0]-a0[0],-.53,.53),clamp(a1[2]-a0[2],-.53,.53)];}
+ }else if(tool==='press'&&drag.obj){let a0=groundAt(...drag.at,.48),a1=groundAt(...a,.48);pullGoal=[clamp(a1[0]-a0[0],-.53,.53),clamp(a1[2]-a0[2],-.53,.53)];}
  else if(tool==='cut'){let node=document.querySelector('#trace'),scale=view.clientWidth/canvasW,x=(a[0]-drag.at[0])*scale,y=(a[1]-drag.at[1])*scale;node.style.cssText='left:'+drag.at[0]*scale+'px;top:'+drag.at[1]*scale+'px;width:'+Math.hypot(x,y)+'px;transform:rotate('+Math.atan2(y,x)+'rad)';}
  drag.last=a;invalidate();
 };
-view.onpointerup=e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.orbit&&tool==='cut'){const did=splitOrange(groundAt(...drag.at,.48),groundAt(...local(e),.48));if(did)materialAudio.play('cut');else message('Cut through both edges of the piece.');}
- if(drag.obj&&!drag.orbit&&(kind==='pudding'||kind==='bear'))materialAudio.play('wobble',kind==='pudding'?.83:.57,2*local(e)[0]/canvasW-1);
+view.onpointerup=e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.orbit&&tool==='cut'){const did=splitOrange(groundAt(...drag.at,.48),groundAt(...local(e),.48));if(!did)message('Cut through both edges of the piece.');}
  drag=null;pressGoal=0;pullGoal=[0,0];document.querySelector('#trace').hidden=true;invalidate();};
 view.oncontextmenu=e=>e.preventDefault();
 view.onlostpointercapture=view.onpointercancel=()=>{drag=null;pressGoal=0;pullGoal=[0,0];document.querySelector('#trace').hidden=true;invalidate();};
@@ -1723,7 +1586,6 @@ function createCloudScene(){
   if(Math.min(Math.abs(p[0]),Math.abs(previous[0]))<2.45&&Math.min(Math.abs(p[1]),Math.abs(previous[1]))<1.8){
    const velocity=delta.map(v=>v/distance*(.12+speed*.66));
    trails.push({a:previous,b:p,time,axis:eye,velocity,force:.26+.74*speed,radius:.18+.16*speed});
-   if(speed>.11)materialAudio.play('wind',.18+.80*speed,x*.37);
    if(trails.length>trailCount)trails.shift();
   }
   previous=p;previousTime=event.timeStamp;
@@ -1763,7 +1625,7 @@ function choose(k){
   document.querySelector('.meta span').textContent='Vapour';
   counter.textContent=cloudReady?'':'WebGL 2 required';
   document.querySelectorAll('[data-subject]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.subject===k));
-  message(cloudReady?'Drag to rotate. Sweep across the cloud to create a gust, or select “Drag through cloud”.':'WebGL 2 is required to display the cloud.');
+  message(cloudReady?'Drag to rotate. Move the pointer over the cloud to disperse it, or select “Drag through cloud”.':'WebGL 2 is required to display the cloud.');
   return;
  }
 
@@ -1781,18 +1643,18 @@ function choose(k){
 }
 document.querySelectorAll('[data-subject]').forEach(b=>b.onclick=()=>{if(kind==='orange'&&hasGPU)counter.dataset.orangeCount=counter.textContent;choose(b.dataset.subject);});
 sheet.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>mode(b.dataset.tool));
-document.querySelector('#explode').onclick=()=>{materialAudio.play('salmon',.86);for(let o of sushi)spread(o,1);counts();mode('move');message('Salmon and rice grains separated. You can grab each element.');invalidate();};
+document.querySelector('#explode').onclick=()=>{for(let o of sushi)spread(o,1);counts();mode('move');message('Salmon and rice grains separated. You can grab each element.');invalidate();};
 document.querySelector('#reform').onclick=()=>{if(kind==='cloud'){cloudScene.reset();return;}reset();mode(kind==='pudding'?'pudding':kind==='bear'?'bear':kind==='sushi'?'move':'press');};
 view.addEventListener('keydown',event=>{
  if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){
-  event.preventDefault();bearContact=[0,1.55,.43];pressGoal=1;if(!event.repeat)materialAudio.play(kind==='bear'?'bear':'jelly',.84);invalidate();return;
+  event.preventDefault();bearContact=[0,1.55,.43];pressGoal=1;invalidate();return;
  }
  const step={ArrowLeft:[.14,0],ArrowRight:[-.14,0],ArrowUp:[0,.12],ArrowDown:[0,-.12]}[event.key];
  if(!step)return;
  event.preventDefault();const orbit=orbitState[kind];orbit[0]+=step[0];
  orbit[1]=clamp(orbit[1]+step[1],kind==='bear'?-.12:.19,1.48);invalidate();
 });
-view.addEventListener('keyup',event=>{if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){if(pressGoal)materialAudio.play('wobble',kind==='pudding'?.83:.57);pressGoal=0;invalidate();}});
+view.addEventListener('keyup',event=>{if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){pressGoal=0;invalidate();}});
 view.addEventListener('blur',()=>{if(kind==='bear'&&!drag){pressGoal=0;invalidate();}});
 new ResizeObserver(invalidate).observe(stage);
 choose('cloud');
