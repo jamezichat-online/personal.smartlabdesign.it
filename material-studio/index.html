@@ -38,7 +38,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 <li>Salmon and gummy bear: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
 <li>Amber jelly: <a href="https://freesound.org/people/DoctorMelon/sounds/818572/">Jelly Sucked Up a Metal Straw</a> by DoctorMelon, CC0.</li>
 <li>Cloud: <a href="https://freesound.org/people/sqeeeek/sounds/381853/">Wind gust short</a> by sqeeeek, CC0.</li>
-<li>Griddle: beef-patty sizzle generated with Pollo AI, edited to loop with the heat level.</li>
+<li>Beef patty: compression and griddle sizzle generated with Pollo AI; compression trimmed to one touch, sizzle loop follows heat and pressure.</li>
 </ul><p>Sound clips were edited for the interactions.</p></details>
 </main>
 <script id="fragment" type="x-shader/x-fragment">#version 300 es
@@ -255,6 +255,10 @@ void main(){
   float shadow=.82+.18*softShadow(p+geometric*.009,light);
   vec3 rgb=mix(flesh*(.42+.58*diffuse+.19*fill+.14*rim)*shadow,gel*1.045,clear);
   rgb+=flesh*vec3(.26,.21,.085)*backlight*exp(-path*1.55);
+  // Subtle warm transmission inside the juice vesicles, confined to the pulp.
+  float pulp=1.-smoothstep(1.005,1.095,length(q.xy));
+  vec3 innerLight=vec3(1.,.48,.075)*(.045+.040*backlight)*pulp*exp(-path*.85);
+  rgb+=innerLight;
   float pockets=smoothstep(.02,.26,length(top.slope));
   rgb+=vec3(1.,.58,.17)*(.09+.18*hit.z)*backlight*pockets*exp(-path*1.4);
   rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),32.)*(.12+.36*pockets+.21*hit.z);
@@ -337,24 +341,57 @@ const materialFoley = (() => {
   toggle.hidden = true;
   return { play() {}, stop() {}, setSizzle() {} };
  }
- const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust','beef-sizzle'];
+ const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust','beef-sizzle','beef-compress'];
  const buffers = new Map(), pending = new Map(), last = new Map(), active = new Set();
  let ctx, master, enabled = false, nextDrop = 0, sizzleSource, sizzleGain;
  function load(name) {
   if (buffers.has(name)) return Promise.resolve();
   if (pending.has(name)) return pending.get(name);
-   const extension=name==='beef-sizzle'?'.mp3':'.wav';
+   const extension=name==='beef-sizzle'||name==='beef-compress'?'.mp3':'.wav';
   const job = fetch('./assets/sfx/' + name + extension + (['rice-grain','rice-separate'].includes(name) ? '?v=2' : ''))
    .then(response => {
     if (!response.ok) throw new Error('Audio unavailable: ' + name);
     return response.arrayBuffer();
    })
    .then(bytes => ctx.decodeAudioData(bytes))
-   .then(buffer => buffers.set(name,name==='beef-sizzle'?prepareSizzleLoop(buffer):buffer))
+   .then(buffer => buffers.set(name,name==='beef-sizzle'?prepareSizzleLoop(buffer):name==='beef-compress'?prepareMeatCompression(buffer):buffer))
    .catch(error => console.warn(error))
    .finally(() => pending.delete(name));
   pending.set(name, job);
   return job;
+ }
+ function prepareMeatCompression(buffer){
+  // Remove leading silence and keep one short, responsive food-foley transient.
+  const rate=buffer.sampleRate,channels=buffer.numberOfChannels;
+  const stride=Math.max(1,Math.floor(rate*.008)),energy=[];
+  let peakEnergy=0;
+  for(let i=0;i<buffer.length;i+=stride){
+   let sum=0,count=0;
+   for(let c=0;c<channels;c++){
+    const data=buffer.getChannelData(c);
+    for(let j=i;j<Math.min(buffer.length,i+stride);j++){sum+=data[j]*data[j];count++;}
+   }
+   const rms=Math.sqrt(sum/Math.max(1,count));
+   energy.push(rms);peakEnergy=Math.max(peakEnergy,rms);
+  }
+  let block=energy.findIndex(v=>v>Math.max(.001,peakEnergy*.19));
+  const start=Math.max(0,(block<0?0:block)*stride-Math.floor(rate*.012));
+  const length=Math.min(buffer.length-start,Math.floor(rate*1.05));
+  const clip=ctx.createBuffer(channels,length,rate);
+  let peak=0;
+  for(let c=0;c<channels;c++){
+   const data=buffer.getChannelData(c);
+   for(let j=0;j<length;j++)peak=Math.max(peak,Math.abs(data[start+j]));
+  }
+  const gain=Math.min(6,.88/Math.max(.001,peak));
+  for(let c=0;c<channels;c++){
+   const src=buffer.getChannelData(c),dst=clip.getChannelData(c);
+   for(let j=0;j<length;j++){
+    const envelope=Math.min(1,j/(rate*.004),(length-1-j)/(rate*.085));
+    dst[j]=src[start+j]*gain*Math.max(0,envelope);
+   }
+  }
+  return clip;
  }
  function prepareSizzleLoop(buffer){
   const rate=buffer.sampleRate,start=Math.floor(rate*.18),end=buffer.length-Math.floor(rate*.16);
@@ -427,7 +464,13 @@ const materialFoley = (() => {
   if (!enabled || ctx?.state !== 'running') return;
   const name = kind === 'drop' ? 'orange-drop-' + (nextDrop % 2 ? 'b' : 'a') : kind;
   const buffer = buffers.get(name);
-  if (!buffer) return;
+  if (!buffer) {
+   if(name==='beef-compress'){
+    const requestedAt=ctx.currentTime;
+    load(name).then(()=>{if(enabled&&ctx.currentTime-requestedAt<.30&&buffers.has(name))play(kind,strength,pan,delay);});
+   }
+   return;
+  }
   const now = ctx.currentTime + delay;
   const cooldown = {drop:.16,'wind-gust':.48,'orange-squeeze':.23,'rice-grain':.085}[kind] ?? .10;
   if (now - (last.get(kind) ?? -Infinity) < cooldown) return;
@@ -1250,6 +1293,7 @@ function paintCookingVapour(){
 
 function pressPatty(x,z){
  meatContact=[x,z];
+ materialFoley.play('beef-compress',.95,x*.30);
  pressGoal=1;
  updateMeatJuice(true);
 }
@@ -1491,11 +1535,11 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     const u=h*a[5]+l*b[5]+m*c[5],v=h*a[6]+l*b[6]+m*c[6];
     const texel=sampleTexture(filter,u,v);
     r=texel[0];g=texel[1];blue=texel[2];
-    if(mat===3||mat===5){const bead=clamp((g-112)/50);shine+=(mat===5?.16:.09)*bead*bead;g+=mat===5?9:1;}
+    if(mat===3||mat===5){const bead=clamp((g-112)/50);shine+=(mat===5?.16:.09)*bead*bead;g+=mat===5?9:1;lit+=.045+.025*bead;}
     if(mat===7){
      const glisten=smooth(74,135,r);
-     shine*=.42+.58*glisten;
-     shine+=.024*glisten*glisten+griddleHeat*.023*glisten;
+     shine*=.46+1.08*glisten;
+     shine+=.042*glisten*glisten+griddleHeat*.034*glisten;
      r*=1-.20*searProgress;g*=1-.23*searProgress;blue*=1-.25*searProgress;
     }
     if(mat===1){const fat=clamp((g-96)/106);shine+=.035*fat;g+=.018*r;blue+=.013*r;}
