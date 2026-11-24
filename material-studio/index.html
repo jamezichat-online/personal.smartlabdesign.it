@@ -1555,7 +1555,9 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     const [keyBox,rimBox,fillBox]=studioLights;
     const core=softboxReflection(keyBox,reflected);
     const softboxes=core+softboxReflection(rimBox,reflected)+softboxReflection(fillBox,reflected);
-    shine=softboxes*(.88+.43*rim)+.11*core**2+.07*rim;
+    shine=kind==='bear'
+     ?softboxes*(.76+.18*rim)+.085*core**2
+     :softboxes*(.88+.43*rim)+.11*core**2+.07*rim;
     lit=h*a[6]+l*b[6]+m*c[6];
     const offset=camera.s*.24*thickness;
     const horizontal=nx*camera.cy-nz*camera.sy;
@@ -1572,10 +1574,12 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     blue=15*lit+frameSize[sample+2]*blueTransmission*transmitted;
     if(kind==='bear'){
      const thin=Math.exp(-thickness*2.5);
-     const glow=thin*(.65+.35*(1-facing));
-     r=70*lit+(frameSize[sample]+88)*redTransmission*.96+43*glow;
-     g=8*lit+(frameSize[sample+1]+92)*greenTransmission+32*glow;
-     blue=12*lit+(frameSize[sample+2]+38)*blueTransmission+12*glow;
+     const lightFacing=max(0,nx*rimBox.direction[0]+ny*rimBox.direction[1]+nz*rimBox.direction[2]);
+     const glow=thin*lightFacing*.55;
+     const transmission=.96-.12*rim;
+     r=70*lit+(frameSize[sample]+46)*redTransmission*transmission+22*glow;
+     g=8*lit+(frameSize[sample+1]+22)*greenTransmission*transmission+9*glow;
+     blue=12*lit+(frameSize[sample+2]+10)*blueTransmission*transmission+3*glow;
      if(softboxes>.008){
       // Sample the mould finish in undeformed material coordinates.
       const u=h*a[7]+l*b[7]+m*c[7],v=h*a[8]+l*b[8]+m*c[8];
@@ -1685,7 +1689,7 @@ function renderObj(obj){
    const fill=max(0,scalar(n,studioLights[2].direction));
    const floorBounce=max(0,-ny);
    let lit=(orange?.43:.37)+.69*key+.30*fill+.25*edge+.09*floorBounce;
-   if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
+   if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(kind==='bear'?.025+.12*edge:.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
    let gloss;
    if(mesh.mat===2){
     const packed=obj.loose?0:(1-clamp(salmon.pos[1]*1.8));
