@@ -1,3 +1,14 @@
+@property --card-approach {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --card-turn {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
 /* Home is a separate presentation layer over the existing studio. */
 body[data-studio-mode="home"] { overflow: hidden; }
 body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
@@ -11,7 +22,7 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   grid-template-rows: auto 1fr auto;
   align-items: center;
   overflow: auto;
-  padding-block: clamp(28px, 7vh, 96px);
+  padding-block: clamp(24px, 4vh, 66px);
   background: #100b09;
 }
 .material-home[hidden] { display: none; }
@@ -21,9 +32,9 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse 57% 40% at 50% 54%,
-    color-mix(in srgb, var(--accent) 15%, transparent),
-    color-mix(in srgb, var(--accent) 5%, transparent) 54%, transparent 100%);
+  background: radial-gradient(ellipse 59% 44% at 50% 54%,
+    color-mix(in srgb, var(--accent) 29%, transparent),
+    color-mix(in srgb, var(--accent) 11%, transparent) 54%, transparent 100%);
   transition: opacity .3s ease;
 }
 .material-home.is-transitioning { background: transparent; pointer-events: none; }
@@ -56,19 +67,21 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   overscroll-behavior-inline: contain;
 }
 .material-track {
-  --card-width: clamp(180px, min(19vw, 37svh), 294px);
-  --card-spacing: clamp(10px, 1.05vw, 17px);
+  --card-width: clamp(154px, min(19vw, 30svh), 294px);
+  --featured-depth: .52;
+  --featured-enlargement: .21;
+  --title-size: clamp(25px, 2.8vw, 44px);
   display: flex;
   align-items: center;
-  gap: var(--card-spacing);
   width: max-content;
   margin-inline: auto;
-  padding: clamp(78px, 12vh, 110px) clamp(42px, 5vw, 88px) clamp(66px, 10vh, 96px);
+  padding: calc(var(--card-width) * .42 + var(--title-size) + 20px)
+    calc(var(--card-width) * .48 + 12px)
+    calc(var(--card-width) * .34 + 54px);
 }
 .material-card {
   --card-slot: calc(var(--card-width) * .73);
   --card-perspective: calc(var(--card-width) * 2.12);
-  --front: calc(var(--stack-order) + 100);
   position: relative;
   z-index: var(--stack-order);
   display: block;
@@ -82,9 +95,12 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   cursor: pointer;
   scroll-snap-align: center;
   -webkit-tap-highlight-color: transparent;
-  transition: z-index 0s .24s;
+  transition: z-index 0s .49s;
 }
-.material-card:focus-visible { z-index: var(--front); transition-delay: 0s; outline: none; }
+.material-card + .material-card { margin-inline-start: calc(var(--card-width) * -.064); }
+.material-card[data-featured] { z-index: 100; transition-delay: 0s; }
+.material-track[data-previewing] .material-card:not([data-featured]) { transition-delay: 0s; }
+.material-card:focus-visible { outline: none; }
 .material-card:focus-visible .material-card-art { outline: 2px solid var(--accent); outline-offset: 4px; }
 .material-card-art {
   position: absolute;
@@ -97,22 +113,37 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   background: #2a1911;
   outline: 1px solid #fff1db40;
   outline-offset: -1px;
-  box-shadow: -13px 16px 27px -8px #000a, 0 5px 9px -3px #0009;
-  /* Identical local perspective preserves each card's projected size across the row. */
+  box-shadow: -15px 16px 26px -7px #000b, -4px 2px 9px -2px #000a;
+  pointer-events: none;
+  translate: calc(var(--card-width) * var(--neighbor-offset, 0)) 0;
+  /* Keep the hit targets fixed while the art advances and the other cards move aside. */
   transform: perspective(var(--card-perspective))
-    translate3d(calc(var(--card-width) * .06), 0, 0) rotateY(45deg);
-  transition: transform .44s cubic-bezier(.22, .75, .21, 1), box-shadow .44s ease;
+    translate3d(
+      calc(var(--card-width) * .06 * (1 - var(--card-turn))),
+      calc(var(--card-width) * -.032 * var(--card-approach)),
+      calc(var(--card-width) * var(--featured-depth) * var(--card-approach)))
+    rotateY(calc(45deg * (1 - var(--card-turn))))
+    scale(calc(1 + var(--featured-enlargement) * var(--card-turn)));
+  transition:
+    --card-approach .3s cubic-bezier(.25,.7,.25,1) .14s,
+    --card-turn .38s cubic-bezier(.3,.74,.2,1),
+    translate .48s cubic-bezier(.22,.75,.21,1),
+    box-shadow .38s ease;
 }
-.material-card:focus-visible .material-card-art {
-  transform: perspective(var(--card-perspective))
-    translate3d(0, -13px, calc(var(--card-width) * .22)) rotateY(0deg);
-  box-shadow: 0 20px 42px -9px #000c;
+.material-track[data-previewing] .material-card-art {
+  transition-delay: .12s, 0s, 0s, 0s;
+}
+.material-card[data-featured] .material-card-art {
+  --card-approach: 1;
+  --card-turn: 1;
+  box-shadow: 0 24px 45px -10px #000d, 0 5px 16px #0008;
+  transition-delay: 0s, .12s, 0s, 0s;
 }
 .material-card-title,
 .material-card-description {
   position: absolute;
-  width: calc(var(--card-width) * 1.06);
-  left: calc((100% - var(--card-width) * 1.06) / 2);
+  width: calc(var(--card-width) * 1.53);
+  left: calc((100% - var(--card-width) * 1.53) / 2);
   z-index: 1;
   margin: 0;
   opacity: 0;
@@ -123,21 +154,22 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
 }
 .material-card-title {
   --label-shift: 7px;
-  bottom: calc(100% + var(--card-width) * .15 + 12px);
+  bottom: calc(100% + var(--card-width) * .40 + 14px);
   color: #f9ecdf;
-  font: 400 clamp(19px, 1.9vw, 27px)/1.1 Georgia, serif;
+  font: 400 var(--title-size)/1.06 Georgia, serif;
   letter-spacing: -.035em;
 }
 .material-card-title em { color: var(--accent); }
 .material-card-description {
   --label-shift: -7px;
-  top: calc(100% + var(--card-width) * .022 + 16px);
+  top: calc(100% + var(--card-width) * .315 + 14px);
   color: #e3cbbb;
   font: 400 12px/1.45 system-ui, sans-serif;
 }
-.material-card:focus-visible :is(.material-card-title, .material-card-description) {
+.material-card[data-featured] :is(.material-card-title, .material-card-description) {
   opacity: 1;
   transform: translateY(0);
+  transition-delay: .18s;
 }
 .material-card-art img,
 .material-flight-art img,
@@ -179,24 +211,15 @@ body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
   outline-offset: 3px;
 }
 @media (max-width: 600px) {
-  .material-home { padding-block: clamp(22px, 6vh, 56px); }
+  .material-home { padding-block: clamp(22px, 4vh, 44px); }
   .material-track {
-    --card-width: min(70vw, 270px);
-    --card-spacing: 14px;
+    --card-width: min(69vw, 30svh, 266px);
+    --featured-depth: .38;
+    --featured-enlargement: .16;
     padding-inline: max(32px, calc((100vw - var(--card-width) * .73) / 2));
   }
-}
-@media (hover: hover) and (pointer: fine) {
-  .material-card:hover { z-index: var(--front); transition-delay: 0s; }
-  .material-card:hover .material-card-art {
-    transform: perspective(var(--card-perspective))
-      translate3d(0, -13px, calc(var(--card-width) * .22)) rotateY(0deg);
-    box-shadow: 0 20px 42px -9px #000c;
-  }
-  .material-card:hover :is(.material-card-title, .material-card-description) {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  .material-card-title { bottom: calc(100% + var(--card-width) * .30 + 14px); }
+  .material-card-description { top: calc(100% + var(--card-width) * .215 + 14px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

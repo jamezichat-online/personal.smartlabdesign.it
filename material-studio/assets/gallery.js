@@ -21,16 +21,26 @@ const materials = [...studio.querySelectorAll('[data-subject]')].map(button => (
   button
 }));
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const hoverAvailable = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, stackOrder, onOpen }) {
+function MaterialCard({ material, stackOrder, featured, offset, onHover, onFocus, onOpen }) {
   const descriptionId = 'material-description-' + material.id;
 
   return h('button', {
     className: 'material-card', type: 'button', 'aria-label': material.title.join(' '),
     'aria-describedby': material.description ? descriptionId : undefined,
-    'data-card': material.id, style: { '--stack-order': stackOrder },
+    'data-card': material.id, 'data-featured': featured ? '' : undefined,
+    style: { '--stack-order': stackOrder, '--neighbor-offset': offset },
+    onPointerEnter: event => {
+      if (event.pointerType !== 'touch' && hoverAvailable.matches) onHover(stackOrder);
+    },
+    onPointerLeave: () => onHover(current => current === stackOrder ? null : current),
+    onFocus: event => {
+      if (event.currentTarget.matches(':focus-visible')) onFocus(stackOrder);
+    },
+    onBlur: () => onFocus(current => current === stackOrder ? null : current),
     onClick: () => onOpen(material)
   },
     h('span', { className: 'material-card-art', 'aria-hidden': 'true' },
@@ -93,7 +103,10 @@ function measureCards(gallery) {
     const width = parseFloat(getComputedStyle(art).width);
     const box = { left: slot.left + (slot.width - width) / 2, top: slot.top, width, height: slot.height };
     const visible = slot.right > rail.left && slot.left < rail.right;
-    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: getComputedStyle(art).transform }];
+    const style = getComputedStyle(art);
+    const shift = style.translate === 'none' ? 0 : parseFloat(style.translate) || 0;
+    box.left += shift;
+    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: style.transform }];
   }));
 }
 
@@ -101,6 +114,10 @@ function Gallery() {
   const container = useRef(null);
   const busy = useRef(false);
   const [phase, setPhase] = useState('home');
+  const [hovered, setHovered] = useState(null);
+  const [focused, setFocused] = useState(null);
+  const featured = hovered ?? focused;
+  const shiftByDistance = [.235, .142, .078, .04];
 
   function studioFocus() {
     // Focus the selected scene's tab so keyboard navigation can continue in reading order.
@@ -120,6 +137,8 @@ function Gallery() {
     busy.current = true;
     const gallery = container.current;
     const origins = measureCards(gallery);
+    setHovered(null);
+    setFocused(null);
     const layer = document.createElement('div');
     layer.className = 'material-flight';
     layer.setAttribute('aria-hidden', 'true');
@@ -212,9 +231,17 @@ function Gallery() {
     inert: phase !== 'home'
   },
     h('h1', { id: 'materialHomeTitle' }, 'Material Studio ', h('em', null, '3D')),
-    h('div', { className: 'material-rail' }, h('div', { className: 'material-track' },
-      materials.map((material, index) => h(MaterialCard, { key: material.id, material, stackOrder: index + 1, onOpen: open }))
-    )),
+    h('div', { className: 'material-rail' }, h('div', {
+      className: 'material-track', 'data-previewing': featured === null ? undefined : ''
+    }, materials.map((material, index) => {
+      const stackOrder = index + 1;
+      const distance = featured === null ? 0 : stackOrder - featured;
+      const offset = Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
+      return h(MaterialCard, {
+        key: material.id, material, stackOrder, featured: featured === stackOrder,
+        offset, onHover: setHovered, onFocus: setFocused, onOpen: open
+      });
+    }))),
     h('p', null, 'Choose a material. Explore its nature.')
   );
 }
