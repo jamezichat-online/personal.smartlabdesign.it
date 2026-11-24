@@ -1418,6 +1418,7 @@ function updateCam(){
  const [yaw,elev]=orbitState[kind], s=kind==='bear'?min(canvasW/3.05,canvasH/3.94)*zoom:kind==='sushi'?min(canvasW/4.65,canvasH/3.17)*zoom:min(canvasW/3.65,canvasH/2.94)*zoom;
  const cy=cos(yaw),sy=sin(yaw),ce=cos(elev),se=sin(elev);
  camera={cy,sy,ce,se,s,eye:[sy*ce,se,cy*ce],originX:canvasW*.5,originY:canvasH*framing[kind].baseline};
+ if(kind==='sushi')camera.sushiLights=sushiLighting();
 }
 function project(x,y,z){const c=camera,d=x*c.sy+z*c.cy;return [c.originX+(x*c.cy-z*c.sy)*c.s,c.originY+(-y*c.ce+d*c.se)*c.s,d*c.ce+y*c.se]}
 function groundAt(x,y,height){const c=camera,h=(x-c.originX)/c.s,d=((y-c.originY)/c.s+height*c.ce)/c.se;return [h*c.cy+d*c.sy,height,-h*c.sy+d*c.cy]}
@@ -1620,11 +1621,63 @@ function softboxReflection(light,direction){
 }
 let bearContact=[0,1.5,.4];
 let press=0,pressV=0,pressGoal=0,anchor=[0,0],pull=[0,0],pullGoal=[0,0],pv=[0,0],activeOrange=0;
-function renderObj(obj){
+// The background stays fixed: rotate its light rig into object space on each orbit.
+function sushiLighting(){
+ const yaw=.40,elevation=.42,cy=cos(yaw),sy=sin(yaw),ce=cos(elevation),se=sin(elevation);
+ const right=[cy,0,-sy],up=[-sy*se,ce,-cy*se],forward=[sy*ce,se,cy*ce];
+ const c=camera;
+ function rotate(v){
+  const x=scalar(v,right),y=scalar(v,up),z=scalar(v,forward);
+  return [x*c.cy-y*c.sy*c.se+z*c.eye[0],y*c.ce+z*c.eye[1],-x*c.sy-y*c.cy*c.se+z*c.eye[2]];
+ }
+ return studioLights.map(light=>({...light,direction:rotate(light.direction),right:rotate(light.right),up:rotate(light.up)}));
+}
+const sushiShadowSize=256,sushiShadowDepth=new Float32Array(sushiShadowSize*sushiShadowSize);
+function applySushiShadows(prepared){
+ const light=camera.sushiLights[0],N=sushiShadowSize;
+ let minU=Infinity,minV=Infinity,maxU=-Infinity,maxV=-Infinity;
+ const batches=prepared.flat();
+ for(const {arr} of batches)for(const p of arr){
+  const world=p.slice(7,10);
+  p[11]=scalar(world,light.right);p[12]=scalar(world,light.up);p[13]=scalar(world,light.direction);
+  minU=min(minU,p[11]);maxU=max(maxU,p[11]);minV=min(minV,p[12]);maxV=max(maxV,p[12]);
+ }
+ const scale=(N-5)/max(.001,maxU-minU,maxV-minV);
+ for(const {arr} of batches)for(const p of arr){p[11]=(p[11]-minU)*scale+2;p[12]=(p[12]-minV)*scale+2;}
+ sushiShadowDepth.fill(-Infinity);
+ for(const {mesh,arr} of batches)for(const f of mesh.tri){
+  const a=arr[f[0]],b=arr[f[1]],c=arr[f[2]];
+  const dx=b[11]-a[11],dy=b[12]-a[12],ex=c[11]-a[11],ey=c[12]-a[12],area=dx*ey-dy*ex;
+  if(abs(area)<.0001)continue;
+  const inv=1/area,x0=max(0,Math.floor(min(a[11],b[11],c[11]))),x1=min(N-1,Math.ceil(max(a[11],b[11],c[11])));
+  const y0=max(0,Math.floor(min(a[12],b[12],c[12]))),y1=min(N-1,Math.ceil(max(a[12],b[12],c[12])));
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+   const u=((x+.5-a[11])*ey-(y+.5-a[12])*ex)*inv;
+   const v=(dx*(y+.5-a[12])-dy*(x+.5-a[11]))*inv,w=1-u-v;
+   if(min(u,v,w)<-.00001)continue;
+   const depth=w*a[13]+u*b[13]+v*c[13],i=y*N+x;
+   if(depth>sushiShadowDepth[i])sushiShadowDepth[i]=depth;
+  }
+ }
+ for(const {mesh,arr} of batches)for(const p of arr){
+  const x=Math.floor(p[11]),y=Math.floor(p[12]);
+  // Bias and filtered visibility keep the low-poly grains free of self-shadow acne.
+  const bias=(mesh.mat===1?.035:.018)+.022*(1-p[10]);
+  let blocked=0;
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+   const sx=x+ox,sy=y+oy;
+   if(sx>=0&&sy>=0&&sx<N&&sy<N&&sushiShadowDepth[sy*N+sx]>p[13]+bias)blocked++;
+  }
+  const shadow=blocked/9;
+  p[3]-=.69*p[10]*shadow*.80;
+  p[4]*=1-.82*shadow;
+ }
+}
+function prepareObj(obj){
  let X=obj.home[0]+obj.pos[0],Y=obj.home[1]+obj.pos[1],Z=obj.home[2]+obj.pos[2],isFish=kind==='sushi'&&obj.id===0;
  const eye=camera.eye;
  const orange=kind==='orange';
- const [keyBox,rimBox,fillBox]=studioLights;
+ const [keyBox,rimBox,fillBox]=kind==='sushi'?camera.sushiLights:studioLights;
  const {cy,sy,ce,se}=camera;
  const keyDirection=orange?unit(
   -.88*cy-.47*sy*se+.43*eye[0],
@@ -1638,8 +1691,8 @@ function renderObj(obj){
   keyDirection[0]*across[1]-keyDirection[1]*across[0]
  ];
  const mainLight=orange?{...keyBox,direction:keyDirection,right:across,up:vertical,power:.76}:keyBox;
- const riceHalf=unit(studioLights[0].direction[0]+eye[0],studioLights[0].direction[1]+eye[1],studioLights[0].direction[2]+eye[2]);
- for(const mesh of obj.parts){
+ const riceHalf=unit(keyDirection[0]+eye[0],keyDirection[1]+eye[1],keyDirection[2]+eye[2]);
+ return obj.parts.map(mesh=>{
   const arr=mesh.points.map(pt=>{
    let [x,y,z,nx,ny,nz,u,v]=pt;
    if(isFish){const sag=clamp(obj.pos[1])*.155,bend=clamp(obj.pos[1])*x*x*.125;y-=bend;y+=sag*(1-z*z);nx+=sag*x*1.6;}
@@ -1685,15 +1738,15 @@ function renderObj(obj){
    let n=unit(nx,ny,nz);nx=n[0];ny=n[1];nz=n[2];
    const facing=max(0,scalar(n,eye)),rim=(1-facing)**4.1;
    const key=max(0,scalar(n,keyDirection));
-   const edge=max(0,scalar(n,studioLights[1].direction));
-   const fill=max(0,scalar(n,studioLights[2].direction));
+   const edge=max(0,scalar(n,rimBox.direction));
+   const fill=max(0,scalar(n,fillBox.direction));
    const floorBounce=max(0,-ny);
    let lit=(orange?.43:.37)+.69*key+.30*fill+.25*edge+.09*floorBounce;
    if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(kind==='bear'?.025+.12*edge:.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
    let gloss;
    if(mesh.mat===2){
     const packed=obj.loose?0:(1-clamp(salmon.pos[1]*1.8));
-    const occlusion=packed*.17*clamp((Y+y-.23)/.46)*(1-smooth(.28,.67,abs(Z+z)));
+    const occlusion=packed*.085*clamp((Y+y-.23)/.46)*(1-smooth(.28,.67,abs(Z+z)));
     lit+=.10-occlusion-.09*(1-smooth(0,.7,Y+y));
     gloss=.095*max(0,scalar(n,riceHalf))**13+.035*rim;
    }else{
@@ -1704,8 +1757,13 @@ function renderObj(obj){
     gloss=softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
     lit+=rim*(.09+.31*edge);
    }
-   return [...project(x+X,y+Y,z+Z),lit,gloss,u,v];
+   return [...project(x+X,y+Y,z+Z),lit,gloss,u,v,...(kind==='sushi'?[x+X,y+Y,z+Z,key]:[])];
   });
+  return {mesh,arr};
+ });
+}
+function renderObj(obj,prepared=prepareObj(obj)){
+ for(const {mesh,arr} of prepared){
   if(mesh.mat===6){
    for(const f of mesh.tri)triangle(arr[f[0]],arr[f[1]],arr[f[2]],6,obj.id,1,true);
   }
@@ -1723,7 +1781,9 @@ function draw(now){
  for(let o of objects)shadow(o);
  const cooking=kind==='burger'&&updateGriddle(dt);
  if(kind==='burger'){updateMeatJuice();paintMeatJuice();}
- for(let o of objects)renderObj(o);
+ const prepared=kind==='sushi'?objects.map(prepareObj):null;
+ if(prepared)applySushiShadows(prepared);
+ for(let i=0;i<objects.length;i++)renderObj(objects[i],prepared?.[i]);
  ctx.putImageData(pixelData,0,0);
  if(kind==='burger')paintCookingVapour();
  updateBloom(view,kind==='orange');
