@@ -204,7 +204,8 @@ void main(){
     vec2 center=vec2(uRes.x*.5+footprint*.11,uRes.y*(1.-uFrameY)-footprint*.92);
     vec2 ground=(screenPoint-center)/vec2(footprint*1.13,footprint*.36);
     float contact=exp(-dot(ground,ground)*1.9);
-    float castShadow=exp(-dot(ground-vec2(.27,-.16),ground-vec2(.27,-.16))*.82);
+    vec2 shadowOffset=vec2(.34,-.57);
+    float castShadow=exp(-dot(ground-shadowOffset,ground-shadowOffset)*.82);
     bg*=1.-.22*contact-.11*castShadow;
   }
   float t=1.30;
@@ -233,7 +234,7 @@ void main(){
   vec3 inside=materialPoint(p+through*min(.135,path*.36),index);
   vec3 flesh=mix(top.tint,tissue(inside,pixelX,pixelY).tint,.34);
   vec2 air=airCells(inside,8.3,1.5)+airCells(q+through*.035,18.2,7.)*.51;
-  vec3 light=normalize(-.70*uRight+.59*uUp+.40*uForward);
+  vec3 light=normalize(-.88*uRight+.47*uUp+.43*uForward);
   vec3 fillLight=normalize(.64*uRight-.15*uUp+.72*uForward);
   vec3 rimLight=normalize(vec3(.74,.33,-.58));
   float diffuse=max(dot(n,light),0.);
@@ -251,7 +252,7 @@ void main(){
   vec3 gel=(studio(uv+shift)*.85+vec3(.56,.38,.19)*backlight)*extinction;
   gel+=vec3(.97,.30,.045)*(1.-extinction)*(.32+.48*backlight);
   float shadow=.82+.18*softShadow(p+geometric*.009,light);
-  vec3 rgb=mix(flesh*(.37+.50*diffuse+.18*fill+.14*rim)*shadow,gel,clear);
+  vec3 rgb=mix(flesh*(.42+.58*diffuse+.19*fill+.14*rim)*shadow,gel*1.045,clear);
   rgb+=flesh*vec3(.26,.21,.085)*backlight*exp(-path*1.55);
   float pockets=smoothstep(.02,.26,length(top.slope));
   rgb+=vec3(1.,.58,.17)*(.09+.18*hit.z)*backlight*pockets*exp(-path*1.4);
@@ -738,7 +739,7 @@ function setMode(newMode){
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
 const nativeWetSurface={
  texture:nativePulp,
- lightAngle:()=>Math.atan2(-.59,-.70),
+ lightAngle:()=>Math.atan2(-.47,-.88),
  pieces:()=>pieces,
  scale:()=>Math.min(canvas.clientWidth,canvas.clientHeight)/camera.scale,
  gravity:()=>({down:[-camera.up[0],-camera.up[1]],tilt:Math.max(0,Math.min(1,(Math.abs(Math.cos(pitch))-.78)/.22))}),
@@ -1122,7 +1123,7 @@ function deformOrange(id,x,y,z){
 }
 const cpuWetSurface={
  texture:view,
- lightAngle:()=>Math.atan2(-.69*camera.ce+(-.47*camera.sy+.55*camera.cy)*camera.se,-.47*camera.cy-.55*camera.sy),
+ lightAngle:()=>Math.atan2(-.47,-.88),
  pieces:()=>oranges,
  scale:()=>camera.s*view.clientWidth/canvasW,
  gravity:()=>({down:[camera.sy,camera.cy],tilt:clamp((camera.se-.68)/.32)}),
@@ -1342,6 +1343,21 @@ let press=0,pressV=0,pressGoal=0,anchor=[0,0],pull=[0,0],pullGoal=[0,0],pv=[0,0]
 function renderObj(obj){
  let X=obj.home[0]+obj.pos[0],Y=obj.home[1]+obj.pos[1],Z=obj.home[2]+obj.pos[2],isFish=kind==='sushi'&&obj.id===0;
  const eye=camera.eye;
+ const orange=kind==='orange';
+ const [keyBox,rimBox,fillBox]=studioLights;
+ const {cy,sy,ce,se}=camera;
+ const keyDirection=orange?unit(
+  -.88*cy-.47*sy*se+.43*eye[0],
+  .47*ce+.43*eye[1],
+  .88*sy-.47*cy*se+.43*eye[2]
+ ):keyBox.direction;
+ const across=unit(keyDirection[2],0,-keyDirection[0]);
+ const vertical=[
+  keyDirection[1]*across[2]-keyDirection[2]*across[1],
+  keyDirection[2]*across[0]-keyDirection[0]*across[2],
+  keyDirection[0]*across[1]-keyDirection[1]*across[0]
+ ];
+ const mainLight=orange?{...keyBox,direction:keyDirection,right:across,up:vertical,power:.76}:keyBox;
  const riceHalf=unit(studioLights[0].direction[0]+eye[0],studioLights[0].direction[1]+eye[1],studioLights[0].direction[2]+eye[2]);
  for(const mesh of obj.parts){
   const arr=mesh.points.map(pt=>{
@@ -1380,11 +1396,11 @@ function renderObj(obj){
    }
    let n=unit(nx,ny,nz);nx=n[0];ny=n[1];nz=n[2];
    const facing=max(0,scalar(n,eye)),rim=(1-facing)**4.1;
-   const key=max(0,scalar(n,studioLights[0].direction));
+   const key=max(0,scalar(n,keyDirection));
    const edge=max(0,scalar(n,studioLights[1].direction));
    const fill=max(0,scalar(n,studioLights[2].direction));
    const floorBounce=max(0,-ny);
-   let lit=.37+.69*key+.30*fill+.25*edge+.09*floorBounce;
+   let lit=(orange?.43:.37)+.69*key+.30*fill+.25*edge+.09*floorBounce;
    if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
    let gloss;
    if(mesh.mat===2){
@@ -1394,8 +1410,7 @@ function renderObj(obj){
     gloss=.095*max(0,scalar(n,riceHalf))**13+.035*rim;
    }else{
     const reflected=[2*facing*nx-eye[0],2*facing*ny-eye[1],2*facing*nz-eye[2]];
-    const [keyBox,rimBox,fillBox]=studioLights;
-    const specularCore=softboxReflection(keyBox,reflected);
+    const specularCore=softboxReflection(mainLight,reflected);
     const softboxes=specularCore+softboxReflection(rimBox,reflected)+softboxReflection(fillBox,reflected);
     const reflection=mesh.mat===3?.63:.43;
     gloss=softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
