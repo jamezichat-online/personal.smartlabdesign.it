@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Material Studio · Nigiri and Citrus Gel</title>
+<title>Material Studio 3D</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#100b09;color:#f9ecdf;--accent:#ffac66}
 *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:clamp(14px,4vw,50px)}
@@ -15,10 +15,12 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outlin
 .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:15px 0 10px}.controls button{border-radius:100px;border:1px solid #664333;padding:10px 15px;background:#23150f;color:#ffe8d4;font:600 13px system-ui;cursor:pointer}.controls button[aria-pressed=true]{background:#ffae70;color:#241108;border-color:#ffae70}.controls button:hover{border-color:#ffae70}.controls button:focus-visible{outline:2px solid #fff2d8;outline-offset:3px}.reset{margin-left:auto}.hint{margin:0;color:#d8b59f;font-size:13px;min-height:2em}.error{position:absolute;inset:0;margin:0;place-content:center;text-align:center;padding:24px;background:#231410}.error:not([hidden]){display:grid}
 @media(max-width:480px){.stage{height:clamp(360px,60svh,560px);border-radius:14px}header p{font-size:10px}.controls{gap:6px}.controls button{padding:9px 11px}.reset{margin-left:0}}
 nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px solid #674733;background:transparent;color:#efcdb8;padding:9px 17px;border-radius:30px;cursor:pointer;font-weight:600}nav button[aria-pressed=true]{background:#f3ddc7;color:#28140e}button[hidden],#materialTools[hidden]{display:none}.stage canvas{position:absolute;inset:0;border-radius:inherit}.meta,#trace{z-index:2}body{padding-block:clamp(14px,2.4vh,30px)}header{margin-bottom:16px}.stage canvas.bloom{pointer-events:none;z-index:1;mix-blend-mode:screen;filter:blur(clamp(4px,0.8vw,10px))}.stage canvas.juice{pointer-events:none;position:absolute;inset:0;z-index:1}.controls button[hidden]{display:none}.audio-credits{margin-top:.7rem;color:#d8b59f;font-size:.8125rem}.audio-credits summary{cursor:pointer}.audio-credits a{color:inherit}</style>
+<link rel="stylesheet" href="./assets/gallery.css">
 </head>
-<body>
-<main>
-<header><h1><span id="materialTitleName">Citrus</span> <em id="materialTitleAccent">Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button></nav>
+<body data-studio-mode="home">
+<div id="materialHome"></div>
+<main id="materialStudio" inert>
+<header><h1><span id="materialTitleName">Citrus</span> <em id="materialTitleAccent">Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button><button id="materialHomeButton" type="button" aria-controls="materialHome" aria-expanded="true">Home</button></nav>
 <div class="stage">
 <canvas id="view" aria-label="3D gelatinous orange slice" tabindex="0"></canvas>
 <div class="meta"><span>Orange</span><span id="count" aria-live="polite">1 piece</span></div>
@@ -310,6 +312,7 @@ for(const [key,src] of Object.entries(environmentSources)){
   environmentImages[key]=image;
   window.dispatchEvent(new CustomEvent('environments-ready',{detail:key}));
  };
+ image.fetchPriority='low';
  image.src=src;
 }
 function drawEnvironment(ctx,image,width,height){
@@ -856,6 +859,8 @@ function setMode(newMode){
   update();
 }
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
+canvas.materialSnapshot=()=>nativePulp;
+canvas.addEventListener('pause-orange',()=>{clearGesture();cancelAnimationFrame(frame);frame=0;});
 let surfaceWaveTime=9;
 // The shader maps deformed world coordinates back to the undeformed gel.
 // Droplets invert that same map instead of approximating the indentation.
@@ -2455,8 +2460,54 @@ view.addEventListener('keydown',event=>{
 view.addEventListener('keyup',event=>{if(event.code==='Space'&&kind==='burger'){pressGoal=0;invalidate();return;}if(event.code==='Space'&&(kind==='bear'||kind==='pudding')){if(pressGoal)materialFoley.play(kind==='pudding'?'jelly-release':'bear-release',.66);pressGoal=0;invalidate();}});
 view.addEventListener('blur',()=>{if((kind==='bear'||kind==='burger')&&!drag){pressGoal=0;invalidate();}});
 new ResizeObserver(invalidate).observe(stage);
-choose('cloud');
+view.hidden=true;
+view.style.display=gpu.style.display='none';
+cloudScene.show(false);
+window.materialStudio={
+ open(k){choose(k);},
+ suspend(){
+  materialFoley.stop();cloudScene.show(false);
+  if(kind==='burger'){
+   griddleOn=false;griddleHeat=0;griddleStatus='';
+   griddleButton.setAttribute('aria-pressed','false');griddleButton.textContent='Heat griddle';
+  }
+  gpu.dispatchEvent(new Event('pause-orange'));
+  juice.hide();cancelAnimationFrame(raf);raf=0;view.hidden=true;
+  view.style.display=gpu.style.display='none';
+ },
+ async capture(){
+  // The cloud renders on every frame. Read it immediately after its current draw.
+  if(kind==='cloud')await new Promise(requestAnimationFrame);
+  const ratio=Math.min(1,960/Math.max(stage.clientWidth,stage.clientHeight));
+  const image=document.createElement('canvas');
+  image.width=Math.max(1,Math.round(stage.clientWidth*ratio));
+  image.height=Math.max(1,Math.round(stage.clientHeight*ratio));
+  const painter=image.getContext('2d');
+  const visible=[...stage.querySelectorAll('canvas')].filter(layer=>!layer.hidden&&getComputedStyle(layer).display!=='none');
+  if(!visible.length||kind==='cloud'&&!visible.some(layer=>layer.hasAttribute('aria-label')))return null;
+  const overlay=layer=>layer.classList.contains('bloom')||layer.classList.contains('juice');
+  visible.sort((a,b)=>Number(overlay(a))-Number(overlay(b)));
+  for(const layer of visible){
+   const source=layer.materialSnapshot?layer.materialSnapshot():layer;
+   if(source.width<2||source.height<2)continue;
+   const bloom=layer.classList.contains('bloom');
+   painter.globalCompositeOperation=bloom?'screen':'source-over';
+   painter.filter=bloom?'blur(4px)':'none';
+   painter.drawImage(source,0,0,image.width,image.height);
+  }
+  return image;
+ }
+};
 })();
+</script>
+<script type="module">
+import('./assets/gallery.js').catch(error=>{
+ console.error(error);
+ document.body.dataset.studioMode='studio';
+ document.querySelector('#materialStudio').inert=false;
+ document.querySelector('#materialHomeButton').hidden=true;
+ window.materialStudio.open('sushi');
+});
 </script>
 </body>
 </html>

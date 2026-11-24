@@ -1,0 +1,133 @@
+/* Home is a separate presentation layer over the existing studio. */
+body[data-studio-mode="home"] { overflow: hidden; }
+body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
+#materialHome:empty { display: none; }
+
+.material-home {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  overflow: auto;
+  padding-block: clamp(28px, 7vh, 96px);
+  background: #100b09;
+}
+.material-home[hidden] { display: none; }
+.material-home.is-transitioning { background: transparent; pointer-events: none; }
+.material-home h1,
+.material-home p {
+  width: min(100% - 2 * clamp(20px, 4vw, 64px), 1480px);
+  margin-inline: auto;
+}
+.material-home h1 {
+  margin-block: 0;
+  font-size: clamp(47px, 7.2vw, 116px);
+  letter-spacing: -.064em;
+  text-wrap: balance;
+}
+.material-home p {
+  margin-block: 0;
+  text-align: center;
+  color: #d8bba8;
+  font-size: clamp(14px, 1.4vw, 19px);
+  line-height: 1.6;
+}
+.material-rail {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: #795039 transparent;
+  overscroll-behavior-inline: contain;
+}
+.material-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  margin-inline: auto;
+  padding: clamp(32px, 7vh, 76px) clamp(24px, 4vw, 64px);
+}
+.material-card {
+  --card-width: clamp(172px, 15vw, 248px);
+  position: relative;
+  display: block;
+  flex: 0 0 var(--card-width);
+  width: var(--card-width);
+  aspect-ratio: .84;
+  padding: 0;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  cursor: pointer;
+  scroll-snap-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.material-card + .material-card { margin-inline-start: -8px; }
+.material-card:focus-visible { z-index: 2; outline: 2px solid #ffac66; outline-offset: 7px; }
+.material-card-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #2a1911;
+  outline: 1px solid #fff1db40;
+  outline-offset: -1px;
+  box-shadow: 0 18px 28px #0006;
+  transform: perspective(950px) translate3d(0,var(--lift,0px),0) rotateX(var(--pitch,0deg)) rotateY(var(--yaw,-16deg));
+}
+.material-card-art img,
+.material-flight-art img,
+.material-flight-art canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.material-card-art img { -webkit-user-drag: none; user-select: none; }
+.material-home.is-transitioning .material-track { visibility: hidden; }
+body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
+.material-flight {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+.material-flight-card {
+  position: fixed;
+  transform-origin: 0 0;
+}
+.material-flight-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #2a1911;
+}
+#materialHomeButton {
+  margin-left: auto;
+  align-self: center;
+}
+#materialHomeButton[aria-expanded="true"] { visibility: hidden; }
+#materialHomeButton:focus-visible {
+  outline: 2px solid #ffac66;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .material-home { padding-block: clamp(22px, 6vh, 56px); }
+  .material-track { padding-inline: max(24px, calc((100vw - 250px) / 2)); }
+  .material-card { --card-width: min(65vw, 250px); }
+  .material-card + .material-card { margin-inline-start: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .material-card-art { transform: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .material-card:hover { z-index: 3; }
+}
