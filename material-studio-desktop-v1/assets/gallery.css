@@ -1,3 +1,4 @@
+:root { --material-card-radius: 17px; }
 /* Home is a separate presentation layer over the existing studio. */
 body[data-studio-mode="home"] { overflow: hidden; }
 body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
@@ -79,7 +80,7 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   height: calc(var(--card-width) / .84);
   padding: 0;
   border: 0;
-  border-radius: 17px;
+  border-radius: var(--material-card-radius);
   background: transparent;
   cursor: pointer;
   scroll-snap-align: center;
@@ -187,6 +188,7 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
   pointer-events: none;
 }
 .material-card-art img { -webkit-user-drag: none; user-select: none; }
@@ -201,10 +203,13 @@ body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
 }
 .material-flight-card {
   position: fixed;
+  border-radius: var(--material-card-radius);
   transform-origin: 0 0;
 }
 .material-flight-art {
   position: absolute;
+  clip-path: inset(0 round var(--material-card-radius));
+  isolation: isolate;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
