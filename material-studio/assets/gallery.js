@@ -1,4 +1,4 @@
-import { React, createRoot, flushSync, useEffect, useRef, useState, animate, springValue } from './gallery-runtime.js';
+import { React, createRoot, flushSync, useEffect, useRef, useState, animate } from './gallery-runtime.js';
 
 const h = React.createElement;
 const studio = document.querySelector('#materialStudio');
@@ -15,63 +15,28 @@ const interactions = {
 };
 const materials = [...studio.querySelectorAll('[data-subject]')].map(button => ({
   id: button.dataset.subject,
-  title: button.textContent,
+  title: window.materialStudio.title(button.dataset.subject) || [button.textContent],
   description: interactions[button.dataset.subject],
   preview: './assets/previews/' + button.dataset.subject + '.webp',
   button
 }));
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
 function MaterialCard({ material, stackOrder, onOpen }) {
-  const art = useRef(null);
-  const controls = useRef(null);
   const descriptionId = 'material-description-' + material.id;
 
-  useEffect(() => {
-    const options = { stiffness: 190, damping: 23, mass: .77 };
-    const x = springValue(0, options);
-    const y = springValue(0, options);
-    const lift = springValue(0, options);
-    const paint = () => {
-      art.current.style.setProperty('--pointer-x', x.get());
-      art.current.style.setProperty('--pointer-y', y.get());
-      art.current.style.setProperty('--approach', lift.get());
-    };
-    const values = [x, y, lift];
-    const subscriptions = values.map(value => value.on('change', paint));
-    controls.current = { x, y, lift };
-    return () => {
-      subscriptions.forEach(unsubscribe => unsubscribe());
-      values.forEach(value => value.destroy());
-    };
-  }, []);
-
-  function move(event) {
-    if (!controls.current || !finePointer.matches || reducedMotion.matches || event.pointerType === 'touch') return;
-    const box = event.currentTarget.getBoundingClientRect();
-    const { x, y, lift } = controls.current;
-    x.set((event.clientX - box.left) / box.width * 2 - 1);
-    y.set((event.clientY - box.top) / box.height * 2 - 1);
-    lift.set(1);
-  }
-
-  function settle() {
-    const springs = controls.current;
-    if (springs) Object.values(springs).forEach(spring => spring.set(0));
-  }
-
   return h('button', {
-    className: 'material-card', type: 'button', 'aria-label': material.title,
+    className: 'material-card', type: 'button', 'aria-label': material.title.join(' '),
     'aria-describedby': material.description ? descriptionId : undefined,
     'data-card': material.id, style: { '--stack-order': stackOrder },
-    onPointerMove: move, onPointerLeave: settle, onClick: () => onOpen(material)
+    onClick: () => onOpen(material)
   },
-    h('span', { className: 'material-card-art', ref: art, 'aria-hidden': 'true' },
+    h('span', { className: 'material-card-art', 'aria-hidden': 'true' },
       h('img', { src: material.preview, alt: '', draggable: false })),
-    h('span', { className: 'material-card-title', 'aria-hidden': 'true' }, material.title),
+    h('span', { className: 'material-card-title', 'aria-hidden': 'true' },
+      material.title[0], material.title[1] && ' ', material.title[1] && h('em', null, material.title[1])),
     material.description && h('span', { className: 'material-card-description', id: descriptionId }, material.description)
   );
 }
@@ -123,9 +88,12 @@ function fly(layer, origin, destination, image, selected, opening, index, liveIm
 function measureCards(gallery) {
   const rail = gallery.querySelector('.material-rail').getBoundingClientRect();
   return new Map([...gallery.querySelectorAll('[data-card]')].map(card => {
-    const box = card.getBoundingClientRect();
-    const visible = box.right > rail.left && box.left < rail.right;
-    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: getComputedStyle(card.firstElementChild).transform }];
+    const slot = card.getBoundingClientRect();
+    const art = card.firstElementChild;
+    const width = parseFloat(getComputedStyle(art).width);
+    const box = { left: slot.left + (slot.width - width) / 2, top: slot.top, width, height: slot.height };
+    const visible = slot.right > rail.left && slot.left < rail.right;
+    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: getComputedStyle(art).transform }];
   }));
 }
 
@@ -245,7 +213,7 @@ function Gallery() {
   },
     h('h1', { id: 'materialHomeTitle' }, 'Material Studio ', h('em', null, '3D')),
     h('div', { className: 'material-rail' }, h('div', { className: 'material-track' },
-      materials.map((material, index) => h(MaterialCard, { key: material.id, material, stackOrder: materials.length - index, onOpen: open }))
+      materials.map((material, index) => h(MaterialCard, { key: material.id, material, stackOrder: index + 1, onOpen: open }))
     )),
     h('p', null, 'Choose a material. Explore its nature.')
   );
