@@ -1,14 +1,3 @@
-@property --card-approach {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
-@property --card-turn {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
-
 /* Home is a separate presentation layer over the existing studio. */
 body[data-studio-mode="home"] { overflow: hidden; }
 body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
@@ -95,7 +84,7 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   cursor: pointer;
   scroll-snap-align: center;
   -webkit-tap-highlight-color: transparent;
-  transition: z-index 0s .49s;
+  transition: z-index 0s .34s;
 }
 .material-card + .material-card { margin-inline-start: calc(var(--card-width) * -.064); }
 .material-card[data-featured] { z-index: 100; transition-delay: 0s; }
@@ -113,31 +102,51 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   background: #2a1911;
   outline: 1px solid #fff1db40;
   outline-offset: -1px;
-  box-shadow: -15px 16px 26px -7px #000b, -4px 2px 9px -2px #000a;
+  box-shadow: none;
   pointer-events: none;
   translate: calc(var(--card-width) * var(--neighbor-offset, 0)) 0;
-  /* Keep the hit targets fixed while the art advances and the other cards move aside. */
+  backface-visibility: hidden;
+  will-change: transform, translate;
   transform: perspective(var(--card-perspective))
-    translate3d(
-      calc(var(--card-width) * .06 * (1 - var(--card-turn))),
-      calc(var(--card-width) * -.032 * var(--card-approach)),
-      calc(var(--card-width) * var(--featured-depth) * var(--card-approach)))
-    rotateY(calc(45deg * (1 - var(--card-turn))))
-    scale(calc(1 + var(--featured-enlargement) * var(--card-turn)));
-  transition:
-    --card-approach .3s cubic-bezier(.25,.7,.25,1) .14s,
-    --card-turn .38s cubic-bezier(.3,.74,.2,1),
-    translate .48s cubic-bezier(.22,.75,.21,1),
-    box-shadow .38s ease;
-}
-.material-track[data-previewing] .material-card-art {
-  transition-delay: .12s, 0s, 0s, 0s;
+    translate3d(calc(var(--card-width) * .06), 0, 0) rotateY(45deg) scale(1);
+  transition: transform .38s cubic-bezier(.23,1,.32,1),
+    translate .38s cubic-bezier(.23,1,.32,1);
 }
 .material-card[data-featured] .material-card-art {
-  --card-approach: 1;
-  --card-turn: 1;
-  box-shadow: 0 24px 45px -10px #000d, 0 5px 16px #0008;
-  transition-delay: 0s, .12s, 0s, 0s;
+  transform: perspective(var(--card-perspective))
+    translate3d(0, calc(var(--card-width) * -.032), calc(var(--card-width) * var(--featured-depth)))
+    rotateY(0deg) scale(calc(1 + var(--featured-enlargement)));
+}
+/* A clipped softbox reflection follows the advancing face of the card. */
+.material-card-art::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: -35%;
+  pointer-events: none;
+  background: linear-gradient(112deg, transparent 32%, #fff7e60a 40%, #fff7e649 48%, #ffffff70 50%, #fff7e626 55%, transparent 66%);
+  opacity: 0;
+  transform: translate3d(-70%, 0, 0);
+}
+.material-card[data-featured] .material-card-art::before {
+  animation: material-gloss .68s cubic-bezier(.23,1,.32,1) both;
+}
+@keyframes material-gloss {
+  0% { opacity: 0; transform: translate3d(-70%, 0, 0); }
+  22% { opacity: .68; }
+  70% { opacity: .38; }
+  100% { opacity: 0; transform: translate3d(70%, 0, 0); }
+}
+/* Overlap shading stays clipped to the receiving card, never the page. */
+.material-card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 55%, #00000003 65%, #00000010 76%, #00000030 88%, #00000066 98%, #00000078);
+  opacity: var(--overlap-shadow, 0);
+  transition: opacity .38s ease;
 }
 .material-card-title,
 .material-card-description {
@@ -224,4 +233,8 @@ body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .material-card, .material-card-art, .material-card-title, .material-card-description { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .material-card[data-featured] .material-card-art::before { animation: none; }
 }

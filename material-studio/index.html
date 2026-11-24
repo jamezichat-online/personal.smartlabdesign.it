@@ -15,7 +15,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outlin
 .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:15px 0 10px}.controls button{border-radius:100px;border:1px solid #664333;padding:10px 15px;background:#23150f;color:#ffe8d4;font:600 13px system-ui;cursor:pointer}.controls button[aria-pressed=true]{background:#ffae70;color:#241108;border-color:#ffae70}.controls button:hover{border-color:#ffae70}.controls button:focus-visible{outline:2px solid #fff2d8;outline-offset:3px}.reset{margin-left:auto}.hint{margin:0;color:#d8b59f;font-size:13px;min-height:2em}.error{position:absolute;inset:0;margin:0;place-content:center;text-align:center;padding:24px;background:#231410}.error:not([hidden]){display:grid}
 @media(max-width:480px){.stage{height:clamp(360px,60svh,560px);border-radius:14px}header p{font-size:10px}.controls{gap:6px}.controls button{padding:9px 11px}.reset{margin-left:0}}
 nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px solid #674733;background:transparent;color:#efcdb8;padding:9px 17px;border-radius:30px;cursor:pointer;font-weight:600}nav button[aria-pressed=true]{background:#f3ddc7;color:#28140e}button[hidden],#materialTools[hidden]{display:none}.stage canvas{position:absolute;inset:0;border-radius:inherit}.meta,#trace{z-index:2}body{padding-block:clamp(14px,2.4vh,30px)}header{margin-bottom:16px}.stage canvas.bloom{pointer-events:none;z-index:1;mix-blend-mode:screen;filter:blur(clamp(4px,0.8vw,10px))}.stage canvas.juice{pointer-events:none;position:absolute;inset:0;z-index:1}.controls button[hidden]{display:none}.audio-credits{margin-top:.7rem;color:#d8b59f;font-size:.8125rem}.audio-credits summary{cursor:pointer}.audio-credits a{color:inherit}</style>
-<link rel="stylesheet" href="./assets/gallery.css?v=5">
+<link rel="stylesheet" href="./assets/gallery.css?v=6">
 </head>
 <body data-studio-mode="home">
 <div id="materialHome"></div>
@@ -531,9 +531,9 @@ const juice=(()=>{
  const stage=document.querySelector('.stage'),layer=document.createElement('canvas');
  layer.className='juice';layer.setAttribute('aria-hidden','true');stage.append(layer);
  const ctx=layer.getContext('2d');
- let surface=null,beads=[],frame=0,previous=0;
+ let surface=null,beads=[],frame=0,previous=0,paused=false;
  const trailLife=2050,trailLimit=24;
- function wake(){if(!frame)frame=requestAnimationFrame(draw);}
+ function wake(){if(!paused&&!frame)frame=requestAnimationFrame(draw);}
  function onFace([x,y],poly){
   let inside=false;
   for(let i=0,j=poly.length-1;i<poly.length;j=i++){
@@ -694,6 +694,8 @@ const juice=(()=>{
   show(next){surface=next;beads=[];previous=0;for(const piece of surface.pieces())add(piece,null,Math.max(3,Math.round(17/surface.pieces().length)));wake();},
   touch(piece,contact){if(surface){add(piece,contact,7+Math.floor(Math.random()*5));materialFoley.play("drop",.27,contact[0]*.55,.24);wake();}},
   hide(){surface=null;beads=[];wake();},
+  pause(){paused=true;cancelAnimationFrame(frame);frame=0;},
+  resume(){paused=false;previous=0;wake();},
   refresh:wake
  };
 })();
@@ -788,7 +790,8 @@ function draw(time){
   }
   if(progress<1||velocity!==0||press!==target||pullSpeed.some(v=>v!==0)||waveTime<1.5)invalidate();
 }
-function invalidate(){if(!frame)frame=requestAnimationFrame(draw);}
+let orangePaused=false;
+function invalidate(){if(!orangePaused&&!frame)frame=requestAnimationFrame(draw);}
 function point(event){const b=canvas.getBoundingClientRect();return [event.clientX-b.left,event.clientY-b.top];}
 function project(screen){
   const b=canvas.getBoundingClientRect(), unit=Math.min(b.width,b.height);
@@ -860,7 +863,8 @@ function setMode(newMode){
 }
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
 canvas.materialSnapshot=()=>nativePulp;
-canvas.addEventListener('pause-orange',()=>{clearGesture();cancelAnimationFrame(frame);frame=0;});
+canvas.addEventListener('pause-orange',()=>{orangePaused=true;clearGesture();cancelAnimationFrame(frame);frame=0;});
+canvas.addEventListener('resume-orange',()=>{orangePaused=false;invalidate();});
 let surfaceWaveTime=9;
 // The shader maps deformed world coordinates back to the undeformed gel.
 // Droplets invert that same map instead of approximating the indentation.
@@ -994,7 +998,7 @@ const nativeWetSurface={
  }
 };
 function showNativeJuice(){camera=basis();juice.show(nativeWetSurface);}
-canvas.addEventListener('show-orange',()=>{yaw=orangePose.yaw;pitch=orangePose.pitch;zoom=orangePose.zoom;showNativeJuice();invalidate();});
+canvas.addEventListener('show-orange',()=>{orangePaused=false;yaw=orangePose.yaw;pitch=orangePose.pitch;zoom=orangePose.zoom;showNativeJuice();invalidate();});
 function wetPiece(index,xy){
  const part=pieces[index];
  materialFoley.play("orange-press",.86,xy[0]*.55);
@@ -1077,6 +1081,7 @@ const view=document.createElement('canvas');view.tabIndex=0;stage.insertBefore(v
 const sheet=document.querySelector('#materialTools'), controls=document.querySelector('.controls'), originalHint=document.querySelector('#hint');
 const ctx=view.getContext('2d',{alpha:false});
 const hasGPU=document.querySelector('#error').hidden;
+let renderPaused=false;
 let kind='sushi',tool='move',last=0,raf=0,drag=null,zoom=1,t=0,selected=-1,totalRice=0;
 const PI=Math.PI,TAU=PI*2, sin=Math.sin,cos=Math.cos,abs=Math.abs,max=Math.max,min=Math.min,sqrt=Math.sqrt;
 const clamp=(x,a=0,b=1)=>max(a,min(b,x)),mix=(a,b,t)=>a+(b-a)*t,smooth=(a,b,x)=>{let v=clamp((x-a)/(b-a));return v*v*(3-2*v)};
@@ -2079,7 +2084,7 @@ function renderObj(obj,prepared=prepareObj(obj)){
   for(let f of mesh.tri)triangle(arr[f[0]],arr[f[1]],arr[f[2]],f[3]||mesh.mat,obj.id,obj.shade);
  }
 }
-function invalidate(){if(!raf)raf=requestAnimationFrame(draw)}
+function invalidate(){if(!renderPaused&&!raf)raf=requestAnimationFrame(draw)}
 function draw(now){
  raf=0;if(view.hidden)return;
  let dt=clamp((now-last)/1000,.008,.035);last=now;t+=dt;resize();backdrop();depth.fill(-1e9);if(kind==='bear'||kind==='pudding')backDepth.fill(Infinity);ids.fill(-1);
@@ -2403,7 +2408,7 @@ function createCloudScene(){
   const step={ArrowLeft:[-.13,0],ArrowRight:[.13,0],ArrowUp:[0,.12],ArrowDown:[0,-.12]}[e.key];
   if(step){e.preventDefault();yaw+=step[0];pitch=clamp(pitch+step[1],-.78,1.05);previous=null;}
  };
- return {reset,show(enabled){
+ return {reset,pause(){running=false;cancelAnimationFrame(frame);},show(enabled){
   running=false;cancelAnimationFrame(frame);layer.style.display=enabled?'block':'none';previous=null;orbit=null;
   if(!enabled)return true;
   if(!program&&!setup())return false;
@@ -2412,6 +2417,7 @@ function createCloudScene(){
 }
 const cloudScene=createCloudScene();
 function choose(k){
+ renderPaused=false;juice.resume();
  materialFoley.stop();
  if(kind==='burger'&&k!=='burger'){
   griddleOn=false;griddleHeat=0;griddleStatus='';
@@ -2464,9 +2470,22 @@ view.hidden=true;
 view.style.display=gpu.style.display='none';
 cloudScene.show(false);
 window.materialStudio={
+ pause(){
+  renderPaused=true;juice.pause();
+  cloudScene.pause();
+  gpu.dispatchEvent(new Event('pause-orange'));
+  cancelAnimationFrame(raf);raf=0;
+ },
+ resume(){
+  renderPaused=false;juice.resume();
+  if(kind==='cloud'){cloudScene.show(true);return;}
+  if(kind==='orange'&&hasGPU){gpu.dispatchEvent(new Event('resume-orange'));return;}
+  invalidate();
+ },
  title(k){return materialTitles[k];},
  open(k){choose(k);},
  suspend(){
+  renderPaused=true;juice.pause();
   materialFoley.stop();cloudScene.show(false);
   if(kind==='burger'){
    griddleOn=false;griddleHeat=0;griddleStatus='';
@@ -2502,7 +2521,7 @@ window.materialStudio={
 })();
 </script>
 <script type="module">
-import('./assets/gallery.js?v=4').catch(error=>{
+import('./assets/gallery.js?v=5').catch(error=>{
  console.error(error);
  document.body.dataset.studioMode='studio';
  document.querySelector('#materialStudio').inert=false;

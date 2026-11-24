@@ -25,18 +25,14 @@ const hoverAvailable = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, stackOrder, featured, offset, onHover, onFocus, onOpen }) {
+function MaterialCard({ material, stackOrder, featured, offset, onFocus, onOpen }) {
   const descriptionId = 'material-description-' + material.id;
 
   return h('button', {
     className: 'material-card', type: 'button', 'aria-label': material.title.join(' '),
     'aria-describedby': material.description ? descriptionId : undefined,
     'data-card': material.id, 'data-featured': featured ? '' : undefined,
-    style: { '--stack-order': stackOrder, '--neighbor-offset': offset },
-    onPointerEnter: event => {
-      if (event.pointerType !== 'touch' && hoverAvailable.matches) onHover(stackOrder);
-    },
-    onPointerLeave: () => onHover(current => current === stackOrder ? null : current),
+    style: { '--stack-order': stackOrder, '--neighbor-offset': offset, '--overlap-shadow': !featured && stackOrder < materials.length ? 1 : 0 },
     onFocus: event => {
       if (event.currentTarget.matches(':focus-visible')) onFocus(stackOrder);
     },
@@ -80,15 +76,10 @@ function fly(layer, origin, destination, image, selected, opening, index, liveIm
   const flat = 'perspective(950px) translate3d(0,0,0) rotateX(0deg) rotateY(0deg)';
   const transition = { duration: selected ? duration : duration * .86, delay: selected ? 0 : Math.min(.12, index * .018), ease };
   const fromTo = (a, b) => opening ? [a, b] : [b, a];
-  // Resize only the selected image frame so its crop opens without stretching the scene.
-  const geometry = selected ? {
-    transform: fromTo('translate3d(0,0,0)', 'translate3d(' + (destination.left - origin.box.left) +
-      'px,' + (destination.top - origin.box.top) + 'px,0)'),
-    width: fromTo(origin.box.width + 'px', destination.width + 'px'),
-    height: fromTo(origin.box.height + 'px', destination.height + 'px')
-  } : { transform: fromTo('translate3d(0,0,0) scale(1,1)', small) };
+  // One compositor transform keeps scene morphs independent of layout and raster work.
+  const geometry = { transform: fromTo('translate3d(0,0,0) scale(1,1)', small) };
   const move = animate(card, geometry, transition);
-  animate(art, { transform: fromTo(origin.tilt, flat), borderRadius: fromTo('17px', selected ? '10px' : '28px') }, transition);
+  animate(art, { transform: fromTo(origin.tilt, flat) }, transition);
   const opacity = selected ? [1, 1, 0] : [1, .94, 0];
   if (opening) animate(card, { opacity }, { ...transition, times: [0, selected ? .70 : .45, 1] });
   else if (!selected) animate(card, { opacity: [0, .94, 1] }, { ...transition, times: [0, .32, 1] });
@@ -117,6 +108,45 @@ function Gallery() {
   const [hovered, setHovered] = useState(null);
   const [focused, setFocused] = useState(null);
   const featured = hovered ?? focused;
+  const hoverTimer = useRef(null);
+  const pendingHover = useRef(null);
+  const hoveredRef = useRef(null);
+
+  function queueHover(next) {
+    if (pendingHover.current === next) return;
+    pendingHover.current = next;
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => {
+      hoveredRef.current = next;
+      setHovered(next);
+    }, next === null ? 90 : hoveredRef.current === null ? 25 : 65);
+  }
+
+  function followPointer(event) {
+    if (phase !== 'home' || event.pointerType === 'touch' || !hoverAvailable.matches) return;
+    if (focused !== null) setFocused(null);
+    const cards = [...event.currentTarget.querySelectorAll('[data-card]')];
+    let closest = null, distance = Infinity;
+    cards.forEach((card, index) => {
+      const box = card.getBoundingClientRect();
+      if (event.clientY < box.top || event.clientY > box.bottom) return;
+      const delta = Math.abs(event.clientX - box.left - box.width / 2);
+      if (delta < distance && delta < box.width * .65) {
+        closest = index + 1;
+        distance = delta;
+      }
+    });
+    queueHover(closest);
+  }
+
+  function resetHover() {
+    clearTimeout(hoverTimer.current);
+    pendingHover.current = null;
+    hoveredRef.current = null;
+    setHovered(null);
+  }
+
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const shiftByDistance = [.235, .142, .078, .04];
 
   function studioFocus() {
@@ -137,7 +167,7 @@ function Gallery() {
     busy.current = true;
     const gallery = container.current;
     const origins = measureCards(gallery);
-    setHovered(null);
+    resetHover();
     setFocused(null);
     const layer = document.createElement('div');
     layer.className = 'material-flight';
@@ -149,6 +179,8 @@ function Gallery() {
     try {
       showStudio(material);
       if (!reducedMotion.matches) {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        window.materialStudio.pause();
         const targets = new Map(materials.map(item => [item.id, (item === material ? stage : item.button).getBoundingClientRect()]));
         document.body.dataset.studioMode = 'transition';
         studio.inert = true;
@@ -169,6 +201,7 @@ function Gallery() {
       document.body.dataset.studioMode = 'studio';
       studio.inert = false;
       flushSync(() => setPhase('studio'));
+      window.materialStudio.resume();
       studioFocus();
       busy.current = false;
     }
@@ -186,6 +219,7 @@ function Gallery() {
       if (!reducedMotion.matches) {
         const targets = new Map(materials.map(item => [item.id, (item === material ? stage : item.button).getBoundingClientRect()]));
         const liveImage = await window.materialStudio.capture();
+        window.materialStudio.pause();
         flushSync(() => setPhase('closing'));
         const rail = gallery.querySelector('.material-rail');
         const activeCard = gallery.querySelector('[data-card="' + material.id + '"]');
@@ -231,7 +265,7 @@ function Gallery() {
     inert: phase !== 'home'
   },
     h('h1', { id: 'materialHomeTitle' }, 'Material Studio ', h('em', null, '3D')),
-    h('div', { className: 'material-rail' }, h('div', {
+    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null) }, h('div', {
       className: 'material-track', 'data-previewing': featured === null ? undefined : ''
     }, materials.map((material, index) => {
       const stackOrder = index + 1;
@@ -239,7 +273,7 @@ function Gallery() {
       const offset = Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
       return h(MaterialCard, {
         key: material.id, material, stackOrder, featured: featured === stackOrder,
-        offset, onHover: setHovered, onFocus: setFocused, onOpen: open
+        offset, onFocus: setFocused, onOpen: open
       });
     }))),
     h('p', null, 'Choose a material. Explore its nature.')
