@@ -1454,7 +1454,7 @@ view.onpointerdown=e=>{
   let a=groundAt(...at,hitHeight);
   anchor=[a[0]-obj.pos[0]-obj.home[0],a[2]-obj.pos[2]-obj.home[2]];activeOrange=obj.id;pressGoal=1;
   if(tool==='press'){materialFoley.play('orange-press',.86,anchor[0]*.55);juice.touch(obj,anchor);}
-  else materialFoley.play(obj.id===0?'salmon-touch':'rice-grain',obj.id===0?.68:.43,2*at[0]/canvasW-1);
+  else if(obj.id===0)materialFoley.play('salmon-touch',.68,2*at[0]/canvasW-1);
  }
  if(tool==='cut'){let trace=document.querySelector('#trace');trace.hidden=false;trace.style.width='0';}
  invalidate();
@@ -1468,7 +1468,7 @@ view.onpointermove=e=>{
   pullGoal=[clamp(dx*camera.cy,-.55,.55),clamp(-dy/max(.55,camera.ce),-.52,.52)];
  }else if(tool==='move'&&drag.obj){let o=drag.obj;
   if(Math.hypot(dx,dy)<.045&&!drag.moved)return;
-  if(!drag.moved)materialFoley.play(o.id===0?"salmon-lift":"rice-grain",o.id===0?.70:.46,2*a[0]/canvasW-1);
+  if(!drag.moved)materialFoley.play(o.id===0?"salmon-lift":"rice-grain",o.id===0?.70:.30,2*a[0]/canvasW-1);
   drag.moved=true;o.loose=true;counts();
   pullGoal=[clamp(dx*.7,-.44,.44),clamp(dy*.55,-.34,.34)];
   let x=dx*camera.cy+dy*camera.sy*.65,z=-dx*camera.sy+dy*camera.cy*.65;
