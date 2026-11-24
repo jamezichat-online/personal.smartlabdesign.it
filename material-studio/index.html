@@ -1463,15 +1463,16 @@ function paintMeatJuice(){
     if(r>=1)continue;
     const edge=fade*(1-smooth(.75,1,r)),core=1-smooth(.16,.93,r);
     const reflection=Math.exp(-35*(dx+.34)**2-22*(dy+.40)**2);
+    const whiteReflection=Math.exp(-31*(dx-.36)**2-24*(dy+.31)**2);
     const r1=Math.hypot(dx+.27+.08*sin(bead.a),dy+.26);
     const r2=Math.hypot(dx-.30,dy-.18-.08*cos(bead.a));
     const ring1=Math.max(0,1-9*Math.abs(r1-(.08+.34*phase)))*(1-smooth(.77,.98,phase));
     const ring2=Math.max(0,1-12*Math.abs(r2-(.05+.25*second)))*(1-smooth(.73,.98,second));
     const sparkle=bubbles*(.82*ring1+.59*ring2);
     const k=(y*canvasW+x)*4;
-    pixels[k]=pixels[k]*(1-.25*edge)+edge*(9+24*core+93*reflection+76*sparkle);
-    pixels[k+1]=pixels[k+1]*(1-.36*edge)+edge*(5+13*core+70*reflection+60*sparkle);
-    pixels[k+2]=pixels[k+2]*(1-.43*edge)+edge*(3+5*core+42*reflection+39*sparkle);
+    pixels[k]=pixels[k]*(1-.25*edge)+edge*(9+24*core+93*reflection+74*whiteReflection+76*sparkle);
+    pixels[k+1]=pixels[k+1]*(1-.36*edge)+edge*(5+13*core+70*reflection+78*whiteReflection+60*sparkle);
+    pixels[k+2]=pixels[k+2]*(1-.43*edge)+edge*(3+5*core+42*reflection+81*whiteReflection+39*sparkle);
    }
   }
  }
@@ -1550,6 +1551,7 @@ function updateCam(){
  camera={cy,sy,ce,se,s,eye:[sy*ce,se,cy*ce],originX:canvasW*.5,originY:canvasH*framing[kind].baseline};
  if(kind==='sushi')camera.sushiLights=sushiLighting();
  if(kind==='orange')camera.orangeLights=orangeLighting();
+ if(kind==='burger')camera.pattyLights=pattyLighting();
 }
 function project(x,y,z){const c=camera,d=x*c.sy+z*c.cy;return [c.originX+(x*c.cy-z*c.sy)*c.s,c.originY+(-y*c.ce+d*c.se)*c.s,d*c.ce+y*c.se]}
 function groundAt(x,y,height){const c=camera,h=(x-c.originX)/c.s,d=((y-c.originY)/c.s+height*c.ce)/c.se;return [h*c.cy+d*c.sy,height,-h*c.sy+d*c.cy]}
@@ -1611,12 +1613,10 @@ function pattyContactShadow(obj){
    const u=(x+.5-center[0])/c.s,v=(y+.5-center[1])/(c.s*Math.max(.025,Math.abs(c.se)));
    const wx=u*c.cy+v*c.sy,wz=-u*c.sy+v*c.cy;
    const radius=Math.hypot(wx/rx,wz/rz);
-   // Tight ambient occlusion at the lower crust; soft cast shadow toward the right.
+   // Tight contact occlusion; both area emitters cast their own directional shadows.
    const core=.54*(1-smooth(.88,1.045,radius));
    const rim=.24*Math.exp(-Math.pow((radius-.98)/.075,2));
-   const castR=Math.hypot((u-.10)/(rx*1.12),(v-.07)/(rz*1.09));
-   const cast=.20*(1-smooth(.80,1.16,castR));
-   const factor=(1-core)*(1-rim)*(1-cast);
+   const factor=(1-core)*(1-rim);
    const i=(y*canvasW+x)*4;
    pixels[i]*=factor;pixels[i+1]*=factor;pixels[i+2]*=factor;
   }
@@ -1698,10 +1698,14 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     r=texel[0];g=texel[1];blue=texel[2];
     if(mat===3||mat===5){const bead=clamp((g-112)/50);shine+=(mat===5?.16:.09)*bead*bead;g+=mat===5?9:1;lit+=.045+.025*bead;}
     if(mat===7){
-     const glisten=smooth(74,135,r);
-     shine*=.46+1.08*glisten;
-     shine+=.042*glisten*glisten+griddleHeat*.034*glisten;
-     r*=1-.20*searProgress;g*=1-.23*searProgress;blue*=1-.25*searProgress;
+     const glisten=smooth(74,135,r),wetness=.46+1.08*glisten+griddleHeat*.16;
+     const warm=h*a[10]+l*b[10]+m*c[10],white=h*a[11]+l*b[11]+m*c[11];
+     const warmSpec=(h*a[12]+l*b[12]+m*c[12])*wetness,whiteSpec=(h*a[13]+l*b[13]+m*c[13])*wetness;
+     // Albedo and wetness stay on the meat; illumination comes from the two fixed emitters.
+     r=r*(1-.20*searProgress)*(.30+.82*warm+.72*white*.92)+255*(warmSpec+whiteSpec*.92);
+     g=g*(1-.23*searProgress)*(.29+.82*warm*.79+.72*white*.97)+255*(warmSpec*.79+whiteSpec*.97);
+     blue=blue*(1-.25*searProgress)*(.29+.82*warm*.56+.72*white)+255*(warmSpec*.56+whiteSpec);
+     lit=1;shine=0;
     }
     if(mat===1){const fat=clamp((g-96)/106);shine+=.035*fat;g+=.018*r;blue+=.013*r;}
    }else if(mat===6){
@@ -1781,6 +1785,101 @@ function softboxReflection(light,direction){
 }
 let bearContact=[0,1.5,.4];
 let press=0,pressV=0,pressGoal=0,anchor=[0,0],pull=[0,0],pullGoal=[0,0],pv=[0,0],activeOrange=0;
+// Independent area emitters, fixed to the griddle photograph rather than the meat.
+function pattyLighting(){
+ const c=camera;
+ function area(screen,size,power,color){
+  const [x,y,z]=screen;
+  const direction=unit(x*c.cy-y*c.sy*c.se+z*c.eye[0],y*c.ce+z*c.eye[1],-x*c.sy-y*c.cy*c.se+z*c.eye[2]);
+  const right=unit(c.ce*direction[2]+c.cy*c.se*direction[1],-c.cy*c.se*direction[0]+c.sy*c.se*direction[2],-c.sy*c.se*direction[1]-c.ce*direction[0]);
+  const up=[direction[1]*right[2]-direction[2]*right[1],direction[2]*right[0]-direction[0]*right[2],direction[0]*right[1]-direction[1]*right[0]];
+  return {direction,right,up,size,power,color,intensity:1};
+ }
+ return [
+  area([-.78,.74,-.30],[.46,.36],.76,[1,.79,.56]),
+  area([.82,.66,-.22],[.58,.50],.69,[.92,.97,1])
+ ];
+}
+const pattyShadowSize=224;
+function pattyShadowMap(prepared,light){
+ const N=pattyShadowSize,batches=prepared.flat(),depth=new Float32Array(N*N);
+ let minU=Infinity,minV=Infinity,maxU=-Infinity,maxV=-Infinity;
+ const projected=batches.map(({mesh,arr})=>{
+  const points=arr.map(p=>{
+   const world=p.slice(7,10),u=scalar(world,light.right),v=scalar(world,light.up);
+   minU=min(minU,u);maxU=max(maxU,u);minV=min(minV,v);maxV=max(maxV,v);
+   return [u,v,scalar(world,light.direction)];
+  });
+  return {mesh,points,arr};
+ });
+ const scale=(N-9)/max(.001,maxU-minU,maxV-minV);depth.fill(-Infinity);
+ for(const {points} of projected)for(const p of points){p[0]=(p[0]-minU)*scale+4;p[1]=(p[1]-minV)*scale+4;}
+ for(const {mesh,points} of projected)for(const f of mesh.tri){
+  const a=points[f[0]],b=points[f[1]],c=points[f[2]],dx=b[0]-a[0],dy=b[1]-a[1],ex=c[0]-a[0],ey=c[1]-a[1],area=dx*ey-dy*ex;
+  if(abs(area)<.0001)continue;
+  const inv=1/area,x0=max(0,Math.floor(min(a[0],b[0],c[0]))),x1=min(N-1,Math.ceil(max(a[0],b[0],c[0]))),y0=max(0,Math.floor(min(a[1],b[1],c[1]))),y1=min(N-1,Math.ceil(max(a[1],b[1],c[1])));
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+   const u=((x+.5-a[0])*ey-(y+.5-a[1])*ex)*inv,v=(dx*(y+.5-a[1])-dy*(x+.5-a[0]))*inv,w=1-u-v;
+   if(min(u,v,w)<-.00001)continue;
+   const z=w*a[2]+u*b[2]+v*c[2],i=y*N+x;if(z>depth[i])depth[i]=z;
+  }
+ }
+ function occlusion(point,bias=.022,soft=false){
+  const x=(scalar(point,light.right)-minU)*scale+4,y=(scalar(point,light.up)-minV)*scale+4,z=scalar(point,light.direction);
+  if(x<1||y<1||x>N-2||y>N-2)return 0;
+  const center=depth[Math.floor(y)*N+Math.floor(x)];
+  const radius=soft?Math.min(7,1+Math.max(0,center-z)*scale*.075):1;
+  let blocked=0;
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+   const sx=Math.floor(x+ox*radius),sy=Math.floor(y+oy*radius);
+   if(sx>=0&&sy>=0&&sx<N&&sy<N&&depth[sy*N+sx]>z+bias)blocked++;
+  }
+  return blocked/9;
+ }
+ return {occlusion,light};
+}
+function applyPattyShadows(prepared){
+ const maps=camera.pattyLights.map(light=>pattyShadowMap(prepared,light));
+ for(const {arr} of prepared.flat())for(const p of arr){
+  const world=p.slice(7,10);
+  maps.forEach((map,index)=>{
+   const blocked=map.occlusion(world,.020+.022*(1-p[10+index]));
+   p[10+index]*=1-.80*blocked;p[12+index]*=1-.88*blocked;
+  });
+ }
+ return maps;
+}
+function paintPattyLightShadows(prepared,maps){
+ const c=camera,normal=unit(-c.sy*c.se*.94+c.eye[0]*.34,c.ce*.94+c.eye[1]*.34,-c.cy*c.se*.94+c.eye[2]*.34);
+ const points=prepared.flat().flatMap(({arr})=>arr.map(p=>p.slice(7,10)));
+ const level=Math.min(...points.map(p=>scalar(p,normal)))-.012;
+ const ranges=maps.map(({light})=>{
+  const denominator=Math.max(.08,scalar(light.direction,normal)),bounds=[Infinity,Infinity,-Infinity,-Infinity];
+  for(const p of points){
+   const height=Math.max(0,(scalar(p,normal)-level)/denominator);
+   const land=project(...p.map((v,i)=>v-light.direction[i]*height));
+   bounds[0]=min(bounds[0],land[0]-c.s*.12);bounds[1]=min(bounds[1],land[1]-c.s*.12);bounds[2]=max(bounds[2],land[0]+c.s*.12);bounds[3]=max(bounds[3],land[1]+c.s*.12);
+  }
+  return bounds;
+ });
+ const bounds=[min(...ranges.map(b=>b[0])),min(...ranges.map(b=>b[1])),max(...ranges.map(b=>b[2])),max(...ranges.map(b=>b[3]))];
+ const denom=scalar(c.eye,normal),pixels=pixelData.data;
+ function receiver(x,y){
+  const sx=(x+.5-c.originX)/c.s,sy=(c.originY-y-.5)/c.s;
+  const base=[sx*c.cy-sy*c.sy*c.se,sy*c.ce,-sx*c.sy-sy*c.cy*c.se],distance=(level-scalar(base,normal))/denom;
+  return base.map((v,i)=>v+c.eye[i]*distance);
+ }
+ const x0=max(0,Math.floor(bounds[0])),x1=min(canvasW,bounds[2]),y0=max(0,Math.floor(bounds[1])),y1=min(canvasH,bounds[3]);
+ const origin=receiver(x0,y0),stepX=receiver(x0+1,y0).map((v,i)=>v-origin[i]),stepY=receiver(x0,y0+1).map((v,i)=>v-origin[i]);
+ for(let y=y0;y<y1;y++){
+  const ground=origin.map((v,i)=>v+(y-y0)*stepY[i]);
+  for(let x=x0;x<x1;x++){
+   const warm=maps[0].occlusion(ground,.009,true),white=maps[1].occlusion(ground,.009,true),i=(y*canvasW+x)*4;
+   pixels[i]*=1-.19*warm-.14*white*.92;pixels[i+1]*=1-.19*warm*.79-.14*white*.97;pixels[i+2]*=1-.19*warm*.56-.14*white;
+   ground[0]+=stepX[0];ground[1]+=stepX[1];ground[2]+=stepX[2];
+  }
+ }
+}
 function orangeLighting(){
  const c=camera;
  function light(screen,size,power){
@@ -1897,6 +1996,14 @@ function prepareObj(obj){
    }
    let n=unit(nx,ny,nz);nx=n[0];ny=n[1];nz=n[2];
    const facing=max(0,scalar(n,eye)),rim=(1-facing)**4.1;
+   if(mesh.mat===7){
+    const [warm,white]=camera.pattyLights;
+    const reflection=[2*facing*nx-eye[0],2*facing*ny-eye[1],2*facing*nz-eye[2]];
+    const warmCore=softboxReflection(warm,reflection)*warm.intensity,whiteCore=softboxReflection(white,reflection)*white.intensity;
+    const warmSpec=warmCore*(.55+.30*rim)+.06*warmCore**2;
+    const whiteSpec=whiteCore*(.55+.30*rim)+.06*whiteCore**2;
+    return [...project(x+X,y+Y,z+Z),1,0,u,v,x+X,y+Y,z+Z,max(0,scalar(n,warm.direction))*warm.intensity,max(0,scalar(n,white.direction))*white.intensity,warmSpec,whiteSpec];
+   }
    const key=max(0,scalar(n,keyDirection));
    const edge=max(0,scalar(n,rimBox.direction));
    const fill=max(0,scalar(n,fillBox.direction));
@@ -1938,11 +2045,14 @@ function draw(now){
  for(const o of objects){for(let k=0;k<3;k++){let d=o.goal[k]-o.pos[k];if(abs(d)+abs(o.vel[k])<.001){o.pos[k]=o.goal[k];o.vel[k]=0;continue}o.vel[k]=(o.vel[k]+d*110*dt)*Math.exp(-10*dt);o.pos[k]+=o.vel[k]*dt;anim=true;}}
  pressV=(pressV+(pressGoal-press)*115*dt)*Math.exp(-7*dt);press+=pressV*dt;
  for(let k=0;k<2;k++){pv[k]=(pv[k]+(pullGoal[k]-pull[k])*105*dt)*Math.exp(-6.5*dt);pull[k]+=pv[k]*dt;}
- if(kind==='orange')cpuOrangeShadow(objects);else for(let o of objects)shadow(o);
  const cooking=kind==='burger'&&updateGriddle(dt);
- if(kind==='burger'){updateMeatJuice();paintMeatJuice();}
- const prepared=kind==='sushi'?objects.map(prepareObj):null;
- if(prepared)applySushiShadows(prepared);
+ const prepared=kind==='sushi'||kind==='burger'?objects.map(prepareObj):null;
+ if(kind==='orange')cpuOrangeShadow(objects);else for(let o of objects)shadow(o);
+ if(kind==='burger'){
+  const maps=applyPattyShadows(prepared);paintPattyLightShadows(prepared,maps);
+  updateMeatJuice();paintMeatJuice();
+ }
+ if(kind==='sushi')applySushiShadows(prepared);
  for(let i=0;i<objects.length;i++)renderObj(objects[i],prepared?.[i]);
  ctx.putImageData(pixelData,0,0);
  if(kind==='burger')paintCookingVapour();
