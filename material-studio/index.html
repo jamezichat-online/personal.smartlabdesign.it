@@ -235,25 +235,25 @@ void main(){
   vec3 inside=materialPoint(p+through*min(.135,path*.36),index);
   vec3 flesh=mix(top.tint,tissue(inside,pixelX,pixelY).tint,.34);
   vec2 air=airCells(inside,8.3,1.5)+airCells(q+through*.035,18.2,7.)*.51;
-  vec3 light=normalize(-.88*uRight+.47*uUp+.43*uForward);
-  vec3 fillLight=normalize(.64*uRight-.15*uUp+.72*uForward);
-  vec3 rimLight=normalize(vec3(.74,.33,-.58));
+  vec3 light=normalize(-.78*uRight+.58*uUp-.42*uForward);
+  vec3 fillLight=normalize(.22*uRight+.82*uUp+.48*uForward);
+  vec3 rimLight=normalize(.64*uRight+.36*uUp-.68*uForward);
   float diffuse=max(dot(n,light),0.);
   float fill=max(dot(n,fillLight),0.);
   float rim=max(dot(n,rimLight),0.);
   float fr=.025+.975*pow(1.-max(dot(n,uForward),0.),4.);
   vec3 ref=reflect(march,n);
-  float key=softbox(ref,light,vec2(.52,.42));
+  float key=softbox(ref,light,vec2(.34,.40));
   float strip=softbox(ref,rimLight,vec2(.27,.57));
   float glint=softbox(ref,fillLight,vec2(.45,.69));
   vec3 extinction=exp(-path*vec3(.58,2.35,6.2));
   vec2 shift=vec2(dot(through,uRight),dot(through,uUp))*path/uScale;
-  float backlight=clamp(.46+.38*q.y-.32*q.x+.35*rim,0.,1.);
+  float backlight=clamp(.20+.40*max(dot(-geometric,light),0.)+.15*diffuse,0.,1.);
   float clear=clamp(.31+.40*smoothstep(1.028,1.175,length(q.xy))+.20*hit.z,0.,.82);
   vec3 gel=(studio(uv+shift)*.85+vec3(.56,.38,.19)*backlight)*extinction;
   gel+=vec3(.97,.30,.045)*(1.-extinction)*(.32+.48*backlight);
   float shadow=.82+.18*softShadow(p+geometric*.009,light);
-  vec3 rgb=mix(flesh*(.42+.58*diffuse+.19*fill+.14*rim)*shadow,gel*1.045,clear);
+  vec3 rgb=mix(flesh*(.38+.95*diffuse+.10*fill+.055*rim)*shadow,gel*1.045,clear);
   rgb+=flesh*vec3(.26,.21,.085)*backlight*exp(-path*1.55);
   // Subtle warm transmission inside the juice vesicles, confined to the pulp.
   float pulp=1.-smoothstep(1.005,1.095,length(q.xy));
@@ -261,10 +261,10 @@ void main(){
   rgb+=innerLight;
   float pockets=smoothstep(.02,.26,length(top.slope));
   rgb+=vec3(1.,.58,.17)*(.09+.18*hit.z)*backlight*pockets*exp(-path*1.4);
-  rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),32.)*(.12+.36*pockets+.21*hit.z);
+  rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),64.)*(.06+.15*pockets+.10*hit.z)*diffuse;
   rgb*=1.-air.y*.67;
   rgb+=vec3(.98,.86,.61)*air.x*(.5+.4*diffuse);
-  rgb+=((vec3(1.,.92,.80)*key*1.72+vec3(1.,.74,.48)*strip*.51+vec3(.84,.93,1.)*glint*.31)*(.37+fr)+vec3(.14)*fr);
+  rgb+=((vec3(1.,.92,.80)*key*.95+vec3(1.,.74,.48)*strip*.10+vec3(.84,.93,1.)*glint*.045)*(.12+.88*fr)+vec3(.05)*fr);
   rgb=rgb*(2.51*rgb+.03)/(rgb*(2.43*rgb+.59)+.14);
   color=vec4(pow(clamp(rgb,0.,1.),vec3(.83)),1.);
 
@@ -325,8 +325,8 @@ const updateBloom=(()=>{
     const x=(i/4%width+.5)/width-.50,y=(Math.floor(i/4/width)+.5)/height-.535;
     const centerWeight=Math.max(0,1-x*x/.29**2-y*y/.31**2);
     const warm=Math.max(0,Math.min(1,(pixels[i]-pixels[i+2]-25)/72));
-    const highlight=Math.max(0,Math.min(1,(luminance-124)/108));
-    pixels[i+3]=Math.round(Math.min(255,111*bright*bright+232*centerWeight*warm*highlight*highlight));
+    const highlight=Math.max(0,Math.min(1,(luminance-176)/70));
+    pixels[i+3]=Math.round(centerWeight*Math.min(180,100*bright*bright+100*warm*highlight*highlight));
    }else pixels[i+3]=Math.round(142*bright*bright);
   }
   output.putImageData(image,0,0);
@@ -824,7 +824,7 @@ function setMode(newMode){
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
 const nativeWetSurface={
  texture:nativePulp,
- lightAngle:()=>Math.atan2(-.47,-.88),
+ lightAngle:()=>Math.atan2(-.58,-.78),
  pieces:()=>pieces,
  scale:()=>Math.min(canvas.clientWidth,canvas.clientHeight)/camera.scale,
  gravity:()=>({down:[-camera.up[0],-camera.up[1]],tilt:Math.max(0,Math.min(1,(Math.abs(Math.cos(pitch))-.78)/.22))}),
@@ -1361,7 +1361,7 @@ function deformOrange(id,x,y,z){
 }
 const cpuWetSurface={
  texture:view,
- lightAngle:()=>Math.atan2(-.47,-.88),
+ lightAngle:()=>Math.atan2(-.58,-.78),
  pieces:()=>oranges,
  scale:()=>camera.s*view.clientWidth/canvasW,
  gravity:()=>({down:[camera.sy,camera.cy],tilt:clamp((camera.se-.68)/.32)}),
@@ -1419,6 +1419,7 @@ function updateCam(){
  const cy=cos(yaw),sy=sin(yaw),ce=cos(elev),se=sin(elev);
  camera={cy,sy,ce,se,s,eye:[sy*ce,se,cy*ce],originX:canvasW*.5,originY:canvasH*framing[kind].baseline};
  if(kind==='sushi')camera.sushiLights=sushiLighting();
+ if(kind==='orange')camera.orangeLights=orangeLighting();
 }
 function project(x,y,z){const c=camera,d=x*c.sy+z*c.cy;return [c.originX+(x*c.cy-z*c.sy)*c.s,c.originY+(-y*c.ce+d*c.se)*c.s,d*c.ce+y*c.se]}
 function groundAt(x,y,height){const c=camera,h=(x-c.originX)/c.s,d=((y-c.originY)/c.s+height*c.ce)/c.se;return [h*c.cy+d*c.sy,height,-h*c.sy+d*c.cy]}
@@ -1621,6 +1622,17 @@ function softboxReflection(light,direction){
 }
 let bearContact=[0,1.5,.4];
 let press=0,pressV=0,pressGoal=0,anchor=[0,0],pull=[0,0],pullGoal=[0,0],pv=[0,0],activeOrange=0;
+function orangeLighting(){
+ const c=camera;
+ function light(screen,size,power){
+  const [x,y,z]=screen;
+  const direction=unit(x*c.cy-y*c.sy*c.se+z*c.eye[0],y*c.ce+z*c.eye[1],-x*c.sy-y*c.cy*c.se+z*c.eye[2]);
+  const right=unit(direction[2],0,-direction[0]);
+  const up=[direction[1]*right[2]-direction[2]*right[1],direction[2]*right[0]-direction[0]*right[2],direction[0]*right[1]-direction[1]*right[0]];
+  return {direction,right,up,size,power};
+ }
+ return [light([-.78,.58,-.42],[.34,.40],.64),light([.64,.36,-.68],[.27,.57],.10),light([.22,.82,.48],[.45,.69],.07)];
+}
 // The background stays fixed: rotate its light rig into object space on each orbit.
 function sushiLighting(){
  const yaw=.40,elevation=.42,cy=cos(yaw),sy=sin(yaw),ce=cos(elevation),se=sin(elevation);
@@ -1677,20 +1689,9 @@ function prepareObj(obj){
  let X=obj.home[0]+obj.pos[0],Y=obj.home[1]+obj.pos[1],Z=obj.home[2]+obj.pos[2],isFish=kind==='sushi'&&obj.id===0;
  const eye=camera.eye;
  const orange=kind==='orange';
- const [keyBox,rimBox,fillBox]=kind==='sushi'?camera.sushiLights:studioLights;
+ const [keyBox,rimBox,fillBox]=kind==='sushi'?camera.sushiLights:orange?camera.orangeLights:studioLights;
  const {cy,sy,ce,se}=camera;
- const keyDirection=orange?unit(
-  -.88*cy-.47*sy*se+.43*eye[0],
-  .47*ce+.43*eye[1],
-  .88*sy-.47*cy*se+.43*eye[2]
- ):keyBox.direction;
- const across=unit(keyDirection[2],0,-keyDirection[0]);
- const vertical=[
-  keyDirection[1]*across[2]-keyDirection[2]*across[1],
-  keyDirection[2]*across[0]-keyDirection[0]*across[2],
-  keyDirection[0]*across[1]-keyDirection[1]*across[0]
- ];
- const mainLight=orange?{...keyBox,direction:keyDirection,right:across,up:vertical,power:.76}:keyBox;
+ const keyDirection=keyBox.direction,mainLight=keyBox;
  const riceHalf=unit(keyDirection[0]+eye[0],keyDirection[1]+eye[1],keyDirection[2]+eye[2]);
  return obj.parts.map(mesh=>{
   const arr=mesh.points.map(pt=>{
@@ -1741,7 +1742,7 @@ function prepareObj(obj){
    const edge=max(0,scalar(n,rimBox.direction));
    const fill=max(0,scalar(n,fillBox.direction));
    const floorBounce=max(0,-ny);
-   let lit=(orange?.43:.37)+.69*key+.30*fill+.25*edge+.09*floorBounce;
+   let lit=orange?.38+.95*key+.10*fill+.055*edge+.09*floorBounce:.37+.69*key+.30*fill+.25*edge+.09*floorBounce;
    if(mesh.mat===6)return [...project(x+X,y+Y,z+Z),nx,ny,nz,lit+rim*(kind==='bear'?.025+.12*edge:.09+.31*edge),pt[0]+.71*pt[2],pt[1]-.42*pt[2]];
    let gloss;
    if(mesh.mat===2){
@@ -1754,7 +1755,7 @@ function prepareObj(obj){
     const specularCore=softboxReflection(mainLight,reflected);
     const softboxes=specularCore+softboxReflection(rimBox,reflected)+softboxReflection(fillBox,reflected);
     const reflection=mesh.mat===3?.63:.43;
-    gloss=softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
+    gloss=orange?softboxes*(.16+.65*rim)+.045*specularCore**2:softboxes*(reflection+.43*rim)+.11*specularCore**2+.07*rim;
     lit+=rim*(.09+.31*edge);
    }
    return [...project(x+X,y+Y,z+Z),lit,gloss,u,v,...(kind==='sushi'?[x+X,y+Y,z+Z,key]:[])];
