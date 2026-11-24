@@ -44,6 +44,7 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 precision highp float;
 out vec4 color;
 uniform vec2 uRes;
+uniform float uFrameY;
 uniform sampler2D uEnvironment;
 uniform vec2 uEnvironmentUV;
 uniform bool uHasEnvironment;
@@ -190,15 +191,21 @@ float softbox(vec3 ray,vec3 direction,vec2 size){
   return exp(-3.5*dot(sq,sq))*smoothstep(.48,.74,dot(ray,axis));
 }
 void main(){
-  vec2 uv=(gl_FragCoord.xy-.5*uRes.xy)/min(uRes.x,uRes.y);
+  vec2 uv=(gl_FragCoord.xy-vec2(.5,1.-uFrameY)*uRes)/min(uRes.x,uRes.y);
   vec3 lens=uRight*uv.x+uUp*uv.y;
   vec3 ray=uForward*3.6+lens*uScale;
   vec3 march=-uForward;
   vec3 bg=uHasEnvironment?texture(uEnvironment,(gl_FragCoord.xy/uRes-.5)*uEnvironmentUV+.5).rgb:studio(uv);
   if(uHasEnvironment){
     vec2 screen=gl_FragCoord.xy/uRes;
-    float contact=exp(-pow((screen.x-.50)*5.0,2.)-pow((screen.y-.24)*23.,2.));
-    bg*=1.-.15*contact;
+    float unitSize=min(uRes.x,uRes.y);
+    float footprint=.78/uScale*unitSize;
+    vec2 screenPoint=screen*uRes;
+    vec2 center=vec2(uRes.x*.5+footprint*.11,uRes.y*(1.-uFrameY)-footprint*.92);
+    vec2 ground=(screenPoint-center)/vec2(footprint*1.13,footprint*.36);
+    float contact=exp(-dot(ground,ground)*1.9);
+    float castShadow=exp(-dot(ground-vec2(.27,-.16),ground-vec2(.27,-.16))*.82);
+    bg*=1.-.22*contact-.11*castShadow;
   }
   float t=1.30;
   vec3 hit=vec3(10.);
@@ -226,15 +233,15 @@ void main(){
   vec3 inside=materialPoint(p+through*min(.135,path*.36),index);
   vec3 flesh=mix(top.tint,tissue(inside,pixelX,pixelY).tint,.34);
   vec2 air=airCells(inside,8.3,1.5)+airCells(q+through*.035,18.2,7.)*.51;
-  vec3 light=normalize(vec3(-.47,.69,.55));
-  vec3 fillLight=normalize(vec3(.68,.23,.69));
+  vec3 light=normalize(-.70*uRight+.59*uUp+.40*uForward);
+  vec3 fillLight=normalize(.64*uRight-.15*uUp+.72*uForward);
   vec3 rimLight=normalize(vec3(.74,.33,-.58));
   float diffuse=max(dot(n,light),0.);
   float fill=max(dot(n,fillLight),0.);
   float rim=max(dot(n,rimLight),0.);
   float fr=.025+.975*pow(1.-max(dot(n,uForward),0.),4.);
   vec3 ref=reflect(march,n);
-  float key=softbox(ref,light,vec2(.61,.36));
+  float key=softbox(ref,light,vec2(.52,.42));
   float strip=softbox(ref,rimLight,vec2(.27,.57));
   float glint=softbox(ref,fillLight,vec2(.45,.69));
   vec3 extinction=exp(-path*vec3(.58,2.35,6.2));
@@ -251,7 +258,7 @@ void main(){
   rgb+=vec3(1.,.88,.64)*pow(max(dot(n,normalize(light+uForward)),0.),32.)*(.12+.36*pockets+.21*hit.z);
   rgb*=1.-air.y*.67;
   rgb+=vec3(.98,.86,.61)*air.x*(.5+.4*diffuse);
-  rgb+=((vec3(1.,.92,.80)*key*1.31+vec3(1.,.74,.48)*strip*.82+vec3(.84,.93,1.)*glint*.31)*(.37+fr)+vec3(.14)*fr);
+  rgb+=((vec3(1.,.92,.80)*key*1.72+vec3(1.,.74,.48)*strip*.51+vec3(.84,.93,1.)*glint*.31)*(.37+fr)+vec3(.14)*fr);
   rgb=rgb*(2.51*rgb+.03)/(rgb*(2.43*rgb+.59)+.14);
   color=vec4(pow(clamp(rgb,0.,1.),vec3(.83)),1.);
 
@@ -296,7 +303,7 @@ const updateBloom=(()=>{
  mask.setAttribute('aria-hidden','true');
  document.querySelector('.stage').append(mask);
  const input=sample.getContext('2d',{willReadFrequently:true}),output=mask.getContext('2d');
- function render(source){
+ function render(source,orangeGlow=false){
   const ratio=Math.min(1,224/Math.max(source.width,source.height));
   const width=Math.max(1,Math.round(source.width*ratio)),height=Math.max(1,Math.round(source.height*ratio));
   if(mask.width!==width||mask.height!==height){
@@ -308,7 +315,13 @@ const updateBloom=(()=>{
   for(let i=0;i<pixels.length;i+=4){
    const luminance=.2126*pixels[i]+.7152*pixels[i+1]+.0722*pixels[i+2];
    const bright=Math.max(0,Math.min(1,(luminance-144)/90));
-   pixels[i+3]=Math.round(142*bright*bright);
+   if(orangeGlow){
+    const x=(i/4%width+.5)/width-.50,y=(Math.floor(i/4/width)+.5)/height-.535;
+    const centerWeight=Math.max(0,1-x*x/.29**2-y*y/.31**2);
+    const warm=Math.max(0,Math.min(1,(pixels[i]-pixels[i+2]-25)/72));
+    const highlight=Math.max(0,Math.min(1,(luminance-124)/108));
+    pixels[i+3]=Math.round(Math.min(255,111*bright*bright+232*centerWeight*warm*highlight*highlight));
+   }else pixels[i+3]=Math.round(142*bright*bright);
   }
   output.putImageData(image,0,0);
  }
@@ -570,7 +583,8 @@ const canvas=document.querySelector('#view'), count=document.querySelector('#cou
 const hint=document.querySelector('#hint'), trace=document.querySelector('#trace');
 const gl=canvas.getContext('webgl2',{antialias:false,alpha:false});
 const help={press:'Touch the pulp to create droplets. Turn the slice upright to make them slide.',cut:'Drag a line across the slice. Each piece can be cut again.',orbit:'Drag to rotate. Use the scroll wheel to zoom.'};
-let mode='press', yaw=.29, pitch=-.68, zoom=1.18, press=0, velocity=0, target=0, touch=[0,0], pressedPiece=0, gesture=null, frame=0, previous=0, born=0, camera;
+const orangePose={yaw:.12,pitch:-.70,zoom:.76,frameY:.525};
+let mode='press', yaw=orangePose.yaw, pitch=orangePose.pitch, zoom=orangePose.zoom, press=0, velocity=0, target=0, touch=[0,0], pressedPiece=0, gesture=null, frame=0, previous=0, born=0, camera;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let pull=[0,0],pullSpeed=[0,0],pullTarget=[0,0],releaseAt=-10000;
 const disk=Array.from({length:96},(_,i)=>{const a=i/96*Math.PI*2;return [1.16*Math.cos(a),1.16*Math.sin(a)]});
@@ -589,7 +603,7 @@ try{
   gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
 }catch(error){fail(error);return;}
 gl.useProgram(program);
-const uniforms=Object.fromEntries(['uEnvironment','uEnvironmentUV','uHasEnvironment','uRes','uRight','uUp','uForward','uTouch','uPull','uWave','uPress','uScale','uPieces','uPressedPiece','uOffset[0]','uKick[0]','uHalf[0]'].map(name=>[name,gl.getUniformLocation(program,name)]));
+const uniforms=Object.fromEntries(['uEnvironment','uEnvironmentUV','uHasEnvironment','uRes','uFrameY','uRight','uUp','uForward','uTouch','uPull','uWave','uPress','uScale','uPieces','uPressedPiece','uOffset[0]','uKick[0]','uHalf[0]'].map(name=>[name,gl.getUniformLocation(program,name)]));
 let orangeEnvironment=null;
 window.addEventListener('environments-ready',event=>{if(event.detail!=='orange')return;if(orangeEnvironment)gl.deleteTexture(orangeEnvironment);orangeEnvironment=environmentTexture(gl,'orange');invalidate();});
 if(environmentImages.orange)orangeEnvironment=environmentTexture(gl,'orange');
@@ -636,6 +650,7 @@ function draw(time){
   gl.uniform1i(uniforms.uEnvironment,0);gl.uniform1i(uniforms.uHasEnvironment,!!orangeEnvironment);
   gl.uniform2fv(uniforms.uEnvironmentUV,orangeEnvironment?environmentUV(environmentImages.orange,w,h):[1,1]);
   gl.uniform2f(uniforms.uRes,w,h);
+  gl.uniform1f(uniforms.uFrameY,orangePose.frameY);
   gl.uniform3fv(uniforms.uRight,camera.right);gl.uniform3fv(uniforms.uUp,camera.up);gl.uniform3fv(uniforms.uForward,camera.forward);
   gl.uniform2fv(uniforms.uPull,pull);gl.uniform1f(uniforms.uWave,waveTime);
   gl.uniform2fv(uniforms.uTouch,touch);gl.uniform1f(uniforms.uPress,press);gl.uniform1f(uniforms.uScale,camera.scale);
@@ -645,7 +660,7 @@ function draw(time){
    const ratio=Math.min(1,850/Math.max(w,h)),tw=Math.round(w*ratio),th=Math.round(h*ratio);
    if(nativePulp.width!==tw||nativePulp.height!==th){nativePulp.width=tw;nativePulp.height=th;}
    pulpContext.drawImage(canvas,0,0,tw,th);
-   updateBloom(nativePulp);
+   updateBloom(nativePulp,true);
    juice.refresh();
   }
   if(progress<1||velocity!==0||press!==target||pullSpeed.some(v=>v!==0)||waveTime<1.5)invalidate();
@@ -654,7 +669,7 @@ function invalidate(){if(!frame)frame=requestAnimationFrame(draw);}
 function point(event){const b=canvas.getBoundingClientRect();return [event.clientX-b.left,event.clientY-b.top];}
 function project(screen){
   const b=canvas.getBoundingClientRect(), unit=Math.min(b.width,b.height);
-  const x=(screen[0]-b.width/2)/unit*camera.scale, y=(b.height/2-screen[1])/unit*camera.scale;
+  const x=(screen[0]-b.width/2)/unit*camera.scale, y=(b.height*orangePose.frameY-screen[1])/unit*camera.scale;
   const base=camera.right.map((r,i)=>r*x+camera.up[i]*y);
   const t=(.172-base[2])/camera.forward[2];
   return [base[0]+camera.forward[0]*t,base[1]+camera.forward[1]*t];
@@ -723,7 +738,7 @@ function setMode(newMode){
 const nativePulp=document.createElement('canvas'),pulpContext=nativePulp.getContext('2d');
 const nativeWetSurface={
  texture:nativePulp,
- lightAngle:()=>Math.atan2(-dot(camera.up,[-.47,.69,.55]),dot(camera.right,[-.47,.69,.55])),
+ lightAngle:()=>Math.atan2(-.59,-.70),
  pieces:()=>pieces,
  scale:()=>Math.min(canvas.clientWidth,canvas.clientHeight)/camera.scale,
  gravity:()=>({down:[-camera.up[0],-camera.up[1]],tilt:Math.max(0,Math.min(1,(Math.abs(Math.cos(pitch))-.78)/.22))}),
@@ -743,11 +758,11 @@ const nativeWetSurface={
    height+=(pull[0]*dx+pull[1]*dy)*falloff*.56;
   }
   const point=[px,py,height],scale=nativeWetSurface.scale();
-  return [canvas.clientWidth/2+dot(camera.right,point)*scale,canvas.clientHeight/2-dot(camera.up,point)*scale];
+  return [canvas.clientWidth/2+dot(camera.right,point)*scale,canvas.clientHeight*orangePose.frameY-dot(camera.up,point)*scale];
  }
 };
 function showNativeJuice(){camera=basis();juice.show(nativeWetSurface);}
-canvas.addEventListener('show-orange',showNativeJuice);
+canvas.addEventListener('show-orange',()=>{yaw=orangePose.yaw;pitch=orangePose.pitch;zoom=orangePose.zoom;showNativeJuice();invalidate();});
 function wetPiece(index,xy){
  const part=pieces[index];
  materialFoley.play("orange-press",.86,xy[0]*.55);
@@ -803,7 +818,7 @@ canvas.addEventListener('pointercancel',clearGesture);
 canvas.addEventListener('lostpointercapture',clearGesture);
 canvas.addEventListener('wheel',event=>{
 
-  event.preventDefault();zoom=Math.max(.75,Math.min(1.82,zoom*Math.exp(-event.deltaY*.001)));invalidate();
+  event.preventDefault();zoom=Math.max(.63,Math.min(1.82,zoom*Math.exp(-event.deltaY*.001)));invalidate();
 },{passive:false});
 canvas.addEventListener('keydown',event=>{
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){
@@ -818,7 +833,7 @@ canvas.addEventListener('keyup',event=>{if(event.code==='Space'){target=0;invali
 canvas.oncontextmenu=e=>e.preventDefault();
 canvas.addEventListener('blur',()=>{target=0;invalidate();});
 document.querySelectorAll('button[data-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
-document.querySelector('#reset').addEventListener('click',()=>{pieces=[whole()];yaw=.29;pitch=-.68;zoom=1.18;press=0;velocity=0;target=0;pull=[0,0];pullSpeed=[0,0];releaseAt=-10000;born=0;setMode('press');showNativeJuice();});
+document.querySelector('#reset').addEventListener('click',()=>{pieces=[whole()];yaw=orangePose.yaw;pitch=orangePose.pitch;zoom=orangePose.zoom;press=0;velocity=0;target=0;pull=[0,0];pullSpeed=[0,0];releaseAt=-10000;born=0;setMode('press');showNativeJuice();});
 new ResizeObserver(invalidate).observe(canvas);
 setMode('press');
 })();
@@ -1095,7 +1110,9 @@ function makePudding(){
 }
 let bear,pudding;
 const sceneObjects=()=>kind==='pudding'?[pudding]:kind==='bear'?[bear]:kind==='sushi'?sushi:oranges;
-let oranges=[],camera={},pixelData,depth,backDepth,ids,canvasW,canvasH,frameSize,orbitState={sushi:[.40,.42],orange:[.26,.81],bear:[.04,.19],pudding:[.18,.39]};
+const framing={sushi:{zoom:.795,baseline:.676},orange:{zoom:.60,baseline:.535},pudding:{zoom:.688,baseline:.738},bear:{zoom:1,baseline:.88}};
+function defaultOrbits(){return {sushi:[.40,.42],orange:[.26,.73],bear:[.04,.19],pudding:[.18,.39]};}
+let oranges=[],camera={},pixelData,depth,backDepth,ids,canvasW,canvasH,frameSize,orbitState=defaultOrbits();
 const circles=112;
 function orangeTop(x,z){return .46+.058*(1-x*x-z*z)+.007*sin(6*x+3*z);}
 function deformOrange(id,x,y,z){
@@ -1161,7 +1178,7 @@ resetOrange();
 function updateCam(){
  const [yaw,elev]=orbitState[kind], s=kind==='bear'?min(canvasW/3.05,canvasH/3.94)*zoom:kind==='sushi'?min(canvasW/4.65,canvasH/3.17)*zoom:min(canvasW/3.65,canvasH/2.94)*zoom;
  const cy=cos(yaw),sy=sin(yaw),ce=cos(elev),se=sin(elev);
- camera={cy,sy,ce,se,s,eye:[sy*ce,se,cy*ce],originX:canvasW*.5,originY:canvasH*(kind==='pudding'?.76:kind==='bear'?.88:kind==='sushi'?.66:.60)};
+ camera={cy,sy,ce,se,s,eye:[sy*ce,se,cy*ce],originX:canvasW*.5,originY:canvasH*framing[kind].baseline};
 }
 function project(x,y,z){const c=camera,d=x*c.sy+z*c.cy;return [c.originX+(x*c.cy-z*c.sy)*c.s,c.originY+(-y*c.ce+d*c.se)*c.s,d*c.ce+y*c.se]}
 function groundAt(x,y,height){const c=camera,h=(x-c.originX)/c.s,d=((y-c.originY)/c.s+height*c.ce)/c.se;return [h*c.cy+d*c.sy,height,-h*c.sy+d*c.cy]}
@@ -1403,7 +1420,7 @@ function draw(now){
  for(let o of objects)shadow(o);
  for(let o of objects)renderObj(o);
  ctx.putImageData(pixelData,0,0);
- updateBloom(view);
+ updateBloom(view,kind==='orange');
  if(kind==='orange')juice.refresh();
  if(anim||abs(pressGoal-press)+abs(pressV)+abs(pv[0])+abs(pv[1])>.001)invalidate();
 }
@@ -1417,7 +1434,7 @@ function spread(o,f){
  o.goal=o.id===0?[0,1.05*f,-.19*f]:[(r*cos(a)-o.home[0]*.48)*f,(.05-o.home[1]+(o.id%5)*.06)*f,(r*sin(a)-o.home[2]*.47)*f];
  o.loose=!!f;
 }
-function reset(){press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState={sushi:[.40,.42],orange:[.26,.81],bear:[.04,.19],pudding:[.18,.39]};zoom=1;counts();invalidate();}
+function reset(){press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState[kind]=defaultOrbits()[kind];zoom=framing[kind]?.zoom??1;counts();invalidate();}
 function splitOrange(a,b){
  let dx=b[0]-a[0],dz=b[2]-a[2],len=Math.hypot(dx,dz);if(len<.17)return false;
  let n=[-dz/len,dx/len],next=[],changed=false,capacity=8-oranges.length;
@@ -1482,7 +1499,7 @@ view.onpointerup=e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.orbit&&tool
  drag=null;pressGoal=0;pullGoal=[0,0];document.querySelector('#trace').hidden=true;invalidate();};
 view.oncontextmenu=e=>e.preventDefault();
 view.onlostpointercapture=view.onpointercancel=()=>{drag=null;pressGoal=0;pullGoal=[0,0];document.querySelector('#trace').hidden=true;invalidate();};
-view.onwheel=e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.001),.74,1.57);invalidate();};
+view.onwheel=e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.001),Math.min(.74,framing[kind].zoom*.83),1.57);invalidate();};
 function createCloudScene(){
  const layer=document.createElement('canvas');
  const throughButton=document.createElement('button');
@@ -1728,7 +1745,7 @@ function choose(k){
   return;
  }
 
- juice.hide();updateBloom.clear();kind=k;if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];zoom=1;frameSize=null;
+ juice.hide();updateBloom.clear();kind=k;if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];if(k!=='bear')orbitState[k]=defaultOrbits()[k];zoom=framing[k].zoom;frameSize=null;
  document.querySelectorAll('[data-subject]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.subject===k));
  document.querySelector('h1').innerHTML=k==='pudding'?'Amber <em>Jelly</em>':k==='bear'?'Gummy <em>Bear</em>':k==='sushi'?'Salmon <em>Nigiri</em>':'Citrus <em>Gel</em>';
  document.querySelector('header p').textContent='Material Studio 3D';document.querySelector('.meta span').textContent=k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
