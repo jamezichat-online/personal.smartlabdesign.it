@@ -31,14 +31,15 @@ nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px
 
 <button id="reset" class="reset">Reset</button>
 </div>
-<div id="materialTools" class="controls"><button data-tool="move" data-for="sushi">Press and Grab</button><button id="explode" data-for="sushi">Separate All</button><button data-tool="press" data-for="orange">Squeeze</button><button data-tool="cut" data-for="orange">Cut</button><button class="reset" id="reform">Reset</button></div><p class="hint" id="hint" aria-live="polite"></p>
+<div id="materialTools" class="controls"><button data-tool="move" data-for="sushi">Press and Grab</button><button id="explode" data-for="sushi">Separate All</button><button data-tool="press" data-for="orange">Squeeze</button><button data-tool="cut" data-for="orange">Cut</button><button id="griddle" type="button" data-for="burger" aria-pressed="false" hidden>Heat griddle</button><button class="reset" id="reform">Reset</button></div><p class="hint" id="hint" aria-live="polite"></p>
 <details class="audio-credits"><summary>Sound credits</summary><ul>
 <li>Orange: <a href="https://freesound.org/people/aarrnnoo/sounds/516189/">Splash and squishy gross sound</a> by aarrnnoo, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
 <li>Rice: <a href="https://freesound.org/people/ScouseMouseJB/sounds/536709/">Rice pour.wav</a> by ScouseMouseJB, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</li>
-<li>Salmon and gummy bear: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
+<li>Salmon, gummy bear and patty press: <a href="https://freesound.org/people/rubberduck9999/sounds/680447/">Slime – squishing sounds</a> by rubberduck9999, CC0.</li>
 <li>Amber jelly: <a href="https://freesound.org/people/DoctorMelon/sounds/818572/">Jelly Sucked Up a Metal Straw</a> by DoctorMelon, CC0.</li>
 <li>Cloud: <a href="https://freesound.org/people/sqeeeek/sounds/381853/">Wind gust short</a> by sqeeeek, CC0.</li>
-</ul><p>Recordings were trimmed and level-adjusted for interaction.</p></details>
+<li>Griddle: beef-patty sizzle generated with Pollo AI, edited to loop with the heat level.</li>
+</ul><p>Sound clips were edited for the interactions.</p></details>
 </main>
 <script id="fragment" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -334,27 +335,68 @@ const materialFoley = (() => {
  const AudioEngine = window.AudioContext || window.webkitAudioContext;
  if (!AudioEngine) {
   toggle.hidden = true;
-  return { play() {}, stop() {} };
+  return { play() {}, stop() {}, setSizzle() {} };
  }
- const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust'];
+ const names = ['orange-press','orange-squeeze','orange-drop-a','orange-drop-b','orange-cut','bear-press','bear-release','jelly-press','jelly-release','rice-grain','rice-separate','salmon-touch','salmon-lift','wind-gust','beef-sizzle','beef-press'];
  const buffers = new Map(), pending = new Map(), last = new Map(), active = new Set();
- let ctx, master, enabled = false, nextDrop = 0;
+ let ctx, master, enabled = false, nextDrop = 0, sizzleSource, sizzleGain;
  function load(name) {
   if (buffers.has(name)) return Promise.resolve();
   if (pending.has(name)) return pending.get(name);
-  const job = fetch('./assets/sfx/' + name + '.wav' + (['rice-grain','rice-separate'].includes(name) ? '?v=2' : ''))
+   const extension=name==='beef-sizzle'?'.mp3':'.wav';
+  const job = fetch('./assets/sfx/' + name + extension + (['rice-grain','rice-separate'].includes(name) ? '?v=2' : ''))
    .then(response => {
     if (!response.ok) throw new Error('Audio unavailable: ' + name);
     return response.arrayBuffer();
    })
    .then(bytes => ctx.decodeAudioData(bytes))
-   .then(buffer => buffers.set(name, buffer))
+   .then(buffer => buffers.set(name,name==='beef-sizzle'?prepareSizzleLoop(buffer):buffer))
    .catch(error => console.warn(error))
    .finally(() => pending.delete(name));
   pending.set(name, job);
   return job;
  }
+ function prepareSizzleLoop(buffer){
+  const rate=buffer.sampleRate,start=Math.floor(rate*.18),end=buffer.length-Math.floor(rate*.16);
+  const fade=Math.min(Math.floor(rate*.19),Math.floor((end-start)/4));
+  const length=end-start-fade;
+  if(length<=fade)return buffer;
+  const loop=ctx.createBuffer(buffer.numberOfChannels,length,rate);
+  for(let channel=0;channel<buffer.numberOfChannels;channel++){
+   const input=buffer.getChannelData(channel),output=loop.getChannelData(channel);
+   output.set(input.subarray(start+fade,end),0);
+   for(let i=0;i<fade;i++){
+    const mix=i/fade,index=length-fade+i;
+    output[index]=output[index]*(1-mix)+input[start+i]*mix;
+   }
+  }
+  return loop;
+ }
+ function haltSizzle(){
+  if(!sizzleSource)return;
+  const source=sizzleSource,gain=sizzleGain;
+  const now=ctx.currentTime;
+  gain.gain.setTargetAtTime(0,now,.035);
+  source.stop(now+.17);
+  sizzleSource=sizzleGain=null;
+ }
+ function setSizzle(level){
+  const buffer=buffers.get('beef-sizzle');
+  if(!enabled||ctx?.state!=='running'||!buffer||level<.012){
+   haltSizzle();return;
+  }
+  if(!sizzleSource){
+   sizzleSource=ctx.createBufferSource();sizzleGain=ctx.createGain();
+   const source=sizzleSource,gain=sizzleGain;
+   source.buffer=buffer;source.loop=true;gain.gain.value=0;
+   source.connect(gain).connect(master);
+   source.onended=()=>{source.disconnect();gain.disconnect();};
+   source.start();
+  }
+  sizzleGain.gain.setTargetAtTime(.57*level,ctx.currentTime,.10);
+ }
  function stop() {
+  haltSizzle();
   for (const source of active) source.stop();
   active.clear();
   last.clear();
@@ -405,7 +447,7 @@ const materialFoley = (() => {
   source.onended = () => { active.delete(source); source.disconnect(); gain.disconnect(); };
   source.start(now);
  }
- return { play, stop };
+ return { play, stop, setSizzle };
 })();
 
 const juice=(()=>{
@@ -1141,39 +1183,119 @@ function makePatty(){
  pattyMips=texturePyramid(texels,size,size);
  return body({id:0,parts:[mesh],home:[0,0,0],shade:1});
 }
+const griddleButton=document.querySelector('#griddle');
+let griddleOn=false,griddleHeat=0,searProgress=0,drainAt=0,griddleStatus='';
+function resetGriddle(){
+ griddleOn=false;griddleHeat=searProgress=drainAt=0;
+ griddleButton.setAttribute('aria-pressed','false');
+ griddleButton.textContent='Heat griddle';
+ materialFoley.setSizzle(0);
+}
+griddleButton.addEventListener('click',()=>{
+ griddleOn=!griddleOn;
+ griddleButton.setAttribute('aria-pressed',String(griddleOn));
+ griddleButton.textContent=griddleOn?'Turn griddle off':'Heat griddle';
+ invalidate();
+});
+function updateGriddle(dt){
+ griddleHeat+=(Number(griddleOn)-griddleHeat)*(1-Math.exp(-dt*(griddleOn?1.08:.48)));
+ const cooking=smooth(.15,.86,griddleHeat);
+ searProgress=Math.min(1,searProgress+cooking*dt*.047);
+ const level=cooking*(.86-.39*searProgress)+cooking*Math.max(0,press)*.33;
+ materialFoley.setSizzle(Math.min(1,level));
+ const label=griddleOn?(griddleHeat<.4?'Heating':'Sizzling'):griddleHeat>.06?'Cooling':'Griddle off';
+ if(label!==griddleStatus){
+  griddleStatus=label;
+  counter.textContent=label;
+ }
+ if(griddleOn&&cooking>.18&&t>=drainAt&&meatJuice.length<48){
+  const a=t*2.39996;
+  depositJuice(a,.055+hash(Math.floor(t*100),7)*.09,true);
+  drainAt=t+.33+.36*(1-cooking)+searProgress*.39;
+ }
+ for(const bead of meatJuice)bead.wetness-=dt*(.040+cooking*(bead.cook?.21:.13));
+ meatJuice=meatJuice.filter(bead=>bead.wetness>0);
+ return griddleOn||griddleHeat>.007||meatJuice.length>0;
+}
+function paintCookingVapour(){
+ const heat=smooth(.13,.98,griddleHeat);
+ if(heat<.025)return;
+ const moisture=.98-.44*searProgress+Math.max(0,press)*.23;
+ const now=t*.49,wind=.20;
+ ctx.save();
+ for(let stream=0;stream<6;stream++){
+  const a=stream*2.39996,z=sin(a)*.91,x=cos(a)*1.05;
+  const phase=(now+stream/6)%1;
+  const fade=sin(phase*PI)**1.65*heat*moisture;
+  const lift=.18+phase*1.16;
+  const drift=phase*phase*wind+.12*sin(phase*9+stream*2.2)*phase;
+  for(let wisp=0;wisp<3;wisp++){
+   const h=lift+wisp*.11;
+   const [px,py]=project(x+drift+wisp*.036,h,z+.13*sin(h*4+stream));
+   const size=camera.s*(.065+.15*phase+wisp*.025);
+   if(size<1)continue;
+   const gradient=ctx.createRadialGradient(px,py,0,px,py,size);
+   gradient.addColorStop(0,'rgba(235,232,220,'+(fade*(.105-wisp*.022))+')');
+   gradient.addColorStop(.45,'rgba(217,216,206,'+(fade*(.06-wisp*.012))+')');
+   gradient.addColorStop(1,'rgba(217,212,199,0)');
+   ctx.fillStyle=gradient;
+   ctx.fillRect(px-size,py-size,size*2,size*2);
+  }
+ }
+ ctx.restore();
+}
+
 function pressPatty(x,z){
  meatContact=[x,z];
+ materialFoley.play('beef-press',.48,x*.38);
  pressGoal=1;
  updateMeatJuice(true);
 }
 function updateMeatJuice(initial=false){
- if(meatJuice.length>=18||(!initial&&(!pressGoal||press<.14||t<nextJuice)))return;
+ if(meatJuice.length>=48||(!initial&&(!pressGoal||press<.14||t<nextJuice)))return;
  const angle=Math.hypot(...meatContact)>.18?Math.atan2(meatContact[1],meatContact[0]):.95;
  const a=angle+(Math.random()-.5)*2.0;
  const radius=.085+Math.random()*.15;
- meatJuice.push({a,radius,born:t});
+ depositJuice(a,radius,false);
  nextJuice=t+.125+Math.random()*.09;
+}
+// Store the landing point on the fixed griddle image at emission time.
+function depositJuice(a,radius,cook){
+ const edge=1.33*(1-.10*searProgress),x=cos(a)*edge,z=sin(a)*edge*.92;
+ const [px,py]=project(x,.003,z),[cx,cy]=project(0,.003,0);
+ const length=Math.hypot(px-cx,py-cy)||1;
+ meatJuice.push({x:px/canvasW,y:py/canvasH,dx:(px-cx)/length,dy:(py-cy)/length,
+  radius:radius*camera.s/canvasH,aspect:Math.max(.22,camera.se)*.80,
+  travel:(.24+radius*.6)*camera.s/canvasH,a,born:t,cook,wetness:1});
 }
 function paintMeatJuice(){
  const pixels=pixelData.data;
  for(const bead of meatJuice){
   const age=t-bead.born,spread=1-Math.exp(-age*3.7);
-  const distance=1.33+spread*(.24+bead.radius*.6);
-  const x=cos(bead.a)*distance,z=sin(bead.a)*distance*.92;
-  const [cx,cy]=project(x,.003,z);
-  const rx=camera.s*bead.radius*(.12+.88*spread);
-  const ry=rx*Math.max(.22,camera.se)*.80;
+  const cx=bead.x*canvasW+bead.dx*bead.travel*canvasH*spread;
+  const cy=bead.y*canvasH+bead.dy*bead.travel*canvasH*spread;
+  const fade=smooth(0,.29,bead.wetness);
+  const rx=bead.radius*canvasH*(.12+.88*spread)*(.62+.38*fade);
+  const ry=rx*bead.aspect;
+  const bubbles=smooth(.25,.85,griddleHeat)*fade;
+  const phase=(t*2.8+bead.a*.215)%1;
+  const second=(phase+.46)%1;
   for(let y=max(0,Math.floor(cy-ry));y<min(canvasH,cy+ry+1);y++){
    for(let x=max(0,Math.floor(cx-rx));x<min(canvasW,cx+rx+1);x++){
     const dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;
     const r=dx*dx+dy*dy+.055*sin(10*dx+5*dy);
     if(r>=1)continue;
-    const edge=1-smooth(.75,1,r),core=1-smooth(.16,.93,r);
+    const edge=fade*(1-smooth(.75,1,r)),core=1-smooth(.16,.93,r);
     const reflection=Math.exp(-35*(dx+.34)**2-22*(dy+.40)**2);
+    const r1=Math.hypot(dx+.27+.08*sin(bead.a),dy+.26);
+    const r2=Math.hypot(dx-.30,dy-.18-.08*cos(bead.a));
+    const ring1=Math.max(0,1-9*Math.abs(r1-(.08+.34*phase)))*(1-smooth(.77,.98,phase));
+    const ring2=Math.max(0,1-12*Math.abs(r2-(.05+.25*second)))*(1-smooth(.73,.98,second));
+    const sparkle=bubbles*(.82*ring1+.59*ring2);
     const k=(y*canvasW+x)*4;
-    pixels[k]=pixels[k]*(1-.25*edge)+edge*(9+24*core+93*reflection);
-    pixels[k+1]=pixels[k+1]*(1-.36*edge)+edge*(5+13*core+70*reflection);
-    pixels[k+2]=pixels[k+2]*(1-.43*edge)+edge*(3+5*core+42*reflection);
+    pixels[k]=pixels[k]*(1-.25*edge)+edge*(9+24*core+93*reflection+76*sparkle);
+    pixels[k+1]=pixels[k+1]*(1-.36*edge)+edge*(5+13*core+70*reflection+60*sparkle);
+    pixels[k+2]=pixels[k+2]*(1-.43*edge)+edge*(3+5*core+42*reflection+39*sparkle);
    }
   }
  }
@@ -1347,7 +1469,8 @@ function triangle(a,b,c,mat,id,shade,thicknessPass=false){
     if(mat===7){
      const glisten=smooth(74,135,r);
      shine*=.42+.58*glisten;
-     shine+=.024*glisten*glisten;
+     shine+=.024*glisten*glisten+griddleHeat*.023*glisten;
+     r*=1-.20*searProgress;g*=1-.23*searProgress;blue*=1-.25*searProgress;
     }
     if(mat===1){const fat=clamp((g-96)/106);shine+=.035*fat;g+=.018*r;blue+=.013*r;}
    }else if(mat===6){
@@ -1464,7 +1587,8 @@ function renderObj(obj){
     const dx=x-meatContact[0],dz=z-meatContact[1];
     const dent=Math.exp(-1.25*(dx*dx+dz*dz))*clamp(press,0,1.15);
     const expansion=1+.047*clamp(press,0,1.15)*smooth(.02,.38,y);
-    x*=expansion;z*=expansion;y=.026+(y-.026)*(1-.37*dent);
+    const shrink=1-.10*searProgress;
+    x*=expansion*shrink;z*=expansion*shrink;y=.026+(y-.026)*(1-.37*dent)*(1-.13*searProgress);
     nx-=dx*dent*.19;nz-=dz*dent*.19;
    }
    if(mesh.mat===6){
@@ -1523,24 +1647,26 @@ function draw(now){
  pressV=(pressV+(pressGoal-press)*115*dt)*Math.exp(-7*dt);press+=pressV*dt;
  for(let k=0;k<2;k++){pv[k]=(pv[k]+(pullGoal[k]-pull[k])*105*dt)*Math.exp(-6.5*dt);pull[k]+=pv[k]*dt;}
  for(let o of objects)shadow(o);
+ const cooking=kind==='burger'&&updateGriddle(dt);
  if(kind==='burger'){updateMeatJuice();paintMeatJuice();}
  for(let o of objects)renderObj(o);
  ctx.putImageData(pixelData,0,0);
+ if(kind==='burger')paintCookingVapour();
  updateBloom(view,kind==='orange');
  if(kind==='orange')juice.refresh();
- if(anim||(kind==='burger'&&((pressGoal&&meatJuice.length<18)||meatJuice.some(bead=>t-bead.born<1.35)))||abs(pressGoal-press)+abs(pressV)+abs(pv[0])+abs(pv[1])>.001)invalidate();
+ if(anim||cooking||(kind==='burger'&&pressGoal&&meatJuice.length<48)||abs(pressGoal-press)+abs(pressV)+abs(pv[0])+abs(pv[1])>.001)invalidate();
 }
 function local(e){let b=view.getBoundingClientRect();return [(e.clientX-b.x)*canvasW/b.width,(e.clientY-b.y)*canvasH/b.height]}
 function message(s){originalHint.textContent=s;}
 function counts(){
- counter.textContent=kind==='burger'?'':kind==='pudding'?'1 jelly':kind==='bear'?'1 bear':kind==='sushi'?(grains.filter(g=>g.loose).length+' / '+totalRice+' grains separated'):(oranges.length===1?'1 piece':oranges.length+' pieces');
+ counter.textContent=kind==='burger'?(griddleStatus||'Griddle off'):kind==='pudding'?'1 jelly':kind==='bear'?'1 bear':kind==='sushi'?(grains.filter(g=>g.loose).length+' / '+totalRice+' grains separated'):(oranges.length===1?'1 piece':oranges.length+' pieces');
 }
 function spread(o,f){
  const a=o.id*2.39996,r=.66+1.07*sqrt(o.id/totalRice);
  o.goal=o.id===0?[0,1.05*f,-.19*f]:[(r*cos(a)-o.home[0]*.48)*f,(.05-o.home[1]+(o.id%5)*.06)*f,(r*sin(a)-o.home[2]*.47)*f];
  o.loose=!!f;
 }
-function reset(){if(kind==='burger')meatJuice=[];press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState[kind]=defaultOrbits()[kind];zoom=framing[kind]?.zoom??1;counts();invalidate();}
+function reset(){if(kind==='burger'){meatJuice=[];resetGriddle();griddleStatus='';}press=0;pressV=0;pull=[0,0];pv=[0,0];for(const o of sushi)spread(o,0);resetOrange();if(kind==='orange')juice.show(cpuWetSurface);pressGoal=0;pullGoal=[0,0];orbitState[kind]=defaultOrbits()[kind];zoom=framing[kind]?.zoom??1;counts();invalidate();}
 function splitOrange(a,b){
  let dx=b[0]-a[0],dz=b[2]-a[2],len=Math.hypot(dx,dz);if(len<.17)return false;
  let n=[-dz/len,dx/len],next=[],changed=false,capacity=8-oranges.length;
@@ -1558,7 +1684,7 @@ function splitOrange(a,b){
  }
  oranges=next;oranges.forEach((o,i)=>o.id=i);if(changed)juice.show(cpuWetSurface);counts();invalidate();return changed;
 }
-const helpers={burger:'Press the patty to release juices. Drag the background to rotate.',pudding:'Press the jelly and release to make it wobble. Drag the background to rotate.',bear:'Press or drag the bear to deform it. Drag the background to rotate.',move:'Press the nigiri to squeeze it. Drag to separate the ingredients or drag the background to rotate.',orbit:'Drag to rotate the object. Use the scroll wheel to zoom.',press:'Touch the pulp to create droplets. Turn the slice upright to make them slide.',cut:'Draw a cut across the slice from edge to edge.'};
+const helpers={burger:'Heat the griddle to cook the patty. Press the meat to release juices.',pudding:'Press the jelly and release to make it wobble. Drag the background to rotate.',bear:'Press or drag the bear to deform it. Drag the background to rotate.',move:'Press the nigiri to squeeze it. Drag to separate the ingredients or drag the background to rotate.',orbit:'Drag to rotate the object. Use the scroll wheel to zoom.',press:'Touch the pulp to create droplets. Turn the slice upright to make them slide.',cut:'Draw a cut across the slice from edge to edge.'};
 function mode(m){tool=m;sheet.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===m));message(helpers[m]);}
 view.onpointerdown=e=>{
  if(drag)return;
@@ -1841,6 +1967,10 @@ function createCloudScene(){
 const cloudScene=createCloudScene();
 function choose(k){
  materialFoley.stop();
+ if(kind==='burger'&&k!=='burger'){
+  griddleOn=false;griddleHeat=0;griddleStatus='';
+  griddleButton.setAttribute('aria-pressed','false');griddleButton.textContent='Heat griddle';
+ }
  const cloudReady=cloudScene.show(k==='cloud');
  if(k==='cloud'){
   juice.hide();updateBloom.clear();kind=k;drag=null;view.hidden=true;
