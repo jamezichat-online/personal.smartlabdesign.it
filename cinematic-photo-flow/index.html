@@ -6,8 +6,8 @@
 <meta name="description" content="Disponi le tue foto e attraversa la sequenza con lo scroll.">
 <title>Cinematic Photo Flow</title>
 <link rel="stylesheet" href="style.css?v=319b5d8402a5">
-<script src="app.js?v=ba2c8eba46e7" defer></script>
-<script src="video-export.js?v=b1866786f56e" defer></script>
+<script src="app.js?v=809753c5daeb" defer></script>
+<script src="video-export.js?v=fd1a57219d80" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -23,9 +23,12 @@
         <div class="scene" id="scene" aria-hidden="true">
           <div class="optical-glow" id="optical-glow"></div>
           <div class="film-surface" id="film-surface"></div>
-          <canvas class="dust-plane dust-far" id="dust-far"></canvas>
-          <canvas class="dust-plane dust-mid" id="dust-mid"></canvas>
-          <canvas class="dust-plane dust-near" id="dust-near"></canvas>
+          <canvas class="dust-plane" id="dust-plane-0"></canvas>
+          <canvas class="dust-plane" id="dust-plane-1"></canvas>
+          <canvas class="dust-plane" id="dust-plane-2"></canvas>
+          <canvas class="dust-plane" id="dust-plane-3"></canvas>
+          <canvas class="dust-plane" id="dust-plane-4"></canvas>
+          <canvas class="dust-plane" id="dust-plane-5"></canvas>
         </div>
         <div class="vignette" aria-hidden="true"></div>
         <div class="stage-top"><span id="source-label">Galleria demo</span><span id="counter"></span></div>

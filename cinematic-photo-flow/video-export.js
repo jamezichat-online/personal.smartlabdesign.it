@@ -145,27 +145,6 @@
     }
   }
 
-  function paintDust(ctx, plane, time, camera) {
-    const { width, height } = ctx.canvas;
-    for (const particle of plane.particles) {
-      const { x, y, scale, light, warm } = sampleDust(particle, plane.z, time, camera);
-      if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
-      const px = x * width, py = y * height;
-      const radius = particle.radius * (.45 + .58 * scale);
-      const tone = warm ? "255,228,189" : "213,234,255";
-      if (light > .34) {
-        const extent = radius * (2.4 + Math.min(1.4, scale));
-        ctx.globalAlpha = light;
-        ctx.drawImage(dustGlow(tone), px - extent, py - extent, extent * 2, extent * 2);
-        ctx.globalAlpha = 1;
-      }
-      ctx.fillStyle = "rgba(" + tone + "," + ((.05 + .82 * light) * Math.min(1, .62 + .27 * scale)) + ")";
-      ctx.beginPath();
-      ctx.arc(px, py, radius * (1 + .18 * light), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
   function ellipse(ctx, x, y, rx, ry, stops) {
     const { width, height } = ctx.canvas;
     ctx.save();
@@ -209,7 +188,7 @@
       const frameView = viewRoll(camera, view);
       ctx.drawImage(background, 0, 0);
       for (const layer of layers) {
-        if (layer.plane) paintDust(ctx, layer.plane, time, camera);
+        if (layer.plane) paintDustPlane(ctx, layer.plane, time, camera, width, height);
         else drawPhoto(ctx, scratch, compositeBlur, textures[layer.index], shots[layer.index], layer.index, position, camera, frameView, speedBlur);
       }
       ctx.save();

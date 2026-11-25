@@ -57,24 +57,24 @@ const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
 const origin = { x: 0, y: 0, z: 0 };
 const grainPlane = { x: 0, y: 0, z: -.78 };
-const dustPlanes = [
-  { canvas: byId("dust-far"), z: -.73, count: 23 },
-  { canvas: byId("dust-mid"), z: -.27, count: 24 },
-  { canvas: byId("dust-near"), z: .26, count: 15 }
-].map(plane => ({
-  ...plane,
-  context: plane.canvas.getContext("2d"),
-  dirtyRects: [],
-  particles: Array.from({ length: plane.count }, () => ({
-    x: Math.random(), y: Math.random(), z: (Math.random() - .5) * .07,
-    speedX: (Math.random() - .38) * .034,
-    speedY: .010 + Math.random() * .026,
-    radius: .38 + Math.random() * 1.05,
-    phase: Math.random() * Math.PI * 2,
-    frequency: .55 + Math.random() * 1.05
-  }))
-}));
-const dustGlowSprites = new Map();
+// One layer behind, between and in front of the five photo depths.
+const dustPlanes = [-1.55, -1.10, -.36, .36, 1.08, 1.52].map((z, index) => {
+  const canvas = byId("dust-plane-" + index);
+  return {
+    z, canvas, context: canvas.getContext("2d"), dirtyRects: [],
+    particles: Array.from({ length: 24 }, () => ({
+      x: Math.random(), y: Math.random(),
+      driftX: (Math.random() - .5) * .004,
+      driftY: .001 + Math.random() * .0035,
+      radius: .30 + Math.random() * .63,
+      shape: .53 + Math.random() * .45,
+      angle: Math.random() * Math.PI,
+      period: 3 + Math.random() * 5,
+      phase: Math.random() * 8,
+      flashDuration: .16 + Math.random() * .24
+    }))
+  };
+});
 let dustTime = 0;
 let lastDustTime = 0;
 let filmWidth = 0;
@@ -467,74 +467,60 @@ function wrapNear(value, center, span) {
 }
 
 function sampleDust(particle, planeZ, elapsed, camera) {
-  const wave = elapsed * particle.frequency + particle.phase;
   const span = 1.50 * (1.04 + depthPlanes.at(-1) - planeZ);
   const point = {
-    x: wrapNear((particle.x - .5) * span + particle.speedX * elapsed + .023 * Math.sin(wave), camera.x, span),
-    y: wrapNear((particle.y - .5) * span - particle.speedY * elapsed + .018 * Math.cos(wave * .82), camera.y, span),
-    z: planeZ + particle.z
+    x: wrapNear((particle.x - .5) * span + particle.driftX * elapsed, camera.x, span),
+    y: wrapNear((particle.y - .5) * span + particle.driftY * elapsed, camera.y, span),
+    z: planeZ
   };
   const relative = viewFromCamera(point, camera);
   const x = .5 + relative.x * relative.scale;
   const y = .5 + relative.y * relative.scale;
-  const warmBeam = Math.exp(-Math.pow((x - (.79 - .27 * y)) / .118, 2));
-  const coolBeam = .45 * Math.exp(-Math.pow((x - (.22 + .12 * y)) / .17, 2));
-  const facingLight = .68 + .32 * Math.pow(.5 + .5 * Math.sin(wave * 1.45), 2);
-  return { x, y, scale: relative.scale, light: Math.min(1, (warmBeam + coolBeam) * facingLight),
-    warm: warmBeam >= coolBeam };
+
+  const warm = Math.exp(-(((x - (.79 - .27 * y)) / .16) ** 2));
+  const cool = .65 * Math.exp(-(((x - (.22 + .12 * y)) / .19) ** 2));
+  const light = Math.max(warm, cool);
+  // A mote catches the beam only briefly as its surface turns in the air.
+  const age = (elapsed + particle.phase) % particle.period;
+  const glint = age < particle.flashDuration ? Math.sin(Math.PI * age / particle.flashDuration) ** 2 : 0;
+  const alpha = light * (.012 + .50 * glint);
+  return { x, y, scale: relative.scale, alpha, warm: warm >= cool };
 }
 
-function dustGlow(tone) {
-  if (dustGlowSprites.has(tone)) return dustGlowSprites.get(tone);
-  const sprite = document.createElement("canvas");
-  sprite.width = sprite.height = 96;
-  const context = sprite.getContext("2d");
-  const light = context.createRadialGradient(48, 48, 0, 48, 48, 48);
-  light.addColorStop(0, "rgba(" + tone + ",.47)");
-  light.addColorStop(1, "rgba(" + tone + ",0)");
-  context.fillStyle = light;
-  context.fillRect(0, 0, 96, 96);
-  dustGlowSprites.set(tone, sprite);
-  return sprite;
+function paintDustPlane(context, plane, elapsed, camera, width, height, dirtyRects) {
+  const imageScale = clamp(Math.min(width, height) / 680, .8, 1.55);
+  for (const particle of plane.particles) {
+    const { x, y, scale, alpha, warm } = sampleDust(particle, plane.z, elapsed, camera);
+    if (alpha < .022 || x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
+    const px = x * width, py = y * height;
+    const radius = Math.min(1.45, particle.radius * (.55 + .44 * scale)) * imageScale;
+    const tone = warm ? "223,209,187" : "202,210,215";
+    context.fillStyle = "rgba(" + tone + "," + alpha + ")";
+    context.beginPath();
+    context.ellipse(px, py, radius, radius * particle.shape, particle.angle, 0, Math.PI * 2);
+    context.fill();
+    if (dirtyRects) {
+      const pad = Math.ceil(radius) + 2;
+      dirtyRects.push({ x: Math.floor(px) - pad, y: Math.floor(py) - pad, size: pad * 2 + 2 });
+    }
+  }
 }
 
 function drawDust() {
   if (!filmWidth || !filmHeight) return;
-  const density = Math.min(window.devicePixelRatio || 1, 1.5);
-  const pixelWidth = Math.round(filmWidth * density);
-  const pixelHeight = Math.round(filmHeight * density);
-  for (const { canvas, context, particles, z, dirtyRects } of dustPlanes) {
+  // Small motes use CSS-pixel canvases so that deeper layering stays lightweight.
+  const width = Math.round(filmWidth), height = Math.round(filmHeight);
+  for (const plane of dustPlanes) {
+    const { canvas, context, dirtyRects } = plane;
     if (!context) continue;
-    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
-      context.setTransform(density, 0, 0, density, 0, 0);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
       dirtyRects.length = 0;
     }
     for (const rect of dirtyRects) context.clearRect(rect.x, rect.y, rect.size, rect.size);
     dirtyRects.length = 0;
-    for (const particle of particles) {
-      const { x, y, scale, light, warm } = sampleDust(particle, z, dustTime, filmCamera);
-      if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
-      const px = x * filmWidth;
-      const py = y * filmHeight;
-      const radius = particle.radius * (.45 + .58 * scale);
-      const tone = warm ? "255,228,189" : "213,234,255";
-      let extent = radius * (1 + .18 * light);
-      if (light > .34) {
-        extent = radius * (2.4 + Math.min(1.4, scale));
-        context.globalAlpha = light;
-        context.drawImage(dustGlow(tone), px - extent, py - extent, extent * 2, extent * 2);
-        context.globalAlpha = 1;
-      }
-      const clear = Math.ceil(extent) + 2;
-      dirtyRects.push({ x: Math.floor(px) - clear, y: Math.floor(py) - clear, size: clear * 2 + 2 });
-      const alpha = (.05 + .82 * light) * Math.min(1, .62 + .27 * scale);
-      context.fillStyle = "rgba(" + tone + "," + alpha + ")";
-      context.beginPath();
-      context.arc(px, py, radius * (1 + .18 * light), 0, Math.PI * 2);
-      context.fill();
-    }
+    paintDustPlane(context, plane, dustTime, filmCamera, filmWidth, filmHeight, dirtyRects);
   }
 }
 
