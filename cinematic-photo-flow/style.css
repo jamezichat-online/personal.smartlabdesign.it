@@ -109,3 +109,7 @@ dialog input{width:62%;accent-color:var(--accent)}
 .video-export progress{width:clamp(100px,20vw,220px);accent-color:var(--accent)}
 #video-status{font-size:.83rem;color:var(--muted)}
 #video-status a{color:var(--accent)}
+
+.gallery-file-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.video-export:has(progress[hidden]):has(#video-status:empty){display:none}
+@media(max-width:650px){.editor-head{flex-direction:column}.editor-actions{width:100%;flex-direction:row;justify-content:flex-start;align-items:center;gap:8px}.gallery-file-actions{max-width:100%}}
