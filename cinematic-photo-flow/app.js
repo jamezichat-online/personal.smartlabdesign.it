@@ -62,11 +62,11 @@ const dustPlanes = [-1.55, -1.10, -.36, .36, 1.08, 1.52].map((z, index) => {
   const canvas = byId("dust-plane-" + index);
   return {
     z, canvas, context: canvas.getContext("2d"), dirtyRects: [],
-    particles: Array.from({ length: 32 }, () => ({
+    particles: Array.from({ length: 40 }, () => ({
       x: Math.random(), y: Math.random(),
       driftX: (Math.random() - .5) * .004,
       driftY: .001 + Math.random() * .0035,
-      radius: .55 + Math.random() * .67,
+      radius: .82 + Math.random() * .78,
       shape: .53 + Math.random() * .45,
       angle: Math.random() * Math.PI,
       period: 3 + Math.random() * 5,
@@ -483,7 +483,7 @@ function sampleDust(particle, planeZ, elapsed, camera) {
   // A mote catches the beam only briefly as its surface turns in the air.
   const age = (elapsed + particle.phase) % particle.period;
   const glint = age < particle.flashDuration ? Math.sin(Math.PI * age / particle.flashDuration) ** 2 : 0;
-  const alpha = .035 + light * (.115 + .46 * glint);
+  const alpha = .15 + light * (.20 + .44 * glint);
   return { x, y, scale: relative.scale, alpha, warm: warm >= cool };
 }
 
@@ -493,7 +493,7 @@ function paintDustPlane(context, plane, elapsed, camera, width, height, dirtyRec
     const { x, y, scale, alpha, warm } = sampleDust(particle, plane.z, elapsed, camera);
     if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
     const px = x * width, py = y * height;
-    const radius = Math.min(1.45, particle.radius * (.65 + .40 * scale)) * imageScale;
+    const radius = Math.min(1.95, particle.radius * (.79 + .34 * scale)) * imageScale;
     const tone = warm ? "223,209,187" : "202,210,215";
     context.fillStyle = "rgba(" + tone + "," + alpha + ")";
     context.beginPath();
