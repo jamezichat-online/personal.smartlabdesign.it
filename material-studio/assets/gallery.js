@@ -137,7 +137,11 @@ function Gallery() {
       card.style.setProperty('--recede', distance.toFixed(4));
       card.style.setProperty('--yaw', (offset * -11).toFixed(3) + 'deg');
       card.style.setProperty('--roll', (offset * 5.6).toFixed(3) + 'deg');
-      card.style.setProperty('--depth-blur', (Math.min(1, distance / 2.25) ** 1.2).toFixed(4));
+      // Lock focus as the card becomes nearly frontal, before the easing tail.
+      const focusFalloff = Math.max(0, Math.min(1, (distance - .22) / .43));
+      const blur = Math.min(1, distance / 2.25) ** 1.2;
+      const ramp = focusFalloff ** 2 * (3 - 2 * focusFalloff);
+      card.style.setProperty('--depth-blur', (blur * ramp).toFixed(4));
       card.style.setProperty('--fade', Math.max(0, Math.min(1, (outerEdge - distance) * 2.45)).toFixed(3));
     }
   }

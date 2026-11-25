@@ -58,3 +58,13 @@ test('Focus transfers sharpness continuously as a card reaches center', () => {
   assert.equal(Number(settled.pages[1].style['--depth-blur']), 0);
   assert.ok(Number(settled.pages[0].style['--depth-blur']) > 0);
 });
+
+test('the incoming card is already sharp during the final alignment', () => {
+  const { pages, context, state } = galleryMotion(90 * .79, false, true, 4);
+  context.paintRotation();
+  assert.equal(Number(pages[1].style['--depth-blur']), 0);
+  assert.ok(Number(pages[0].style['--depth-blur']) > 0);
+  state.angle = 90 * .65;
+  context.paintRotation();
+  assert.ok(Number(pages[1].style['--depth-blur']) > 0);
+});
