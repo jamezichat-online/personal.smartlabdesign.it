@@ -48,21 +48,21 @@ main{padding:clamp(13px,2.2vw,29px) clamp(12px,3.5vw,56px) 24px}
 /* Scroll CTA: bottone + progress in un unico componente */
 .scroll-cta{--cta-yellow:#FFD60A;--cta-ink:#15110a;--cta-cream:#efe6dc;--ease-out:cubic-bezier(.23,1,.32,1);position:relative;appearance:none;border:0;padding:0;margin:0;color:var(--cta-cream);border-radius:999px;isolation:isolate;pointer-events:auto;-webkit-tap-highlight-color:transparent;transition:transform .16s var(--ease-out),box-shadow .3s var(--ease-out)}
 .scroll-cta:active{transform:scale(.97)}
-.scroll-cta__layer{display:flex;align-items:center;gap:12px;padding:9px 22px 9px 16px;border-radius:inherit;white-space:nowrap}
-.scroll-cta__base{position:relative;background:#181616a0;border:1px solid #ffffff24;box-shadow:inset 0 1px 0 #ffffff14,0 10px 30px #00000073;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%)}
+.scroll-cta__layer{display:flex;align-items:center;gap:8px;padding:6px 15px 6px 11px;border-radius:inherit;white-space:nowrap}
+.scroll-cta__base{position:relative;background:#181616a0;border:1px solid #ffffff24;box-shadow:inset 0 1px 0 #ffffff14,0 6px 18px #00000059;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%)}
 .scroll-cta__fill{position:absolute;inset:0;background:var(--cta-yellow);color:var(--cta-ink);clip-path:inset(0 100% 0 0 round 999px);will-change:clip-path;pointer-events:none}
-.scroll-cta__icon{flex:none;width:14px;height:22px;position:relative;border:1.5px solid currentColor;border-radius:8px}
-.scroll-cta__icon:after{content:"";position:absolute;left:50%;top:4px;width:2px;height:5px;margin-left:-1px;border-radius:2px;background:currentColor;animation:cta-wheel 1.8s var(--ease-out) infinite}
-@keyframes cta-wheel{0%{transform:translateY(0);opacity:1}70%{transform:translateY(5px);opacity:0}100%{transform:translateY(0);opacity:0}}
+.scroll-cta__icon{flex:none;width:10px;height:16px;position:relative;border:1.25px solid currentColor;border-radius:6px}
+.scroll-cta__icon:after{content:"";position:absolute;left:50%;top:3px;width:1.5px;height:3.5px;margin-left:-.75px;border-radius:2px;background:currentColor;animation:cta-wheel 1.8s var(--ease-out) infinite}
+@keyframes cta-wheel{0%{transform:translateY(0);opacity:1}70%{transform:translateY(4px);opacity:0}100%{transform:translateY(0);opacity:0}}
 .scroll-cta.is-scrolling .scroll-cta__icon:after{animation:none;opacity:1}
-.scroll-cta__labels{display:grid;font-size:16px;font-weight:500;letter-spacing:.01em}
+.scroll-cta__labels{display:grid;font-size:12.5px;font-weight:500;letter-spacing:.02em}
 .scroll-cta__labels>span{grid-area:1/1;transition:opacity .22s var(--ease-out),transform .22s var(--ease-out),filter .22s var(--ease-out)}
 .scroll-cta__labels .l-done{opacity:0;transform:translateY(6px);filter:blur(2px)}
 .scroll-cta.is-done .l-idle{opacity:0;transform:translateY(-6px);filter:blur(2px)}
 .scroll-cta.is-done .l-done{opacity:1;transform:none;filter:none}
-.scroll-cta.is-done{box-shadow:0 0 36px #ffd60a47}
+.scroll-cta.is-done{box-shadow:0 0 22px #ffd60a3d}
 @media(hover:hover) and (pointer:fine){.scroll-cta:hover .scroll-cta__base{border-color:#ffffff42}}
-@media(max-width:650px){.scroll-cta__layer{padding:8px 18px 8px 13px;gap:10px}.scroll-cta__labels{font-size:15px}}
+@media(max-width:650px){.scroll-cta__layer{padding:5px 13px 5px 10px}.scroll-cta__labels{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.scroll-cta__icon:after{animation:none}.scroll-cta__labels>span{transform:none!important;filter:none!important}}
 .empty{position:absolute;inset:0;z-index:103;display:grid;place-content:center;justify-items:center;gap:15px;text-align:center;padding:20px}
 .editor{margin:24px 0 0}
