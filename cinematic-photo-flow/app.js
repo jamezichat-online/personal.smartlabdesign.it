@@ -968,6 +968,38 @@ cta.addEventListener("wheel", event => {
   event.preventDefault();
 }, { passive: false });
 
+
+const galleryFrame = viewport.closest(".viewport-shell");
+let gallerySwipe;
+
+galleryFrame.addEventListener("pointerdown", event => {
+  if (event.pointerType !== "touch" || !event.isPrimary) return;
+  gallerySwipe = { id: event.pointerId, startY: event.clientY, lastY: event.clientY,
+    scroll: viewport.scrollTop, dragging: false };
+});
+
+galleryFrame.addEventListener("pointermove", event => {
+  const swipe = gallerySwipe;
+  if (!swipe || event.pointerId !== swipe.id) return;
+  if (!swipe.dragging) {
+    if (Math.abs(event.clientY - swipe.startY) < 6) return;
+    swipe.dragging = true;
+    galleryFrame.setPointerCapture(event.pointerId);
+    viewport.scrollTo({ top: swipe.scroll, behavior: "instant" });
+  }
+  const max = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
+  swipe.scroll = clamp(swipe.scroll + event.clientY - swipe.lastY, 0, max);
+  swipe.lastY = event.clientY;
+  viewport.scrollTop = swipe.scroll;
+});
+
+function endGallerySwipe(event) {
+  if (gallerySwipe?.id === event.pointerId) gallerySwipe = null;
+}
+
+galleryFrame.addEventListener("pointerup", endGallerySwipe);
+galleryFrame.addEventListener("pointercancel", endGallerySwipe);
+
 viewport.addEventListener("scroll", requestRender, { passive: true });
 new ResizeObserver(() => updateLayout()).observe(viewport);
 reducedMotion.addEventListener("change", syncVisibility);
