@@ -94,6 +94,9 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   background: transparent;
   cursor: pointer;
   text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
   scroll-snap-align: center;
   -webkit-tap-highlight-color: transparent;
   transition: z-index 0s .34s;
@@ -115,7 +118,7 @@ body[data-studio-mode="home"] #materialStudio { visibility: hidden; }
   outline: 1px solid #fff1db40;
   outline-offset: -1px;
   box-shadow: none;
-  pointer-events: none;
+  pointer-events: auto;
   translate: calc(var(--card-width) * var(--neighbor-offset, 0)) 0;
   backface-visibility: hidden;
   will-change: transform, translate;

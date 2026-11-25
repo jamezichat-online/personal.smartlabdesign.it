@@ -42,6 +42,7 @@ function MaterialCard({ material, stackOrder, featured, offset, hasNext, onFocus
   return h(material.href ? 'a' : 'button', {
     className: 'material-card', type: material.href ? undefined : 'button',
     href: material.href, target: material.href ? '_blank' : undefined,
+    draggable: false,
     rel: material.href ? 'noopener noreferrer' : undefined,
     'aria-label': material.title.join(' ') + (material.href ? ' — opens in a new tab' : ''),
     'aria-describedby': material.description ? descriptionId : undefined,
@@ -152,6 +153,21 @@ function Gallery() {
         distance = delta;
       }
     });
+    // Keep fixed slots for smooth lateral selection, but include the visible
+    // faces above and below that row. Their transformed surface is clickable.
+    if (closest === null) {
+      const current = hoveredRef.current ?? focused;
+      const order = cards.map((_, index) => index + 1).reverse();
+      if (current !== null) order.unshift(current);
+      for (const index of order) {
+        const face = cards[index - 1]?.firstElementChild.getBoundingClientRect();
+        if (face && event.clientX >= face.left && event.clientX <= face.right &&
+            event.clientY >= face.top && event.clientY <= face.bottom) {
+          closest = index;
+          break;
+        }
+      }
+    }
     queueHover(closest);
   }
 
@@ -299,7 +315,7 @@ function Gallery() {
       h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
         categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
     ),
-    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null) }, h('div', {
+    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null), onPointerCancel: resetHover, onScroll: resetHover }, h('div', {
       className: 'material-track', 'data-previewing': featured === null ? undefined : ''
     }, visibleItems.map((material, index) => {
       const stackOrder = index + 1;
