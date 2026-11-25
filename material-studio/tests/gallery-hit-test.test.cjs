@@ -4,16 +4,16 @@ const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const source = readFileSync(require('node:path').join(__dirname, '../assets/gallery.js'), 'utf8');
 
-function galleryMotion(angle, reduce = false, mode = 'radial') {
+function galleryMotion(angle, reduce = false, wide = true, count = 11) {
   const state = { angle, target: angle, frame: 0, time: 0 };
-  const pages = Array.from({ length: 4 }, () => ({
+  const pages = Array.from({ length: count }, () => ({
     toggleAttribute(name, value) { this[name] = value; },
     style: { setProperty(name, value) { this[name] = value; } }
   }));
   const context = vm.createContext({
     rail: { current: { firstElementChild: { children: pages } } },
     motion: { current: state },
-    mode, setFront(update) { this.front = update(this.front); },
+    wideCarousel: { matches: wide }, setFront(update) { this.front = update(this.front); },
     reducedMotion: { matches: reduce },
     requestAnimationFrame: () => 1,
     cancelAnimationFrame() {}
@@ -22,12 +22,12 @@ function galleryMotion(angle, reduce = false, mode = 'radial') {
   return { state, pages, context };
 }
 
-test('rear cards soften progressively, front cards stay sharp', () => {
-  const { pages, context } = galleryMotion(30);
-  context.paintRotation();
-  const blur = pages.map(page => Number(page.style['--depth-blur']));
-  assert.ok(blur[0] > 0 && blur[1] > blur[0]);
-  assert.deepEqual(blur.slice(2), [0, 0]);
+test('desktop shows seven cards and a narrow viewport shows five', () => {
+  for (const [wide, expected] of [[true, 7], [false, 5]]) {
+    const { pages, context } = galleryMotion(0, false, wide);
+    context.paintRotation();
+    assert.equal(pages.filter(page => !page['data-outside']).length, expected);
+  }
 });
 
 test('rotation eases toward the wheel or drag target and settles', () => {
@@ -49,11 +49,11 @@ test('reduced motion applies the requested rotation without inertia', () => {
 });
 
 test('Focus transfers sharpness continuously as a card reaches center', () => {
-  const { pages, context } = galleryMotion(45, false, 'focus');
+  const { pages, context } = galleryMotion(45, false, true, 4);
   context.paintRotation();
   assert.equal(pages[0].style['--depth-blur'], pages[1].style['--depth-blur']);
   assert.equal(pages[0].style['--recede'], pages[1].style['--recede']);
-  const settled = galleryMotion(90, false, 'focus');
+  const settled = galleryMotion(90, false, true, 4);
   settled.context.paintRotation();
   assert.equal(Number(settled.pages[1].style['--depth-blur']), 0);
   assert.ok(Number(settled.pages[0].style['--depth-blur']) > 0);
