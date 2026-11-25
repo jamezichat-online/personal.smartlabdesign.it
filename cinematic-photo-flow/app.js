@@ -538,11 +538,12 @@ function drawDust() {
   }
 }
 
-function opticalBlur(shotZ, focusZ, cameraZ) {
-  const eyeZ = cameraZ + depthPlanes.at(-1) - depthPlanes[0] + 1.36;
-  const distance = Math.max(.35, eyeZ - shotZ);
-  const focalDistance = Math.max(.35, eyeZ - focusZ);
-  return 1 - Math.exp(-8.6 * Math.abs(1 / distance - 1 / focalDistance));
+function opticalBlur(shotZ, focusZ, sequenceDistance) {
+  // The original curve ran across a scene spanning half a world unit.
+  const normalizedDepth = Math.abs(shotZ - focusZ) / (depthPlanes.at(-1) - depthPlanes[0]);
+  const depthDefocus = normalizedDepth * 2.3;
+  const separation = .33 * ease((sequenceDistance - .12) / .94);
+  return clamp(depthDefocus + separation, 0, 1);
 }
 
 function photoSize(image, width, height) {
@@ -743,8 +744,8 @@ function render(time) {
     if (Math.abs(relative.x * relative.scale) > 2.7 || Math.abs(relative.y * relative.scale) > 2.7) continue;
     const tilt = ease((distance - .09) / .74);
     const rotation = frameRotation(shot.attitude, offset);
-    const defocus = opticalBlur(shot.z, camera.focusZ, camera.z);
-    const blur = defocus * (compact ? 11 : 17) + motionBlur * .4;
+    const defocus = opticalBlur(shot.z, camera.focusZ, distance);
+    const blur = defocus * (compact ? 10 : 16) + motionBlur * (.45 + .55 * tilt);
     const { width: photoWidth, height: photoHeight } = shot.size;
     const tiltDepth = confinedTilt(relative.depth, rotation, photoWidth, photoHeight, lens);
     const layer = layerAtDepth(shot.z) + index % 8;
@@ -767,7 +768,7 @@ function render(time) {
       "deg) scaleZ(" + tiltDepth.toFixed(5) + ") " + rotation.css;
     card.style.zIndex = String(layer);
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
-      "px) brightness(" + (1 - defocus * .14).toFixed(3) + ")" : "none";
+      "px) brightness(" + (1 - defocus * .24).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
     visible.add(image.id);
   }
