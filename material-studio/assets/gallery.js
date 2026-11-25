@@ -31,12 +31,13 @@ const projects = [
 ].map(project => ({ ...project, preview: './assets/previews/' + project.id + '.webp' }));
 const experiments = [...materials, ...projects];
 const categories = [['all', 'All experiments'], ['materials', 'Materials'], ['worlds', 'Worlds & Dioramas'], ['product', 'Product Design']];
+const mobileCarousel = matchMedia('(max-width: 767px)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const hoverAvailable = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, stackOrder, featured, offset, hasNext, onFocus, onOpen }) {
+function MaterialCard({ material, stackOrder, featured, offset, side, hasNext, onFocus, onOpen }) {
   const descriptionId = 'material-description-' + material.id;
 
   return h(material.href ? 'a' : 'button', {
@@ -45,8 +46,9 @@ function MaterialCard({ material, stackOrder, featured, offset, hasNext, onFocus
     draggable: false,
     rel: material.href ? 'noopener noreferrer' : undefined,
     'aria-label': material.title.join(' ') + (material.href ? ' — opens in a new tab' : ''),
+    'aria-current': side === 0 ? 'true' : undefined,
     'aria-describedby': material.description ? descriptionId : undefined,
-    'data-card': material.id, 'data-featured': featured ? '' : undefined,
+    'data-card': material.id, 'data-side': side, 'data-featured': featured ? '' : undefined,
     style: { '--stack-order': stackOrder, '--neighbor-offset': offset, '--overlap-shadow': !featured && hasNext ? 1 : 0 },
     onFocus: event => {
       if (event.currentTarget.matches(':focus-visible')) onFocus(stackOrder);
@@ -122,14 +124,18 @@ function Gallery() {
   const [phase, setPhase] = useState('home');
   const [category, setCategory] = useState('all');
   const [page, setPage] = useState(0);
+  const [isMobile, setIsMobile] = useState(mobileCarousel.matches);
+  const [centered, setCentered] = useState(0);
+  const centerIndex = useRef(0);
+  const scrollFrame = useRef(0);
   const [capacity, setCapacity] = useState(innerWidth <= 600 ? 1 : 6);
   const filteredItems = experiments.filter(item => category === 'all' || item.category === category);
   const pageCount = Math.ceil(filteredItems.length / capacity);
   const currentPage = Math.min(page, pageCount - 1);
-  const visibleItems = filteredItems.slice(currentPage * capacity, (currentPage + 1) * capacity);
+  const visibleItems = isMobile ? filteredItems : filteredItems.slice(currentPage * capacity, (currentPage + 1) * capacity);
   const [hovered, setHovered] = useState(null);
   const [focused, setFocused] = useState(null);
-  const featured = hovered ?? focused;
+  const featured = isMobile ? centered + 1 : hovered ?? focused;
   const hoverTimer = useRef(null);
   const pendingHover = useRef(null);
   const hoveredRef = useRef(null);
@@ -188,16 +194,76 @@ function Gallery() {
     setFocused(null);
     setCategory(next);
     setPage(0);
+    centerIndex.current = 0;
+    setCentered(0);
   }
 
+  function centerCard(rail, index, behavior = 'instant') {
+    const track = rail.firstElementChild;
+    const card = track.children[index];
+    if (!card) return;
+    const offset = track.offsetLeft + card.offsetLeft + card.offsetWidth / 2 - rail.clientWidth / 2;
+    rail.scrollTo({ left: offset, behavior });
+  }
+
+  function trackCenter(event) {
+    if (!isMobile || phase !== 'home' || scrollFrame.current) return;
+    const rail = event.currentTarget;
+    scrollFrame.current = requestAnimationFrame(() => {
+      scrollFrame.current = 0;
+      if (busy.current || !rail.clientWidth) return;
+      const track = rail.firstElementChild;
+      const [first, second] = track.children;
+      if (!second) return;
+      const origin = track.offsetLeft + first.offsetLeft + first.offsetWidth / 2;
+      const stride = second.offsetLeft - first.offsetLeft;
+      if (stride <= 0) return;
+      const next = Math.max(0, Math.min(track.children.length - 1,
+        Math.round((rail.scrollLeft + rail.clientWidth / 2 - origin) / stride)));
+      if (next !== centerIndex.current) {
+        centerIndex.current = next;
+        setCentered(next);
+      }
+    });
+  }
+
+  useEffect(() => {
+    const update = () => setIsMobile(mobileCarousel.matches);
+    mobileCarousel.addEventListener('change', update);
+    return () => {
+      mobileCarousel.removeEventListener('change', update);
+      cancelAnimationFrame(scrollFrame.current);
+    };
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!isMobile || (phase !== 'home' && phase !== 'closing')) return;
+    const rail = container.current.querySelector('.material-rail');
+    const align = () => centerCard(rail, centerIndex.current);
+    align();
+    const observer = new ResizeObserver(align);
+    observer.observe(rail);
+    observer.observe(rail.firstElementChild);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(scrollFrame.current);
+      scrollFrame.current = 0;
+    };
+  }, [isMobile, category, phase]);
+
   function changePage(direction) {
+    if (isMobile) {
+      const next = Math.max(0, Math.min(filteredItems.length - 1, centered + direction));
+      centerCard(container.current.querySelector('.material-rail'), next, reducedMotion.matches ? 'instant' : 'smooth');
+      return;
+    }
     resetHover();
     setFocused(null);
     setPage((currentPage + direction + pageCount) % pageCount);
   }
 
   React.useLayoutEffect(() => {
-    if (phase !== 'home') return;
+    if (phase !== 'home' || isMobile) return;
     const rail = container.current.querySelector('.material-rail');
     const track = rail.querySelector('.material-track');
     const card = track.firstElementChild;
@@ -214,7 +280,7 @@ function Gallery() {
     observer.observe(rail);
     if (card) observer.observe(card);
     return () => observer.disconnect();
-  }, [phase, category, currentPage, capacity]);
+  }, [phase, category, currentPage, capacity, isMobile]);
 
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const shiftByDistance = [.235, .142, .078, .04];
@@ -284,7 +350,10 @@ function Gallery() {
     const returnIndex = filteredItems.findIndex(item => item.id === material.id);
     flushSync(() => {
       if (returnIndex < 0) setCategory('materials');
-      setPage(Math.floor((returnIndex < 0 ? materials.indexOf(material) : returnIndex) / capacity));
+      const index = returnIndex < 0 ? materials.indexOf(material) : returnIndex;
+      setPage(Math.floor(index / capacity));
+      centerIndex.current = index;
+      setCentered(index);
     });
     const layer = document.createElement('div');
     layer.className = 'material-flight';
@@ -325,10 +394,10 @@ function Gallery() {
   useEffect(() => {
     homeButton.addEventListener('click', close);
     return () => homeButton.removeEventListener('click', close);
-  }, [phase]);
+  }, [phase, category, capacity, isMobile]);
 
   return h('section', {
-    ref: container, className: 'material-home' + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
+    ref: container, className: 'material-home' + (isMobile ? ' is-mobile-carousel' : '') + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
     'aria-labelledby': 'materialHomeTitle', hidden: phase === 'studio',
     inert: phase !== 'home'
   },
@@ -339,21 +408,21 @@ function Gallery() {
         categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
     ),
     h('div', { className: 'studio-gallery' },
-    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null), onPointerCancel: resetHover }, h('div', {
-      key: category + '-' + currentPage, className: 'material-track', 'data-previewing': featured === null ? undefined : ''
+    h('div', { className: 'material-rail', onPointerMove: isMobile ? undefined : followPointer, onPointerLeave: isMobile ? undefined : () => queueHover(null), onPointerCancel: resetHover, onScroll: trackCenter }, h('div', {
+      key: isMobile ? category : category + '-' + currentPage, className: 'material-track', 'data-previewing': featured === null ? undefined : ''
     }, visibleItems.map((material, index) => {
       const stackOrder = index + 1;
       const distance = featured === null ? 0 : stackOrder - featured;
-      const offset = Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
+      const offset = isMobile ? 0 : Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
       return h(MaterialCard, {
         key: material.id, material, stackOrder, featured: featured === stackOrder,
-        offset, hasNext: index < visibleItems.length - 1, onFocus: setFocused, onOpen: open
+        offset, side: isMobile ? Math.sign(distance) : undefined, hasNext: index < visibleItems.length - 1, onFocus: setFocused, onOpen: open
       });
     }))),
       h('div', { className: 'studio-rail-controls' },
-        pageCount > 1 && h('button', { type: 'button', 'aria-label': 'Previous experiments', onClick: () => changePage(-1) }, '←'),
-        h('span', { className: 'studio-experiment-count', role: 'status', 'aria-live': 'polite' }, (filteredItems.length === 1 ? '1 experiment' : filteredItems.length + ' experiments') + '. Group ' + (currentPage + 1) + ' of ' + pageCount),
-        pageCount > 1 && h('button', { type: 'button', 'aria-label': 'Next experiments', onClick: () => changePage(1) }, '→'))),
+        (isMobile ? filteredItems.length > 1 : pageCount > 1) && h('button', { type: 'button', 'aria-label': 'Previous experiments', disabled: isMobile && centered === 0, onClick: () => changePage(-1) }, '←'),
+        h('span', { className: 'studio-experiment-count', role: 'status', 'aria-live': 'polite' }, (filteredItems.length === 1 ? '1 experiment' : filteredItems.length + ' experiments') + (isMobile ? '.' : '. Group ' + (currentPage + 1) + ' of ' + pageCount)),
+        (isMobile ? filteredItems.length > 1 : pageCount > 1) && h('button', { type: 'button', 'aria-label': 'Next experiments', disabled: isMobile && centered === filteredItems.length - 1, onClick: () => changePage(1) }, '→'))),
     h('div', { className: 'studio-home-footer' },
       h('p', null, 'Choose an experiment. Explore its nature.',
         h('span', { className: 'studio-footer-divider', 'aria-hidden': 'true' }, ' · '),

@@ -278,6 +278,51 @@ body[data-studio-mode="transition"] #materialStudio { pointer-events: none; }
   .studio-categories { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 16px; }
 }
 
+/* On phones the rail itself is the scroll container. The page stays fixed. */
+.is-mobile-carousel .material-rail {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x pinch-zoom;
+}
+.is-mobile-carousel .material-rail::-webkit-scrollbar { display: none; }
+.is-mobile-carousel .material-track {
+  --title-size: clamp(23px, 6.5vw, 32px);
+  --card-width: min(64cqw, 320px, max(76px, calc((100cqh - 100px) * .64)));
+  --mobile-edge: calc((100cqw - var(--card-width)) / 2);
+  position: relative;
+  gap: clamp(8px, 2.5vw, 16px);
+  margin-inline: 0;
+  padding: 58px var(--mobile-edge) 54px;
+  animation: none;
+}
+.is-mobile-carousel .material-card {
+  --card-slot: var(--card-width);
+  scroll-snap-align: center;
+}
+.is-mobile-carousel .material-card + .material-card { margin-inline-start: 0; }
+.is-mobile-carousel .material-card-art {
+  transform: perspective(var(--card-perspective)) rotateY(-34deg) scale(.9);
+}
+.is-mobile-carousel .material-card[data-side="1"] .material-card-art {
+  transform: perspective(var(--card-perspective)) rotateY(34deg) scale(.9);
+}
+.is-mobile-carousel .material-card[data-featured] .material-card-art {
+  transform: perspective(var(--card-perspective)) rotateY(0deg) scale(1.13);
+}
+.is-mobile-carousel .material-card-title {
+  bottom: calc(100% + var(--card-width) * .08 + 10px);
+}
+.is-mobile-carousel .material-card-description {
+  top: calc(100% + var(--card-width) * .08 + 10px);
+  width: min(82cqw, 360px);
+  left: 50%;
+  translate: -50% 0;
+}
+.is-mobile-carousel .studio-rail-controls { padding-inline: 6px; }
+.is-mobile-carousel .studio-rail-controls button { background: #100b09d9; }
+.is-mobile-carousel .studio-rail-controls button:disabled { visibility: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   .material-track { animation: none; }
   .material-card, .material-card-art, .material-card-title, .material-card-description { transition: none; }
