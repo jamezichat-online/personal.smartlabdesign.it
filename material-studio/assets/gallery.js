@@ -311,9 +311,7 @@ function Gallery() {
   },
     h('div', { className: 'studio-home-header' },
       h('h1', { id: 'materialHomeTitle' }, 'Studio ', h('em', null, '3d')),
-      h('span', { className: 'studio-signature' }, 'by Smartlabdesign'),
-      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
-        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
+      h('span', { className: 'studio-signature' }, 'by Smartlabdesign')
     ),
     h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null), onPointerCancel: resetHover, onScroll: resetHover }, h('div', {
       className: 'material-track', 'data-previewing': featured === null ? undefined : ''
@@ -327,6 +325,8 @@ function Gallery() {
       });
     }))),
     h('div', { className: 'studio-home-footer' },
+      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
+        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label))),
       h('div', { className: 'studio-rail-controls' },
         visibleItems.length > 1 && h('button', { type: 'button', 'aria-label': 'Previous experiments', onClick: () => scrollRail(-1) }, '←'),
         h('span', { role: 'status', 'aria-live': 'polite' }, visibleItems.length === 1 ? '1 experiment' : visibleItems.length + ' experiments · scroll to explore'),
