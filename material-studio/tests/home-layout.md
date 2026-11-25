@@ -6,8 +6,8 @@ For each viewport (2048×1019, 1280×720, 1024×768, 390×844):
 
 1. Compare rendered bounds: rail.top >= header.bottom and rail.bottom <= footer.top.
 2. Feature Citrus. Its title and description must remain within the gallery row and outside the controls.
-3. Click the visible center of each filter using pointer coordinates; check the selected state and card count (11 / 6 / 4 / 1).
-4. On All experiments, click the forward arrow with the pointer and verify the rail scroll offset increases.
+3. Click the visible center of each filter using pointer coordinates; check selected state and total experiment count (11 / 6 / 4 / 1). Only the current group is rendered.
+4. On All experiments, click the side arrow with the pointer and verify the card group changes while scrollLeft remains zero and scrollWidth equals clientWidth. Check every experiment is reachable. Arrow bounds must be exactly 48×48 px.
 5. Open a material, return Home, and repeat the filter clicks.
 
-The controls now live in the footer. Card size derives from the gallery's available height, and the gallery forms an isolated stacking context. Keep these conditions when adding experiments or changing typography.
+Filters sit at the top right on desktop; 48×48 px arrows occupy the gallery sides with no full-width pointer interception. The footer contains the description and Smartlabdesign link. Cards retain the original 294×350 px geometry at 2048×1019, with adaptive group capacity rather than horizontal scrolling. At narrow widths, test returning Home after selecting another material in the scene navigation: the correct material's group must be visible. Keep the disjoint rows and isolated stacking context when adding experiments or changing typography.

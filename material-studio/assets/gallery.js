@@ -121,7 +121,12 @@ function Gallery() {
   const busy = useRef(false);
   const [phase, setPhase] = useState('home');
   const [category, setCategory] = useState('all');
-  const visibleItems = experiments.filter(item => category === 'all' || item.category === category);
+  const [page, setPage] = useState(0);
+  const [capacity, setCapacity] = useState(innerWidth <= 600 ? 1 : 6);
+  const filteredItems = experiments.filter(item => category === 'all' || item.category === category);
+  const pageCount = Math.ceil(filteredItems.length / capacity);
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleItems = filteredItems.slice(currentPage * capacity, (currentPage + 1) * capacity);
   const [hovered, setHovered] = useState(null);
   const [focused, setFocused] = useState(null);
   const featured = hovered ?? focused;
@@ -182,14 +187,34 @@ function Gallery() {
     resetHover();
     setFocused(null);
     setCategory(next);
-    container.current.querySelector('.material-rail').scrollLeft = 0;
+    setPage(0);
   }
 
-  function scrollRail(direction) {
+  function changePage(direction) {
     resetHover();
-    const rail = container.current.querySelector('.material-rail');
-    rail.scrollBy({ left: direction * rail.clientWidth * .65, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    setFocused(null);
+    setPage((currentPage + direction + pageCount) % pageCount);
   }
+
+  React.useLayoutEffect(() => {
+    if (phase !== 'home') return;
+    const rail = container.current.querySelector('.material-rail');
+    const track = rail.querySelector('.material-track');
+    const card = track.firstElementChild;
+    function updateCapacity() {
+      if (!rail.clientWidth || !card) return;
+      const style = getComputedStyle(track);
+      const available = rail.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const slot = card.getBoundingClientRect().width;
+      const next = Math.max(1, Math.min(6, Math.floor((available + .5) / slot)));
+      setCapacity(next);
+    }
+    updateCapacity();
+    const observer = new ResizeObserver(updateCapacity);
+    observer.observe(rail);
+    if (card) observer.observe(card);
+    return () => observer.disconnect();
+  }, [phase, category, currentPage, capacity]);
 
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const shiftByDistance = [.235, .142, .078, .04];
@@ -256,6 +281,11 @@ function Gallery() {
     if (busy.current || phase !== 'studio') return;
     busy.current = true;
     const material = materials.find(item => item.button.getAttribute('aria-pressed') === 'true') || materials[0];
+    const returnIndex = filteredItems.findIndex(item => item.id === material.id);
+    flushSync(() => {
+      if (returnIndex < 0) setCategory('materials');
+      setPage(Math.floor((returnIndex < 0 ? materials.indexOf(material) : returnIndex) / capacity));
+    });
     const layer = document.createElement('div');
     layer.className = 'material-flight';
     layer.setAttribute('aria-hidden', 'true');
@@ -266,13 +296,6 @@ function Gallery() {
         const liveImage = await window.materialStudio.capture();
         window.materialStudio.pause();
         flushSync(() => setPhase('closing'));
-        const rail = gallery.querySelector('.material-rail');
-        const activeCard = gallery.querySelector('[data-card="' + material.id + '"]');
-        const railBox = rail.getBoundingClientRect();
-        const cardBox = activeCard.getBoundingClientRect();
-        if (cardBox.left < railBox.left || cardBox.right > railBox.right) {
-          rail.scrollLeft += cardBox.left + cardBox.width / 2 - railBox.left - railBox.width / 2;
-        }
         const origins = measureCards(gallery);
         document.body.dataset.studioMode = 'transition';
         studio.inert = true;
@@ -294,7 +317,7 @@ function Gallery() {
       window.materialStudio.suspend();
       flushSync(() => setPhase('home'));
       studio.style.opacity = '';
-      requestAnimationFrame(() => gallery.querySelector('[data-card="' + material.id + '"]').focus({ preventScroll: true }));
+      requestAnimationFrame(() => (gallery.querySelector('[data-card="' + material.id + '"]') || gallery.querySelector('[data-card]'))?.focus({ preventScroll: true }));
       busy.current = false;
     }
   }
@@ -311,10 +334,13 @@ function Gallery() {
   },
     h('div', { className: 'studio-home-header' },
       h('h1', { id: 'materialHomeTitle' }, 'Studio ', h('em', null, '3d')),
-      h('span', { className: 'studio-signature' }, 'by Smartlabdesign')
+      h('span', { className: 'studio-signature' }, 'by Smartlabdesign'),
+      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
+        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
     ),
-    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null), onPointerCancel: resetHover, onScroll: resetHover }, h('div', {
-      className: 'material-track', 'data-previewing': featured === null ? undefined : ''
+    h('div', { className: 'studio-gallery' },
+    h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null), onPointerCancel: resetHover }, h('div', {
+      key: category + '-' + currentPage, className: 'material-track', 'data-previewing': featured === null ? undefined : ''
     }, visibleItems.map((material, index) => {
       const stackOrder = index + 1;
       const distance = featured === null ? 0 : stackOrder - featured;
@@ -324,14 +350,14 @@ function Gallery() {
         offset, hasNext: index < visibleItems.length - 1, onFocus: setFocused, onOpen: open
       });
     }))),
-    h('div', { className: 'studio-home-footer' },
-      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
-        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label))),
       h('div', { className: 'studio-rail-controls' },
-        visibleItems.length > 1 && h('button', { type: 'button', 'aria-label': 'Previous experiments', onClick: () => scrollRail(-1) }, '←'),
-        h('span', { role: 'status', 'aria-live': 'polite' }, visibleItems.length === 1 ? '1 experiment' : visibleItems.length + ' experiments · scroll to explore'),
-        visibleItems.length > 1 && h('button', { type: 'button', 'aria-label': 'Next experiments', onClick: () => scrollRail(1) }, '→')),
-      h('p', null, 'Choose an experiment. Explore its nature.'))
+        pageCount > 1 && h('button', { type: 'button', 'aria-label': 'Previous experiments', onClick: () => changePage(-1) }, '←'),
+        h('span', { className: 'studio-experiment-count', role: 'status', 'aria-live': 'polite' }, (filteredItems.length === 1 ? '1 experiment' : filteredItems.length + ' experiments') + '. Group ' + (currentPage + 1) + ' of ' + pageCount),
+        pageCount > 1 && h('button', { type: 'button', 'aria-label': 'Next experiments', onClick: () => changePage(1) }, '→'))),
+    h('div', { className: 'studio-home-footer' },
+      h('p', null, 'Choose an experiment. Explore its nature.',
+        h('span', { className: 'studio-footer-divider', 'aria-hidden': 'true' }, ' · '),
+        h('a', { href: 'https://smartlabdesign.it/', target: '_blank', rel: 'noopener noreferrer' }, 'Smartlabdesign')))
   );
 }
 
