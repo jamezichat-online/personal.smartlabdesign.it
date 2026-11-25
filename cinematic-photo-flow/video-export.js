@@ -290,7 +290,7 @@
       const source = new CanvasSource(canvas, { codec, bitrate: encoding.bitrate, latencyMode: "quality" });
       output.addVideoTrack(source, { frameRate: fps });
       await output.start();
-      const transition = 2.5 * fps;
+      const transition = Math.round(1.2 * fps);
       const hold = 2 * fps;
       const segment = hold + transition;
       const total = (gallery.length - 1) * segment + hold;
