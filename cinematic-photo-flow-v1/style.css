@@ -34,8 +34,8 @@ main{padding:clamp(13px,2.2vw,29px) clamp(12px,3.5vw,56px) 24px}
 .photo img{width:100%;height:100%;display:block;object-fit:cover}
 .vignette{position:absolute;inset:0;pointer-events:none;z-index:100}
 .film-surface,.dust-plane{position:absolute;inset:0;pointer-events:none}
-.optical-glow{position:absolute;inset:-8%;z-index:68;pointer-events:none;opacity:.035;mix-blend-mode:screen;background:radial-gradient(ellipse at 92% 39%,#ffc19b 0%,#82462c 13%,transparent 43%),radial-gradient(ellipse at 10% 84%,#397c97 0%,transparent 35%)}
-.film-surface{z-index:77;inset:-19%;background:var(--grain-tile) center repeat;background-size:72px 72px;mix-blend-mode:soft-light;opacity:.15}
+.optical-glow{position:absolute;inset:-8%;z-index:3500;pointer-events:none;opacity:.035;mix-blend-mode:screen;background:radial-gradient(ellipse at 92% 39%,#ffc19b 0%,#82462c 13%,transparent 43%),radial-gradient(ellipse at 10% 84%,#397c97 0%,transparent 35%)}
+.film-surface{z-index:3600;inset:-19%;background:var(--grain-tile) center repeat;background-size:72px 72px;mix-blend-mode:soft-light;opacity:.15}
 .dust-plane{width:100%;height:100%}
 .dust-far{z-index:2}
 .dust-mid{z-index:27}
@@ -101,9 +101,9 @@ dialog input{width:62%;accent-color:var(--accent)}
 
 /* ───── V1: luce, lente e qualità ───── */
 .ver{align-self:center;font-size:.62rem;font-weight:700;letter-spacing:.09em;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:20px;padding:2px 7px;margin-left:-4px}
-/* Luce ambientale: il palco si colora con la tonalità della foto attiva */
+/* Luce ambientale: il fondale si colora con la tonalità della foto attiva (dietro tutte le foto) */
 .spill{position:absolute;inset:-12%;z-index:3;pointer-events:none;mix-blend-mode:screen;opacity:0;background:radial-gradient(ellipse 68% 64% at 50% 52%,rgba(var(--tone,255,232,206),.95),rgba(var(--tone,255,232,206),.5) 24%,rgba(var(--tone,255,232,206),.17) 46%,transparent 72%);will-change:opacity}
-/* Flare anamorfico: nel fondale, al centro, dietro tutte le foto (z-index sotto il livello più lontano) */
+/* Flare anamorfico: nel fondale, al centro, dietro tutte le foto. Si vede solo dove il centro dello sfondo è scoperto. */
 .flare{position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:screen;opacity:0;will-change:opacity,transform;--flare-rgb:132,190,255;--flare-core:224,240,255}
 .flare i{position:absolute;left:50%;top:50%;translate:-50% -50%;display:block;border-radius:50%}
 .flare__bloom{width:38%;height:24%;background:radial-gradient(closest-side,rgba(var(--flare-core),.34),rgba(var(--flare-rgb),.12) 42%,transparent 100%)}

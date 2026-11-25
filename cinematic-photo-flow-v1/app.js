@@ -46,6 +46,8 @@ let saving = Promise.resolve();
 const cards = new Map();
 const preparedPhotos = new Map();
 const photoMetrics = new WeakMap();
+const depthBand = Math.min(...depthPlanes.slice(1).map((z, index) => z - depthPlanes[index])) * .46;
+const maximumOverlap = .05;
 const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
 const origin = { x: 0, y: 0, z: 0 };
@@ -247,15 +249,37 @@ function axisAngle(pose) {
   const w = cx * cy * cz - sx * sy * sz;
   const length = Math.hypot(x, y, z);
   return {
-    axis: [(x / length).toFixed(4), (y / length).toFixed(4), (z / length).toFixed(4)].join(","),
+    axis: [x / length, y / length, z / length],
     angle: 2 * Math.atan2(length, w) * 180 / Math.PI
   };
 }
 
 function frameRotation(attitude, offset) {
   const pose = offset >= 0 ? attitude.entry : attitude.exit;
-  const lean = ease((Math.abs(offset) - .075) / .78);
-  return "rotate3d(" + pose.axis + "," + (pose.angle * lean).toFixed(2) + "deg)";
+  const angle = pose.angle * ease((Math.abs(offset) - .075) / .78);
+  const [x, y, z] = pose.axis;
+  const radians = angle * Math.PI / 180;
+  const sin = Math.sin(radians);
+  const cos = Math.cos(radians);
+  const remainder = 1 - cos;
+  return {
+    css: "rotate3d(" + pose.axis.map(value => value.toFixed(5)).join(",") + "," + angle.toFixed(2) + "deg)",
+    xx: cos + x * x * remainder,
+    xy: x * y * remainder - z * sin,
+    yx: y * x * remainder + z * sin,
+    yy: cos + y * y * remainder,
+    zx: z * x * remainder - y * sin,
+    zy: z * y * remainder + x * sin
+  };
+}
+
+function confinedTilt(depth, rotation, width, height, lens) {
+  const excursion = (Math.abs(rotation.zx) * width + Math.abs(rotation.zy) * height) / 2;
+  if (excursion < .01) return 1;
+  const center = projectDepth(depth);
+  const room = Math.min(center - projectDepth(depth - depthBand),
+    projectDepth(depth + depthBand) - center) * lens;
+  return clamp((room - .12) / excursion, .0001, 1);
 }
 
 function shuffled(items, random) {
@@ -340,11 +364,15 @@ function cameraAt(position, aspect = 1) {
   };
 }
 
+function projectDepth(depth) {
+  // Compress the near end of the lens without changing the order of the world planes.
+  const nearLimit = .77;
+  return depth > 0 ? nearLimit * (1 - Math.exp(-depth / nearLimit)) : depth;
+}
+
 function viewFromCamera(point, camera) {
   const depth = point.z - camera.z;
-  // Compress only the near side of the lens to keep large foreground passes below the camera plane.
-  const nearLimit = .77;
-  const z = depth > 0 ? nearLimit * (1 - Math.exp(-depth / nearLimit)) : depth;
+  const z = projectDepth(depth);
   const x = point.x - camera.x;
   const y = point.y - camera.y;
   const angle = (camera.roll || 0) * Math.PI / 180;
@@ -368,7 +396,7 @@ function updateMotionBlur(camera, width, height, lens, dt) {
 }
 
 function layerAtDepth(z) {
-  return 39 + Math.round(28 * Math.tanh(z * .95));
+  return 2000 + Math.round(1000 * z);
 }
 
 function renderFilm(camera, width, height) {
@@ -386,7 +414,7 @@ function renderFilm(camera, width, height) {
   opticalGlow.style.opacity = String(.035 + (camera.crossing || 0) * .16);
   opticalGlow.style.transform = "translateX(" + ((camera.crossing || 0) * -9) + "%)";
 
-  for (const { canvas, z } of dustPlanes) canvas.style.zIndex = String(layerAtDepth(z - camera.z));
+  for (const { canvas, z } of dustPlanes) canvas.style.zIndex = String(layerAtDepth(z));
 }
 
 function wrapNear(value, center, span) {
@@ -468,23 +496,61 @@ function drawDust() {
   }
 }
 
+// Sfuocatura da lente: cresce gradualmente con la distanza dal piano a fuoco, dietro e davanti, poi
+// satura come il cerchio di confusione di un'ottica reale. Il primo piano sfoca appena di più.
 function opticalBlur(shotZ, focusZ) {
-  const depth = Math.max(0, focusZ - shotZ);
-  return 1 - Math.exp(-depth / 1.05);
+  const offset = shotZ - focusZ;
+  const strength = 1 - Math.exp(-Math.pow(Math.abs(offset) / .66, 1.18));
+  return offset > 0 ? Math.min(1, strength * 1.08) : strength;
 }
 
-function composePhoto(relative, distance, compact) {
-  const behind = ease((-relative.depth - .08) / .65) * ease((distance - .18) / .51);
-  const revealX = behind * (compact ? .13 : .19) * Math.tanh(relative.x / .16);
-  const revealY = behind * .15 * Math.tanh(relative.y / .16);
-  const ahead = ease((relative.depth - .25) / 1.17) * ease((distance - .13) / .47);
-  const oversize = ease((relative.scale - 2.8) / 1.3);
-  // Keep the expanded edge of a close pass from hiding all of the rear cards.
+function projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight, view) {
+  const { width, height, lens, rollSin, rollCos } = view;
+  const centerX = relative.x * width;
+  const centerY = relative.y * height;
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (const x of [-photoWidth / 2, photoWidth / 2]) {
+    for (const y of [-photoHeight / 2, photoHeight / 2]) {
+      const dx = rotation.xx * x + rotation.xy * y;
+      const dy = rotation.yx * x + rotation.yy * y;
+      const projection = 1 / (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tiltDepth / lens);
+      const px = (centerX + rollCos * dx - rollSin * dy) * projection;
+      const py = (centerY + rollSin * dx + rollCos * dy) * projection;
+      left = Math.min(left, px);
+      right = Math.max(right, px);
+      top = Math.min(top, py);
+      bottom = Math.max(bottom, py);
+    }
+  }
   return {
-    x: relative.x + (revealX + ahead * (.20 + .11 * oversize) * Math.tanh(relative.x / .12)) / relative.scale,
-    y: relative.y + (revealY + ahead * (.17 + .08 * oversize) * Math.tanh(relative.y / .12)) / relative.scale,
-    opacity: (1 - ease((distance - 1.30) / 1.69)) * (1 - ahead * (.78 + .04 * oversize))
+    left: clamp(left, -width / 2, width / 2), right: clamp(right, -width / 2, width / 2),
+    top: clamp(top, -height / 2, height / 2), bottom: clamp(bottom, -height / 2, height / 2)
   };
+}
+
+function softenOcclusion(photos, position) {
+  const base = Math.floor(position);
+  const blend = ease((position - base - .29) / .42);
+  for (const target of photos) {
+    const weight = target.index === base ? 1 - blend : target.index === base + 1 ? blend : 0;
+    if (!weight) continue;
+    const bounds = target.bounds;
+    const targetArea = (bounds.right - bounds.left) * (bounds.bottom - bounds.top);
+    if (targetArea < 1) continue;
+    let coverage = 0;
+    const blockers = [];
+    for (const photo of photos) {
+      if (photo.layer <= target.layer || !photo.opacity) continue;
+      const width = Math.min(photo.bounds.right, bounds.right) - Math.max(photo.bounds.left, bounds.left);
+      const height = Math.min(photo.bounds.bottom, bounds.bottom) - Math.max(photo.bounds.top, bounds.top);
+      if (width <= 0 || height <= 0) continue;
+      coverage += width * height / targetArea * photo.opacity;
+      blockers.push(photo);
+    }
+    if (coverage <= maximumOverlap) continue;
+    const visibility = 1 - weight * (1 - maximumOverlap / coverage);
+    for (const photo of blockers) photo.visibility = Math.min(photo.visibility, visibility);
+  }
 }
 
 function render(time) {
@@ -499,7 +565,6 @@ function render(time) {
   const center = clamp(Math.round(displayed), 0, Math.max(0, playback.length - 1));
   const position = reducedMotion.matches ? center : displayed;
   const visible = new Set();
-  const stack = [];
   const width = sceneWidth;
   const height = sceneHeight;
   const lens = sceneLens;
@@ -508,6 +573,9 @@ function render(time) {
   prepareNearbyPhotos(center);
   renderFilm(reducedMotion.matches ? origin : camera, width, height);
   const compact = width < 650;
+  const roll = camera.roll * Math.PI / 180;
+  const view = { width, height, lens, rollSin: Math.sin(roll), rollCos: Math.cos(roll) };
+  const photos = [];
   const first = reducedMotion.matches ? center : Math.max(0, Math.floor(position) - 2);
   const last = reducedMotion.matches ? center : Math.min(playback.length - 1, Math.ceil(position) + 2);
 
@@ -518,14 +586,15 @@ function render(time) {
     const shot = route[index];
     const relative = viewFromCamera(shot, camera);
     const tilt = ease((distance - .09) / .74);
-    const composition = composePhoto(relative, distance, compact);
     const rotation = frameRotation(shot.attitude, offset);
     const defocus = opticalBlur(shot.z, camera.focusZ);
-    const blur = defocus * (compact ? 8 : 12) * qualityBlur[quality] + motionBlur * qualityMotion[quality];
+    const blur = defocus * (compact ? 9 : 14) * qualityBlur[quality] + motionBlur * qualityMotion[quality];
     const viewRatio = clamp(image.ratio, .58, 2.1);
     const heightLimit = compact ? .84 : viewRatio < 1 ? .95 : .83;
     const photoHeight = Math.min(height * heightLimit, width * (compact ? .83 : .68) / viewRatio);
     const photoWidth = photoHeight * viewRatio;
+    const tiltDepth = confinedTilt(relative.depth, rotation, photoWidth, photoHeight, lens);
+    const layer = layerAtDepth(shot.z) + index % 8;
     const card = cards.get(image.id) || mountCard(image);
     const photo = card.firstElementChild;
 
@@ -539,27 +608,23 @@ function render(time) {
     if (!metrics || metrics.width !== photoWidth || metrics.height !== photoHeight || metrics.focalPoint !== focalPoint) {
       photoMetrics.set(card, { width: photoWidth, height: photoHeight, focalPoint });
     }
-    card.style.transform = "translate3d(calc(-50% + " + (composition.x * width).toFixed(2) +
-      "px),calc(-50% + " + (composition.y * height).toFixed(2) + "px)," +
+    card.style.transform = "translate3d(calc(-50% + " + (relative.x * width).toFixed(2) +
+      "px),calc(-50% + " + (relative.y * height).toFixed(2) + "px)," +
       (relative.z * lens).toFixed(2) + "px) rotateZ(" + camera.roll.toFixed(2) +
-      "deg) " + rotation;
-    stack.push({ card, z: layerAtDepth(relative.depth), level: shot.z, index });
+      "deg) scaleZ(" + tiltDepth.toFixed(5) + ") " + rotation.css;
+    card.style.zIndex = String(layer);
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
-      "px) brightness(" + (1 - defocus * .14).toFixed(3) + ")" : "none";
+      "px) brightness(" + (1 - defocus * (shot.z > camera.focusZ ? .04 : .14)).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
-    const clearView = 1 - ease((distance - .50) / .25);
-    card.style.opacity = String(composition.opacity + (1 - composition.opacity) * clearView);
+    photos.push({
+      card, index, layer, visibility: 1, opacity: 1 - ease((distance - 1.22) / 1.77),
+      bounds: projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight, view)
+    });
     visible.add(image.id);
   }
 
-  // Regola fissa: ogni foto resta sul proprio livello di profondità. Il livello più vicino sta
-  // sempre sopra quello più lontano, nessuna foto "attraversa" le altre e nessuna viene promossa.
-  stack.sort((a, b) => a.level - b.level || a.index - b.index);
-  let floor = -1;
-  for (const item of stack) {
-    floor = Math.max(item.z, floor + 1);
-    item.card.style.zIndex = String(floor);
-  }
+  softenOcclusion(photos, position);
+  for (const { card, opacity, visibility } of photos) card.style.opacity = String(opacity * visibility);
 
   for (const [id, card] of cards) {
     if (!visible.has(id)) {
@@ -626,7 +691,7 @@ function sampleFrameTime(dt, moving) {
   }
 }
 
-// Colore dominante luminoso di una foto, pesato su saturazione e luce, più intensità del bagliore.
+// Tono luminoso e saturo della foto (hue pesato su saturazione e luce) più intensità del bagliore.
 function toneFromPixels(data) {
   let r = 0, g = 0, b = 0, weight = 0, saturation = 0, luma = 0;
   const count = data.length / 4;
@@ -640,7 +705,6 @@ function toneFromPixels(data) {
     saturation += s; luma += l;
   }
   r /= weight; g /= weight; b /= weight;
-  // Tono luminoso e saturo (non pastello): si tiene l'hue della foto e si rialza la saturazione.
   const top = Math.max(r, g, b), low = Math.min(r, g, b), chroma = top - low;
   let hue = 0;
   if (chroma > 1) {
@@ -648,8 +712,7 @@ function toneFromPixels(data) {
     else if (top === g) hue = (b - r) / chroma + 2;
     else hue = (r - g) / chroma + 4;
   }
-  const photoSaturation = top ? chroma / top : 0;
-  const s = clamp(photoSaturation * 1.5 + .22, .3, .92);
+  const s = clamp((top ? chroma / top : 0) * 1.5 + .22, .3, .92);
   const f = n => {
     const k = (n + hue) % 6;
     return Math.round(255 * (1 - s * Math.max(0, Math.min(k, 4 - k, 1))));
@@ -685,7 +748,8 @@ function toneAt(index) {
   return playback[clamp(index, 0, Math.max(0, playback.length - 1))]?.tone || neutralTone;
 }
 
-// La foto attiva illumina il palco; la velocità della camera accende il flare; all'arrivo c'è un picco di luce.
+// Luce ambientale dal colore della foto attiva e flare anamorfico nel fondale. Entrambi stanno
+// dietro tutte le foto: non toccano mai i livelli di profondità e non si sovrappongono alle foto.
 function updateLight(position, moving, camera) {
   if (!playback.length) return;
   const base = Math.floor(position);
@@ -699,16 +763,14 @@ function updateLight(position, moving, camera) {
   if (tone !== lastTone) {
     lastTone = tone;
     spill.style.setProperty("--tone", tone);
-    // Il flare anamorfico è freddo (azzurro) come nelle ottiche reali, appena scaldato dal tono della foto.
-    const cool = [132, 190, 255];
-    const mixed = cool.map((value, i) => Math.round(value * .8 + rgb[i] * .2));
+    // Il flare è freddo (azzurro) come nelle ottiche anamorfiche reali, appena scaldato dal tono della foto.
+    const mixed = [132, 190, 255].map((value, i) => Math.round(value * .8 + rgb[i] * .2));
     flare.style.setProperty("--flare-rgb", mixed.join(","));
     flare.style.setProperty("--flare-core", mixed.map(value => Math.round(value + (255 - value) * .62)).join(","));
   }
   const opacity = quality > 1 ? 0 : glow;
   spill.style.opacity = opacity.toFixed(3);
   const energy = reducedMotion.matches || quality > 1 ? 0 : clamp(motionBlur / 3.2, 0, 1);
-  // Il flare vive nel fondale, dietro tutte le foto: si vede solo dove il centro dello sfondo è scoperto.
   flare.style.opacity = (reducedMotion.matches || quality > 1 ? 0 : .5 + .5 * energy).toFixed(3);
   flare.style.transform = "translate3d(" + (-camera.x * sceneWidth * .06).toFixed(1) + "px," +
     (-camera.y * sceneHeight * .06).toFixed(1) + "px,0)";
@@ -721,8 +783,8 @@ function updateLight(position, moving, camera) {
 
 function pulseLight(base) {
   if (reducedMotion.matches || quality > 1 || !spill.animate) return;
-  const timing = { duration: 1100, easing: "cubic-bezier(.22,1,.36,1)" };
-  spill.animate([{ opacity: base }, { opacity: Math.min(1, base * 1.9 + .06), offset: .22 }, { opacity: base }], timing);
+  spill.animate([{ opacity: base }, { opacity: Math.min(1, base * 1.9 + .06), offset: .22 }, { opacity: base }],
+    { duration: 1100, easing: "cubic-bezier(.22,1,.36,1)" });
 }
 
 // Snap morbido: a scroll fermo la sequenza si assesta su una foto. Anche un piccolo gesto avanza di una foto.
@@ -740,7 +802,7 @@ function snapToPhoto() {
 
 function scheduleSnap() {
   clearTimeout(snapTimer);
-  if (location.search.includes("snap=0")) return;
+  if (location.search.includes("snap=0")) return; // solo per i test
   snapTimer = setTimeout(snapToPhoto, 190);
 }
 
