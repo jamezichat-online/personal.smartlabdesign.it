@@ -60,9 +60,10 @@ const grainPlane = { x: 0, y: 0, z: -.78 };
 // One layer behind, between and in front of the five photo depths.
 const dustPlanes = [-1.55, -1.10, -.36, .36, 1.08, 1.52].map((z, index) => {
   const canvas = byId("dust-plane-" + index);
+  const foreground = z > depthPlanes.at(-1);
   return {
-    z, canvas, context: canvas.getContext("2d"), dirtyRects: [],
-    particles: Array.from({ length: 40 }, () => ({
+    z, foreground, canvas, context: canvas.getContext("2d"), dirtyRects: [],
+    particles: Array.from({ length: foreground ? 62 : 48 }, () => ({
       x: Math.random(), y: Math.random(),
       driftX: (Math.random() - .5) * .004,
       driftY: .001 + Math.random() * .0035,
@@ -466,12 +467,13 @@ function wrapNear(value, center, span) {
   return center + ((offset % span + span) % span) - span / 2;
 }
 
-function sampleDust(particle, planeZ, elapsed, camera) {
-  const span = 1.50 * (1.04 + depthPlanes.at(-1) - planeZ);
+function sampleDust(particle, plane, elapsed, camera) {
+  // Keep the front motes close to the lens as the camera travels through the scene.
+  const span = plane.foreground ? .74 : 1.50 * (1.04 + depthPlanes.at(-1) - plane.z);
   const point = {
     x: wrapNear((particle.x - .5) * span + particle.driftX * elapsed, camera.x, span),
     y: wrapNear((particle.y - .5) * span + particle.driftY * elapsed, camera.y, span),
-    z: planeZ
+    z: plane.foreground ? camera.z + .50 : plane.z
   };
   const relative = viewFromCamera(point, camera);
   const x = .5 + relative.x * relative.scale;
@@ -483,14 +485,14 @@ function sampleDust(particle, planeZ, elapsed, camera) {
   // A mote catches the beam only briefly as its surface turns in the air.
   const age = (elapsed + particle.phase) % particle.period;
   const glint = age < particle.flashDuration ? Math.sin(Math.PI * age / particle.flashDuration) ** 2 : 0;
-  const alpha = .15 + light * (.20 + .44 * glint);
+  const alpha = (plane.foreground ? .23 : .15) + light * (.20 + .44 * glint);
   return { x, y, scale: relative.scale, alpha, warm: warm >= cool };
 }
 
 function paintDustPlane(context, plane, elapsed, camera, width, height, dirtyRects) {
   const imageScale = clamp(Math.min(width, height) / 680, .8, 1.55);
   for (const particle of plane.particles) {
-    const { x, y, scale, alpha, warm } = sampleDust(particle, plane.z, elapsed, camera);
+    const { x, y, scale, alpha, warm } = sampleDust(particle, plane, elapsed, camera);
     if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
     const px = x * width, py = y * height;
     const radius = Math.min(1.95, particle.radius * (.79 + .34 * scale)) * imageScale;
