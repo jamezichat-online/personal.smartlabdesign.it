@@ -1090,7 +1090,7 @@ new ResizeObserver(invalidate).observe(canvas);
 setMode('press');
 })();
 </script>
-<script src="./assets/mobile-raster.js?v=1"></script>
+<script src="./assets/desktop-raster.js?v=1"></script>
 <script>(() => {
 'use strict';
 const stage=document.querySelector('.stage'),gpu=document.querySelector('#view'),counter=document.querySelector('#count'),hint=document.querySelector('#hint');
@@ -2119,7 +2119,7 @@ function draw(now){
  const prepared=accelerated||kind==='sushi'||kind==='burger'?objects.map(prepareObj):null;
  if(kind==='orange')cpuOrangeShadow(objects);else for(let o of objects)shadow(o);
  if(kind==='burger'){
-  const maps=applyPattyShadows(prepared);paintPattyLightShadows(prepared,maps,accelerated?4:1);
+  const maps=applyPattyShadows(prepared);paintPattyLightShadows(prepared,maps,accelerated&&materialPerformance.touch?4:1);
   updateMeatJuice();paintMeatJuice();
  }
  if(kind==='sushi')applySushiShadows(prepared);
@@ -2505,8 +2505,8 @@ new ResizeObserver(invalidate).observe(stage);
 view.hidden=true;
 view.style.display=gpu.style.display='none';
 cloudScene.show(false);
-// On touch hardware the GPU fills pixels; JavaScript only updates the deformable mesh.
-if(materialPerformance.touch&&window.createMaterialRaster)raster=window.createMaterialRaster({stage,view,invalidate});
+// Default GPU backend with separate desktop and touch quality profiles.
+if(window.createMaterialRaster)raster=window.createMaterialRaster({stage,view,invalidate,desktopQuality:!materialPerformance.touch});
 window.materialStudio={
  pause(){
   renderPaused=true;juice.pause();
@@ -2576,3 +2576,4 @@ import('./assets/gallery.js?v=5').catch(error=>{
 </script>
 </body>
 </html>
+
