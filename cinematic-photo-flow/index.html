@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Disponi le tue foto e attraversa la sequenza con lo scroll.">
 <title>Cinematic Photo Flow</title>
-<link rel="stylesheet" href="style.css?v=4998588223c9">
+<link rel="stylesheet" href="style.css?v=768a57d103ff">
 <script src="app.js?v=6f46e286907f" defer></script>
+<script src="video-export.js?v=cfe4559f0cef" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -36,6 +37,12 @@
     <div class="editor-head">
       <div><h2 id="editor-title">Sequenza</h2><p id="edit-help">Seleziona una miniatura per raggiungere la foto.</p></div>
       <div class="editor-actions"><span id="save-state" role="status"></span><button class="button outline" id="new-gallery" hidden>Nuova galleria</button><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button></div>
+    </div>
+    <div class="video-export">
+      <button class="button outline" id="export-video" type="button">Esporta video</button>
+      <progress id="video-progress" aria-label="Avanzamento rendering" max="100" value="0" hidden></progress>
+      <span id="video-status" role="status"></span>
+      <button class="button quiet" id="cancel-video" type="button" hidden>Annulla esportazione</button>
     </div>
     <div class="upload-area" id="upload-area" aria-label="Miniature della sequenza"><ol id="strip"></ol></div>
     <div id="image-actions" class="image-actions" hidden>
