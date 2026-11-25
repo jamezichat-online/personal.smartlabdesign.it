@@ -48,6 +48,11 @@ const preparedPhotos = new Map();
 const photoMetrics = new WeakMap();
 const depthBand = Math.min(...depthPlanes.slice(1).map((z, index) => z - depthPlanes[index])) * .46;
 const maximumOverlap = .05;
+const routeOverlapTarget = maximumOverlap * .64;
+const sceneCells = new Map();
+const sceneCellSize = 2;
+const sceneRadius = 4;
+let routeViewSize = "";
 const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
 const origin = { x: 0, y: 0, z: 0 };
@@ -114,6 +119,7 @@ function updateLayout(reset = false) {
   sceneWidth = stage.clientWidth;
   sceneHeight = stage.clientHeight;
   sceneLens = Math.max(510, sceneHeight * 1.4);
+  if (sceneWidth + "x" + sceneHeight !== routeViewSize) planRoute();
   scene.style.setProperty("--scene-lens", sceneLens + "px");
   track.style.setProperty("--travel", Math.max(0, playback.length - 1) * step + "px");
   viewport.scrollTop = currentPosition * step;
@@ -303,26 +309,53 @@ function buildDepths(length, random) {
   return depths.slice(0, length);
 }
 
-function buildRoute(length, random) {
-  const depths = buildDepths(length, random);
-  if (!length) return [];
-  const shots = [{ x: 0, y: 0, z: depths[0] }];
-  let bearing = random() * Math.PI * 2;
-  for (let index = 1; index < length; index++) {
-    const start = shots[index - 1];
-    const turn = .88 + random() * 1.46;
-    bearing += (random() < .5 ? -1 : 1) * turn;
-    const x = Math.cos(bearing) * (.27 + random() * .12);
-    const y = Math.sin(bearing) * (.29 + random() * .16);
-    const bend = (random() < .5 ? -1 : 1) * (.10 + random() * .17);
-    shots.push({
-      x: start.x + x, y: start.y + y, z: depths[index], bend,
-      push: .055 + random() * .20,
-      hold: .055 + random() * .095,
-      roll: (random() - .5) * 12
-    });
+function buildRoute(gallery, random, width, height) {
+  if (!gallery.length) return [];
+  const depths = buildDepths(gallery.length, random);
+  const lens = Math.max(510, height * 1.4);
+  const view = { width, height, lens, aspect: width / height };
+  const shots = gallery.map((image, i) => ({
+    x: 0, y: 0, z: depths[i], attitude: frameAttitude(image.id),
+    size: photoSize(image, width, height)
+  }));
+  const accepted = [shots[0]];
+  const samples = [];
+  let heading = random() * Math.PI * 2;
+
+  for (let index = 1; index < shots.length; index++) {
+    const previous = accepted.at(-1);
+    const current = shots[index];
+    const preferred = heading + (random() < .5 ? -1 : 1) * (.52 + random() * 1.35);
+    const bend = (random() - .5) * .18;
+    const hold = .065 + random() * .060;
+    const roll = (random() - .5) * 8;
+    let winner = null;
+
+    for (const reach of [.46, .58, .70, .83, 1.00, 1.24, 1.56, 2.04, 2.72, 3.7, 5.2, 7.6]) {
+      for (const turn of [0, .53, -.53, 1.15, -1.15, 1.74, -1.74, Math.PI]) {
+        const angle = preferred + turn;
+        const shot = { ...current, x: previous.x + Math.cos(angle) * reach,
+          y: previous.y + Math.sin(angle) * reach, bend, hold, roll, push: .09 };
+        const result = checkPlacement(accepted, shot, samples, view);
+        if (!result) continue;
+        const score = Math.abs(result.peak - .024) + reach * .008 + Math.abs(turn) * .003;
+        if (!winner || score < winner.score) winner = { ...result, shot, angle, score };
+        if (result.peak >= .015 && result.peak <= routeOverlapTarget && reach <= 1.24) break;
+      }
+      if (winner && (winner.score < .020 || reach >= 1.24)) break;
+    }
+    if (!winner) {
+      // A straight departure into clear space is the conservative path when local directions are crowded.
+      winner = findClearDeparture(accepted, current, samples, view, preferred, hold);
+    }
+
+    if (!winner) return buildStraightRoute(shots, view, preferred);
+    accepted.push(winner.shot);
+    heading = winner.angle;
+    for (const { sample, face } of winner.priorFaces) sample.faces.push(face);
+    samples.push(...winner.frames);
   }
-  return shots;
+  return accepted;
 }
 
 function refreshRouteSeed() {
@@ -336,19 +369,31 @@ function rebuildPlayback() {
   if (playback.length > 1 && playback.every((image, index) => image === images[index])) {
     playback.push(playback.shift());
   }
-  route = buildRoute(playback.length, random);
+  planRoute();
+}
+
+function planRoute() {
+  const width = Math.max(1, stage.clientWidth);
+  const height = Math.max(1, stage.clientHeight);
+  routeViewSize = width + "x" + height;
+  route = buildRoute(playback, seededRandom(routeSeed ^ 0x5bd1e995), width, height);
+  sceneCells.clear();
   for (let index = 0; index < route.length; index++) {
-    route[index].attitude = frameAttitude(playback[index].id);
+    const shot = route[index];
+    const key = Math.floor(shot.x / sceneCellSize) + "," + Math.floor(shot.y / sceneCellSize);
+    if (!sceneCells.has(key)) sceneCells.set(key, []);
+    sceneCells.get(key).push(index);
   }
 }
 
 function cameraAt(position, aspect = 1) {
   const index = Math.floor(position);
   const start = route[index] || origin;
-  const next = route[index + 1] || start;
-  const move = { x: next.x - start.x, y: next.y - start.y, z: next.z - start.z };
-  const phase = position - index;
+  return cameraBetween(start, route[index + 1] || start, position - index, aspect);
+}
 
+function cameraBetween(start, next, phase, aspect) {
+  const move = { x: next.x - start.x, y: next.y - start.y, z: next.z - start.z };
   const hold = next.hold ?? .065;
   const glide = ease((phase - hold) / (1 - 2 * hold));
   const arc = Math.sin(Math.PI * glide) ** 2;
@@ -493,58 +538,178 @@ function drawDust() {
   }
 }
 
-function opticalBlur(shotZ, focusZ) {
-  const depth = Math.max(0, focusZ - shotZ);
-  return 1 - Math.exp(-depth / 1.05);
+function opticalBlur(shotZ, focusZ, cameraZ) {
+  const eyeZ = cameraZ + depthPlanes.at(-1) - depthPlanes[0] + 1.36;
+  const distance = Math.max(.35, eyeZ - shotZ);
+  const focalDistance = Math.max(.35, eyeZ - focusZ);
+  return 1 - Math.exp(-8.6 * Math.abs(1 / distance - 1 / focalDistance));
 }
 
-function projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight, view) {
-  const { width, height, lens, rollSin, rollCos } = view;
-  const centerX = relative.x * width;
-  const centerY = relative.y * height;
+function photoSize(image, width, height) {
+  const compact = width < 650;
+  const ratio = clamp(image.ratio, .58, 2.1);
+  const limit = compact ? .84 : ratio < 1 ? .95 : .83;
+  const h = Math.min(height * limit, width * (compact ? .83 : .68) / ratio);
+  return { width: h * ratio, height: h };
+}
+
+function viewRoll(camera, view) {
+  const roll = camera.roll * Math.PI / 180;
+  return { ...view, rollSin: Math.sin(roll), rollCos: Math.cos(roll) };
+}
+
+function projectedFace(shot, index, position, camera, view) {
+  if (Math.abs(shot.x - camera.x) > sceneRadius || Math.abs(shot.y - camera.y) > sceneRadius) return null;
+  const relative = viewFromCamera(shot, camera);
+  const rotation = frameRotation(shot.attitude, index - position);
+  const { width, height } = shot.size;
+  const tiltDepth = confinedTilt(relative.depth, rotation, width, height, view.lens);
+  const points = [];
   let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-  for (const x of [-photoWidth / 2, photoWidth / 2]) {
-    for (const y of [-photoHeight / 2, photoHeight / 2]) {
-      const dx = rotation.xx * x + rotation.xy * y;
-      const dy = rotation.yx * x + rotation.yy * y;
-      const projection = 1 / (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tiltDepth / lens);
-      const px = (centerX + rollCos * dx - rollSin * dy) * projection;
-      const py = (centerY + rollSin * dx + rollCos * dy) * projection;
-      left = Math.min(left, px);
-      right = Math.max(right, px);
-      top = Math.min(top, py);
-      bottom = Math.max(bottom, py);
-    }
+  for (const [x, y] of [[-width / 2, -height / 2], [width / 2, -height / 2],
+    [width / 2, height / 2], [-width / 2, height / 2]]) {
+    const dx = rotation.xx * x + rotation.xy * y;
+    const dy = rotation.yx * x + rotation.yy * y;
+    const scale = 1 / (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tiltDepth / view.lens);
+    const px = (relative.x * view.width + view.rollCos * dx - view.rollSin * dy) * scale;
+    const py = (relative.y * view.height + view.rollSin * dx + view.rollCos * dy) * scale;
+    points.push([px, py]);
+    left = Math.min(left, px); right = Math.max(right, px);
+    top = Math.min(top, py); bottom = Math.max(bottom, py);
   }
-  return {
-    left: clamp(left, -width / 2, width / 2), right: clamp(right, -width / 2, width / 2),
-    top: clamp(top, -height / 2, height / 2), bottom: clamp(bottom, -height / 2, height / 2)
-  };
+  if (right < -view.width / 2 || left > view.width / 2 ||
+      bottom < -view.height / 2 || top > view.height / 2) return null;
+  return { points, left, right, top, bottom, area: polygonArea(points), index };
 }
 
-function softenOcclusion(photos, position) {
-  const base = Math.floor(position);
-  const blend = ease((position - base - .29) / .42);
-  for (const target of photos) {
-    const weight = target.index === base ? 1 - blend : target.index === base + 1 ? blend : 0;
-    if (!weight) continue;
-    const bounds = target.bounds;
-    const targetArea = (bounds.right - bounds.left) * (bounds.bottom - bounds.top);
-    if (targetArea < 1) continue;
-    let coverage = 0;
-    const blockers = [];
-    for (const photo of photos) {
-      if (photo.layer <= target.layer || !photo.opacity) continue;
-      const width = Math.min(photo.bounds.right, bounds.right) - Math.max(photo.bounds.left, bounds.left);
-      const height = Math.min(photo.bounds.bottom, bounds.bottom) - Math.max(photo.bounds.top, bounds.top);
-      if (width <= 0 || height <= 0) continue;
-      coverage += width * height / targetArea * photo.opacity;
-      blockers.push(photo);
-    }
-    if (coverage <= maximumOverlap) continue;
-    const visibility = 1 - weight * (1 - maximumOverlap / coverage);
-    for (const photo of blockers) photo.visibility = Math.min(photo.visibility, visibility);
+function polygonArea(points) {
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x, y] = points[i];
+    const [nx, ny] = points[(i + 1) % points.length];
+    area += x * ny - y * nx;
   }
+  return Math.abs(area) * .5;
+}
+
+function clipPolygon(points, edges) {
+  for (let i = 0; i < edges.length && points.length; i++) {
+    const [ax, ay] = edges[i];
+    const [bx, by] = edges[(i + 1) % edges.length];
+    const cross = ([x, y]) => (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+    const source = points;
+    points = [];
+    let previous = source.at(-1);
+    let d0 = cross(previous);
+    for (const point of source) {
+      const d1 = cross(point);
+      if ((d0 < 0) !== (d1 < 0)) {
+        const t = d0 / (d0 - d1);
+        points.push([previous[0] + (point[0] - previous[0]) * t, previous[1] + (point[1] - previous[1]) * t]);
+      }
+      if (d1 >= 0) points.push(point);
+      previous = point;
+      d0 = d1;
+    }
+  }
+  return points;
+}
+
+function overlapFraction(a, b, view) {
+  if (a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top) return 0;
+  const w = view.width / 2, h = view.height / 2;
+  const intersection = clipPolygon(a.points, b.points);
+  if (!intersection.length) return 0;
+  const visible = clipPolygon(intersection, [[-w, -h], [w, -h], [w, h], [-w, h]]);
+  return polygonArea(visible) / Math.max(1, Math.min(a.area, b.area));
+}
+
+function checkPlacement(accepted, shot, samples, view) {
+  if (!validatePlacement(accepted, shot, samples, view, 16, 7)) return null;
+  return validatePlacement(accepted, shot, samples, view, 112, 1);
+}
+
+function validatePlacement(accepted, shot, samples, view, resolution, stride) {
+  const index = accepted.length;
+  const priorFaces = [];
+  let peak = 0;
+  for (let i = 0; i < samples.length; i += stride) {
+    const sample = samples[i];
+    if (Math.abs(shot.x - sample.camera.x) > sceneRadius || Math.abs(shot.y - sample.camera.y) > sceneRadius) continue;
+    const face = projectedFace(shot, index, sample.position, sample.camera, sample.view);
+    if (!face) continue;
+    for (const other of sample.faces) {
+      peak = Math.max(peak, overlapFraction(face, other, view));
+      if (peak > routeOverlapTarget) return null;
+    }
+    priorFaces.push({ sample, face });
+  }
+  const frames = [];
+  for (let frame = 0; frame <= resolution; frame++) {
+    const phase = frame / resolution;
+    const position = index - 1 + phase;
+    const camera = cameraBetween(accepted.at(-1), shot, phase, view.aspect);
+    const frameView = viewRoll(camera, view);
+    const faces = [];
+    for (let i = 0; i <= index; i++) {
+      const face = projectedFace(i === index ? shot : accepted[i], i, position, camera, frameView);
+      if (!face) continue;
+      for (const other of faces) {
+        peak = Math.max(peak, overlapFraction(face, other, view));
+        if (peak > routeOverlapTarget) return null;
+      }
+      faces.push(face);
+    }
+    frames.push({ camera, position, view: frameView, faces });
+  }
+  return { frames, priorFaces, peak };
+}
+
+function findClearDeparture(accepted, current, samples, view, heading, hold) {
+  const start = accepted.at(-1);
+  for (const reach of [3.8, 5.5, 8, 12, 18, 26]) {
+    for (let turn = 0; turn < 12; turn++) {
+      const angle = heading + turn * Math.PI / 6;
+      const shot = { ...current, x: start.x + Math.cos(angle) * reach,
+        y: start.y + Math.sin(angle) * reach, hold, push: 0 };
+      const result = checkPlacement(accepted, shot, samples, view);
+      if (result) return { ...result, shot, angle };
+    }
+  }
+  return null;
+}
+
+function buildStraightRoute(shots, view, heading) {
+  const direction = Math.cos(heading) >= 0 ? 1 : -1;
+  for (const reach of [1.18, 1.5, 2.0, 2.8, 4.0, 6.0, 11]) {
+    const accepted = [shots[0]];
+    const samples = [];
+    for (let i = 1; i < shots.length; i++) {
+      const shot = { ...shots[i], x: i * reach * direction, y: 0, hold: .065, push: 0 };
+      const result = checkPlacement(accepted, shot, samples, view);
+      if (!result) break;
+      accepted.push(shot);
+      for (const { sample, face } of result.priorFaces) sample.faces.push(face);
+      samples.push(...result.frames);
+    }
+    if (accepted.length === shots.length) return accepted;
+  }
+  return shots.map((shot, i) => ({ ...shot, x: i * 14 * direction, y: 0 }));
+}
+
+function shotsInView(camera) {
+  const results = [];
+  const left = Math.floor((camera.x - sceneRadius) / sceneCellSize);
+  const right = Math.floor((camera.x + sceneRadius) / sceneCellSize);
+  const top = Math.floor((camera.y - sceneRadius) / sceneCellSize);
+  const bottom = Math.floor((camera.y + sceneRadius) / sceneCellSize);
+  for (let x = left; x <= right; x++) {
+    for (let y = top; y <= bottom; y++) {
+      const members = sceneCells.get(x + "," + y);
+      if (members) results.push(...members);
+    }
+  }
+  return results;
 }
 
 function render(time) {
@@ -566,26 +731,21 @@ function render(time) {
   prepareNearbyPhotos(center);
   renderFilm(reducedMotion.matches ? origin : camera, width, height);
   const compact = width < 650;
-  const roll = camera.roll * Math.PI / 180;
-  const view = { width, height, lens, rollSin: Math.sin(roll), rollCos: Math.cos(roll) };
-  const photos = [];
-  const first = reducedMotion.matches ? center : Math.max(0, Math.floor(position) - 2);
-  const last = reducedMotion.matches ? center : Math.min(playback.length - 1, Math.ceil(position) + 2);
-
-  for (let index = first; index <= last && playback[index]; index++) {
+  const nearby = reducedMotion.matches ? [center] : shotsInView(camera);
+  for (const index of nearby) {
+    if (!route[index]) continue;
     const image = playback[index];
     const offset = index - position;
     const distance = Math.abs(offset);
     const shot = route[index];
+    if (Math.abs(shot.x - camera.x) > sceneRadius || Math.abs(shot.y - camera.y) > sceneRadius) continue;
     const relative = viewFromCamera(shot, camera);
+    if (Math.abs(relative.x * relative.scale) > 2.7 || Math.abs(relative.y * relative.scale) > 2.7) continue;
     const tilt = ease((distance - .09) / .74);
     const rotation = frameRotation(shot.attitude, offset);
-    const defocus = opticalBlur(shot.z, camera.focusZ);
-    const blur = defocus * (compact ? 8 : 12) + motionBlur * .4;
-    const viewRatio = clamp(image.ratio, .58, 2.1);
-    const heightLimit = compact ? .84 : viewRatio < 1 ? .95 : .83;
-    const photoHeight = Math.min(height * heightLimit, width * (compact ? .83 : .68) / viewRatio);
-    const photoWidth = photoHeight * viewRatio;
+    const defocus = opticalBlur(shot.z, camera.focusZ, camera.z);
+    const blur = defocus * (compact ? 11 : 17) + motionBlur * .4;
+    const { width: photoWidth, height: photoHeight } = shot.size;
     const tiltDepth = confinedTilt(relative.depth, rotation, photoWidth, photoHeight, lens);
     const layer = layerAtDepth(shot.z) + index % 8;
     const card = cards.get(image.id) || mountCard(image);
@@ -609,15 +769,8 @@ function render(time) {
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
       "px) brightness(" + (1 - defocus * .14).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
-    photos.push({
-      card, index, layer, visibility: 1, opacity: 1 - ease((distance - 1.22) / 1.77),
-      bounds: projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight, view)
-    });
     visible.add(image.id);
   }
-
-  softenOcclusion(photos, position);
-  for (const { card, opacity, visibility } of photos) card.style.opacity = String(opacity * visibility);
 
   for (const [id, card] of cards) {
     if (!visible.has(id)) {
