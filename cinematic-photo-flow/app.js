@@ -21,7 +21,7 @@ const demo = [
 let images = demo;
 let playback = [];
 let route = [];
-const depthPlanes = [-.92, -.46, 0, .45, .90];
+const depthPlanes = [-1.47, -.735, 0, .72, 1.44];
 let routeSeed = 0;
 let custom = false;
 let selected = 0;
@@ -270,7 +270,8 @@ function cameraAt(position, aspect = 1) {
 function viewFromCamera(point, camera) {
   const depth = point.z - camera.z;
   // Compress only the near side of the lens to keep large foreground passes below the camera plane.
-  const z = depth > 0 ? .70 * (1 - Math.exp(-depth / .70)) : depth;
+  const nearLimit = .77;
+  const z = depth > 0 ? nearLimit * (1 - Math.exp(-depth / nearLimit)) : depth;
   const x = point.x - camera.x;
   const y = point.y - camera.y;
   const angle = (camera.roll || 0) * Math.PI / 180;
@@ -324,7 +325,7 @@ function wrapNear(value, center, span) {
 
 function sampleDust(particle, planeZ, elapsed, camera) {
   const wave = elapsed * particle.frequency + particle.phase;
-  const span = 1.50 * (1.94 - planeZ);
+  const span = 1.50 * (1.04 + depthPlanes.at(-1) - planeZ);
   const point = {
     x: wrapNear((particle.x - .5) * span + particle.speedX * elapsed + .023 * Math.sin(wave), camera.x, span),
     y: wrapNear((particle.y - .5) * span - particle.speedY * elapsed + .018 * Math.cos(wave * .82), camera.y, span),
@@ -406,11 +407,12 @@ function composePhoto(relative, distance, compact) {
   const revealX = behind * (compact ? .13 : .19) * Math.tanh(relative.x / .16);
   const revealY = behind * .15 * Math.tanh(relative.y / .16);
   const ahead = ease((relative.depth - .25) / 1.17) * ease((distance - .13) / .47);
-  // Move oversized foreground cards out toward their own edge, leaving a view of the scene behind.
+  const oversize = ease((relative.scale - 2.8) / 1.3);
+  // Keep the expanded edge of a close pass from hiding all of the rear cards.
   return {
-    x: relative.x + (revealX + ahead * .20 * Math.tanh(relative.x / .12)) / relative.scale,
-    y: relative.y + (revealY + ahead * .17 * Math.tanh(relative.y / .12)) / relative.scale,
-    opacity: (1 - ease((distance - 1.30) / 1.69)) * (1 - ahead * .78)
+    x: relative.x + (revealX + ahead * (.20 + .11 * oversize) * Math.tanh(relative.x / .12)) / relative.scale,
+    y: relative.y + (revealY + ahead * (.17 + .08 * oversize) * Math.tanh(relative.y / .12)) / relative.scale,
+    opacity: (1 - ease((distance - 1.30) / 1.69)) * (1 - ahead * (.78 + .04 * oversize))
   };
 }
 
