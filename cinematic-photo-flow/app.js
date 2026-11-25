@@ -960,6 +960,14 @@ function toggleView() {
   (viewing ? viewport : byId("mode")).focus({ preventScroll: true });
 }
 
+// The controls sit above the scroller, so forward wheel input over the CTA.
+cta.addEventListener("wheel", event => {
+  const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 :
+    event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? viewport.clientHeight : 1;
+  viewport.scrollBy({ top: event.deltaY * unit, left: event.deltaX * unit, behavior: "instant" });
+  event.preventDefault();
+}, { passive: false });
+
 viewport.addEventListener("scroll", requestRender, { passive: true });
 new ResizeObserver(() => updateLayout()).observe(viewport);
 reducedMotion.addEventListener("change", syncVisibility);

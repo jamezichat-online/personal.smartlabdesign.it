@@ -24,10 +24,12 @@ h1,h2,p{margin:0}
 .view-icon{width:14px;height:12px;border:1px solid currentColor;border-radius:2px;position:relative}
 .view-icon:after{content:"";position:absolute;left:5px;top:3px;border-left:4px solid currentColor;border-top:2px solid transparent;border-bottom:2px solid transparent}
 main{padding:clamp(13px,2.2vw,29px) clamp(12px,3.5vw,56px) 24px}
-.viewport{height:var(--stage-height);overflow:auto;scrollbar-width:none;overscroll-behavior:contain;border:1px solid #3c3330;border-radius:13px;background:#0b0a0a;isolation:isolate}
+.viewport-shell{position:relative;height:var(--stage-height);overflow:hidden;border:1px solid #3c3330;border-radius:13px;background:#0b0a0a;isolation:isolate}
+.viewport{position:absolute;inset:0;overflow:auto;scrollbar-width:none;overscroll-behavior:contain;touch-action:pan-y}
 .viewport::-webkit-scrollbar{display:none}
-.track{position:relative;height:calc(var(--stage-height) - 2px + var(--travel,0px))}
-.stage{height:calc(var(--stage-height) - 2px);position:sticky;top:0;overflow:hidden;background:radial-gradient(ellipse at 54% 47%,#292323,#100e10 63%,#0a090a 100%);touch-action:pan-y}
+.track{height:calc(100% + var(--travel,0px))}
+.stage{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 54% 47%,#292323,#100e10 63%,#0a090a 100%)}
+.empty button{pointer-events:auto}
 .scene{position:absolute;inset:0;perspective:var(--scene-lens,900px)}
 .photo{position:absolute;top:50%;left:50%;max-width:none;margin:0;border-radius:clamp(9px,1.55vw,22px);overflow:hidden;background:#211917;pointer-events:none;will-change:transform;backface-visibility:hidden}
 .photo:after{content:"";position:absolute;inset:0;border:1px solid #fff2;border-radius:inherit;pointer-events:none;box-shadow:inset 0 1px 2px rgba(255,228,204,var(--edge-light,.10))}
