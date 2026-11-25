@@ -206,6 +206,7 @@ function mountCard(image) {
   const photo = preparedPhotos.get(image.id) || makeStagePhoto(image);
   preparedPhotos.delete(image.id);
   card.append(photo);
+  attachLens(card, photo, image);
   scene.append(card);
   cards.set(image.id, card);
   return card;
@@ -588,7 +589,7 @@ function render(time) {
     const tilt = ease((distance - .09) / .74);
     const rotation = frameRotation(shot.attitude, offset);
     const defocus = opticalBlur(shot.z, camera.focusZ);
-    const blur = defocus * (compact ? 9 : 14) * qualityBlur[quality] + motionBlur * qualityMotion[quality];
+    const screenBlur = defocus * (compact ? 14 : 24) + motionBlur * qualityMotion[quality];
     const viewRatio = clamp(image.ratio, .58, 2.1);
     const heightLimit = compact ? .84 : viewRatio < 1 ? .95 : .83;
     const photoHeight = Math.min(height * heightLimit, width * (compact ? .83 : .68) / viewRatio);
@@ -613,8 +614,11 @@ function render(time) {
       (relative.z * lens).toFixed(2) + "px) rotateZ(" + camera.roll.toFixed(2) +
       "deg) scaleZ(" + tiltDepth.toFixed(5) + ") " + rotation.css;
     card.style.zIndex = String(layer);
-    card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
-      "px) brightness(" + (1 - defocus * (shot.z > camera.focusZ ? .04 : .14)).toFixed(3) + ")" : "none";
+    const dim = defocus * (shot.z > camera.focusZ ? .04 : .14);
+    if (!applyLens(card, image, screenBlur, relative.scale, Math.max(photoWidth, photoHeight), dim)) {
+      card.style.filter = screenBlur > .05 ? "blur(" + (screenBlur / Math.max(.3, relative.scale)).toFixed(2) +
+        "px) brightness(" + (1 - dim).toFixed(3) + ")" : "none";
+    }
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
     photos.push({
       card, index, layer, visibility: 1, opacity: 1 - ease((distance - 1.22) / 1.77),
@@ -660,8 +664,129 @@ cta.addEventListener("click", () => {
 // ───────────── V1 ─────────────
 const spill = byId("spill");
 const flare = byId("flare");
-const qualityBlur = [1, .6, .3];
 const qualityMotion = [.4, .2, 0];
+
+// Sfuocatura da lente a livelli pre-calcolati: invece di un filtro CSS ricalcolato a ogni frame (costoso sulle
+// foto grandi in primo piano) ogni foto ha 4 copie sfocate a bassa risoluzione che si fondono in dissolvenza.
+// Il raggio è espresso in pixel di schermo e diviso per la scala prospettica: stesso cerchio di confusione
+// davanti e dietro al fuoco, a prescindere da quanto la foto è ingrandita.
+const lensFractions = [0, .008, .02, .05, .1];
+const lensLayers = new WeakMap();
+const lensCache = new Map();
+
+function boxBlurRGBA(data, width, height, radius) {
+  const temp = new Uint8ClampedArray(data.length);
+  const divisor = 2 * radius + 1;
+  const run = (from, to, length, lines, stride, lineStride) => {
+    for (let line = 0; line < lines; line++) {
+      const base = line * lineStride;
+      for (let channel = 0; channel < 4; channel++) {
+        let sum = 0;
+        for (let k = -radius; k <= radius; k++) sum += from[base + clamp(k, 0, length - 1) * stride + channel];
+        for (let i = 0; i < length; i++) {
+          to[base + i * stride + channel] = sum / divisor;
+          sum += from[base + clamp(i + radius + 1, 0, length - 1) * stride + channel] -
+            from[base + clamp(i - radius, 0, length - 1) * stride + channel];
+        }
+      }
+    }
+  };
+  for (let pass = 0; pass < 3; pass++) {
+    run(data, temp, width, height, 4, width * 4);
+    run(temp, data, height, width, width * 4, 4);
+  }
+}
+
+function attachLens(card, photo, image) {
+  const dim = document.createElement("i");
+  dim.className = "lens-dim";
+  const state = { canvases: [], dim, ready: false, key: "", opacities: [], dimValue: -1 };
+  card.append(dim);
+  lensLayers.set(card, state);
+  const key = () => image.x + "," + image.y + "," + image.ratio;
+  const finish = (canvases) => {
+    for (const canvas of canvases) card.insertBefore(canvas, dim);
+    state.canvases = canvases;
+    state.opacities = canvases.map(() => -1);
+    state.key = key();
+    state.ready = true;
+  };
+  state.build = () => {
+    const cached = lensCache.get(image.id);
+    if (cached && cached.key === key()) return finish(cached.canvases);
+    const width = photo.naturalWidth, height = photo.naturalHeight;
+    if (!width || !height) return;
+    const wanted = key();
+    const viewRatio = clamp(image.ratio, .58, 2.1);
+    let sw = width, sh = height;
+    if (width / height > viewRatio) sw = height * viewRatio; else sh = width / viewRatio;
+    const sx = (width - sw) * clamp(image.x, 0, 100) / 100;
+    const sy = (height - sh) * clamp(image.y, 0, 100) / 100;
+    const canvases = [];
+    state.building = wanted;
+    const next = () => {
+      if (state.building !== wanted) return;
+      const level = canvases.length + 1;
+      if (level >= lensFractions.length) {
+        lensCache.set(image.id, { key: wanted, canvases });
+        for (const id of lensCache.keys()) { if (lensCache.size <= 14) break; lensCache.delete(id); }
+        state.building = "";
+        return finish(canvases);
+      }
+      const long = Math.round(2.45 / lensFractions[level]);
+      const canvas = document.createElement("canvas");
+      canvas.width = viewRatio >= 1 ? long : Math.max(8, Math.round(long * viewRatio));
+      canvas.height = viewRatio >= 1 ? Math.max(8, Math.round(long / viewRatio)) : long;
+      canvas.className = "lens-level";
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.imageSmoothingQuality = "high";
+      context.drawImage(photo, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      boxBlurRGBA(pixels.data, canvas.width, canvas.height, 2);
+      context.putImageData(pixels, 0, 0);
+      canvases.push(canvas);
+      setTimeout(next, 0);
+    };
+    next();
+  };
+  if (photo.complete && photo.naturalWidth) state.build();
+  else photo.addEventListener("load", () => state.build(), { once: true });
+}
+
+function applyLens(card, image, screenBlur, scale, longSide, dim) {
+  const state = lensLayers.get(card);
+  if (!state) return false;
+  if (state.ready && state.key !== image.x + "," + image.y + "," + image.ratio) {
+    state.ready = false;
+    for (const canvas of state.canvases) canvas.remove();
+    state.canvases = [];
+    state.build();
+  }
+  if (!state.ready) return false;
+  if (card.style.filter) card.style.filter = "";
+  const fraction = screenBlur / Math.max(.25, scale) / longSide;
+  const top = lensFractions.length - 1;
+  let level = 0;
+  while (level < top && fraction >= lensFractions[level + 1]) level++;
+  const mix = level >= top ? 1 : clamp((fraction - lensFractions[level]) / (lensFractions[level + 1] - lensFractions[level]), 0, 1);
+  state.canvases.forEach((canvas, index) => {
+    const layer = index + 1;
+    const value = level >= top ? (layer === top ? 1 : 0)
+      : layer < level ? 0 : layer === level ? 1 : layer === level + 1 ? mix : 0;
+    const rounded = Math.round(value * 100) / 100;
+    if (state.opacities[index] !== rounded) {
+      state.opacities[index] = rounded;
+      canvas.style.opacity = String(rounded);
+    }
+  });
+  const dimRounded = Math.round(dim * 200) / 200;
+  if (state.dimValue !== dimRounded) {
+    state.dimValue = dimRounded;
+    state.dim.style.opacity = String(dimRounded);
+  }
+  return true;
+}
+
 const qualityOverride = new URLSearchParams(location.search).get("quality");
 const lockedQuality = ["0", "1", "2"].includes(qualityOverride);
 let quality = lockedQuality ? Number(qualityOverride)
