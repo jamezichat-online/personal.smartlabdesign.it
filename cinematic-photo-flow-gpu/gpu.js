@@ -1,10 +1,23 @@
 /* Experimental GPU blur. The original renderer remains available per photo as a fallback. */
 const gpuPhotos = new WeakMap();
+let gpuReady = 0;
+let gpuUnavailable = false;
+
+function updateGpuStatus() {
+  const status = document.getElementById("gpu-status");
+  if (!status) return;
+  status.textContent = gpuReady ? "Sfocatura GPU attiva" :
+    gpuUnavailable ? "GPU non disponibile · sfocatura standard" : "Verifica GPU…";
+}
 
 function attachGpuPhoto(card, photo) {
   const canvas = document.createElement("canvas");
   const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false });
-  if (!gl) return;
+  if (!gl) {
+    gpuUnavailable = true;
+    updateGpuStatus();
+    return;
+  }
   const state = { gl, canvas, photo, ready: false, disposed: false, blur: -1, brightness: -1 };
   gpuPhotos.set(card, state);
   const vertex = `
@@ -75,12 +88,16 @@ function attachGpuPhoto(card, photo) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, photo);
       canvas.style.objectPosition = photo.style.objectPosition;
       state.ready = true;
+      gpuReady++;
+      updateGpuStatus();
       drawGpuPhoto(card, 0, 1);
       card.replaceChild(canvas, photo);
       requestRender();
     }).catch(() => releaseGpuPhoto(card));
   } catch (error) {
     console.warn("GPU blur unavailable", error);
+    gpuUnavailable = true;
+    updateGpuStatus();
     releaseGpuPhoto(card);
   }
 }
@@ -109,6 +126,11 @@ function releaseGpuPhoto(card) {
   const state = gpuPhotos.get(card);
   if (!state) return;
   state.disposed = true;
+  if (state.ready) {
+    gpuReady--;
+    state.ready = false;
+    updateGpuStatus();
+  }
   state.gl.getExtension("WEBGL_lose_context")?.loseContext();
   gpuPhotos.delete(card);
 }
