@@ -31,36 +31,29 @@ const projects = [
 ].map(project => ({ ...project, preview: './assets/previews/' + project.id + '.webp' }));
 const experiments = [...materials, ...projects];
 const categories = [['all', 'All experiments'], ['materials', 'Materials'], ['worlds', 'Worlds & Dioramas'], ['product', 'Product Design']];
-const mobileCarousel = matchMedia('(max-width: 767px)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const hoverAvailable = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, stackOrder, featured, offset, side, hasNext, onFocus, onOpen }) {
+function MaterialCard({ material, featured, onActivate }) {
   const descriptionId = 'material-description-' + material.id;
-
   return h(material.href ? 'a' : 'button', {
     className: 'material-card', type: material.href ? undefined : 'button',
     href: material.href, target: material.href ? '_blank' : undefined,
-    draggable: false,
-    rel: material.href ? 'noopener noreferrer' : undefined,
-    'aria-label': material.title.join(' ') + (material.href ? ' — opens in a new tab' : ''),
-    'aria-current': side === 0 ? 'true' : undefined,
-    'aria-describedby': material.description ? descriptionId : undefined,
-    'data-card': material.id, 'data-side': side, 'data-featured': featured ? '' : undefined,
-    style: { '--stack-order': stackOrder, '--neighbor-offset': offset, '--overlap-shadow': !featured && hasNext ? 1 : 0 },
-    onFocus: event => {
-      if (event.currentTarget.matches(':focus-visible')) onFocus(stackOrder);
-    },
-    onBlur: () => onFocus(current => current === stackOrder ? null : current),
-    onClick: material.href ? undefined : () => onOpen(material)
+    rel: material.href ? 'noopener noreferrer' : undefined, draggable: false,
+    'aria-label': material.title.join(' ') + (featured && material.href ? ' — opens in a new tab' : ''),
+    'aria-current': featured ? 'true' : undefined,
+    'aria-describedby': descriptionId,
+    'data-card': material.id, 'data-featured': featured ? '' : undefined,
+    onClick: event => onActivate(event, material)
   },
     h('span', { className: 'material-card-art', 'aria-hidden': 'true' },
       h('img', { src: material.preview, alt: '', draggable: false })),
+    h('span', { className: 'material-card-back', 'aria-hidden': 'true' },
+      h('img', { src: material.preview, alt: '', draggable: false })),
     h('span', { className: 'material-card-title', 'aria-hidden': 'true' },
       material.title[0], material.title[1] && ' ', material.title[1] && h('em', null, material.title[1])),
-    material.description && h('span', { className: 'material-card-description', id: descriptionId }, material.description)
+    h('span', { className: 'material-card-description', id: descriptionId }, material.description)
   );
 }
 
@@ -103,187 +96,152 @@ function fly(layer, origin, destination, image, selected, opening, index, liveIm
   return move;
 }
 
-function measureCards(gallery) {
-  const rail = gallery.querySelector('.material-rail').getBoundingClientRect();
-  return new Map([...gallery.querySelectorAll('[data-card]')].map(card => {
-    const slot = card.getBoundingClientRect();
-    const art = card.firstElementChild;
-    const width = parseFloat(getComputedStyle(art).width);
-    const box = { left: slot.left + (slot.width - width) / 2, top: slot.top, width, height: slot.height };
-    const visible = slot.right > rail.left && slot.left < rail.right;
-    const style = getComputedStyle(art);
-    const shift = style.translate === 'none' ? 0 : parseFloat(style.translate) || 0;
-    box.left += shift;
-    return [card.dataset.card, { box, visible, order: getComputedStyle(card).zIndex, tilt: style.transform }];
-  }));
+function measureCard(gallery, material) {
+  const art = gallery.querySelector('[data-card="' + material.id + '"] .material-card-art');
+  return art ? { box: art.getBoundingClientRect(), tilt: 'none' } : null;
 }
 
 function Gallery() {
   const container = useRef(null);
+  const rail = useRef(null);
   const busy = useRef(false);
+  const motion = useRef({ angle: -38, target: -38, frame: 0, time: 0 });
+  const gesture = useRef(null);
+  const dragged = useRef(false);
   const [phase, setPhase] = useState('home');
   const [category, setCategory] = useState('all');
-  const [page, setPage] = useState(0);
-  const [isMobile, setIsMobile] = useState(mobileCarousel.matches);
-  const [centered, setCentered] = useState(0);
-  const centerIndex = useRef(0);
-  const scrollFrame = useRef(0);
-  const [capacity, setCapacity] = useState(innerWidth <= 600 ? 1 : 6);
-  const filteredItems = experiments.filter(item => category === 'all' || item.category === category);
-  const pageCount = Math.ceil(filteredItems.length / capacity);
-  const currentPage = Math.min(page, pageCount - 1);
-  const visibleItems = isMobile ? filteredItems : filteredItems.slice(currentPage * capacity, (currentPage + 1) * capacity);
-  const [hovered, setHovered] = useState(null);
-  const [focused, setFocused] = useState(null);
-  const featured = isMobile ? centered + 1 : hovered ?? focused;
-  const hoverTimer = useRef(null);
-  const pendingHover = useRef(null);
-  const hoveredRef = useRef(null);
+  const [selected, setSelected] = useState(null);
+  const items = experiments.filter(item => category === 'all' || item.category === category);
 
-  function queueHover(next) {
-    if (pendingHover.current === next) return;
-    pendingHover.current = next;
-    clearTimeout(hoverTimer.current);
-    hoverTimer.current = setTimeout(() => {
-      hoveredRef.current = next;
-      setHovered(next);
-    }, next === null ? 90 : hoveredRef.current === null ? 25 : 65);
-  }
-
-  function followPointer(event) {
-    if (phase !== 'home' || event.pointerType === 'touch' || !hoverAvailable.matches) return;
-    if (focused !== null) setFocused(null);
-    const cards = [...event.currentTarget.querySelectorAll('[data-card]')];
-    let closest = null, distance = Infinity;
-    cards.forEach((card, index) => {
-      const box = card.getBoundingClientRect();
-      if (event.clientY < box.top || event.clientY > box.bottom) return;
-      const delta = Math.abs(event.clientX - box.left - box.width / 2);
-      if (delta < distance && delta < box.width * .65) {
-        closest = index + 1;
-        distance = delta;
-      }
-    });
-    // Keep fixed slots for smooth lateral selection, but include the visible
-    // faces above and below that row. Their transformed surface is clickable.
-    if (closest === null) {
-      const current = hoveredRef.current ?? focused;
-      const order = cards.map((_, index) => index + 1).reverse();
-      if (current !== null) order.unshift(current);
-      for (const index of order) {
-        const face = cards[index - 1]?.firstElementChild.getBoundingClientRect();
-        if (face && event.clientX >= face.left && event.clientX <= face.right &&
-            event.clientY >= face.top && event.clientY <= face.bottom) {
-          closest = index;
-          break;
-        }
-      }
+  function paintRotation() {
+    const track = rail.current?.firstElementChild;
+    if (!track) return;
+    const pages = track.children;
+    for (let i = 0; i < pages.length; i++) {
+      const angle = motion.current.angle + i * 360 / pages.length;
+      const radians = angle * Math.PI / 180;
+      const light = .23 + .51 * Math.abs(Math.cos(radians + .62));
+      pages[i].style.setProperty('--face-angle', angle + 'deg');
+      pages[i].style.setProperty('--face-shadow', (1 - light).toFixed(3));
+      // Positive sine places the center of this radial panel behind the pivot.
+      const distance = Math.max(0, (Math.sin(radians) - .12) / .88);
+      pages[i].style.setProperty('--depth-blur', (distance ** 1.5).toFixed(3));
     }
-    queueHover(closest);
   }
 
-  function resetHover() {
-    clearTimeout(hoverTimer.current);
-    pendingHover.current = null;
-    hoveredRef.current = null;
-    setHovered(null);
+  function stopRotation() {
+    const state = motion.current;
+    cancelAnimationFrame(state.frame);
+    state.frame = 0;
+    state.time = 0;
+    state.target = state.angle;
+  }
+
+  function tick(time) {
+    const state = motion.current;
+    const elapsed = state.time ? Math.min(48, time - state.time) : 16;
+    state.time = time;
+    const delta = state.target - state.angle;
+    const finished = reducedMotion.matches || Math.abs(delta) < .12;
+    state.angle = finished ? state.target : state.angle + delta * (1 - Math.exp(-elapsed / 85));
+    paintRotation();
+    state.frame = finished ? 0 : requestAnimationFrame(tick);
+    if (finished) state.time = 0;
+  }
+
+  function rotateBy(degrees) {
+    const state = motion.current;
+    state.target = state.angle + Math.max(-180, Math.min(180, state.target - state.angle + degrees));
+    if (!state.frame) state.frame = requestAnimationFrame(tick);
   }
 
   function changeCategory(next) {
-    resetHover();
-    setFocused(null);
+    if (next === category) return;
+    stopRotation();
+    motion.current.angle = motion.current.target = -38;
+    setSelected(null);
     setCategory(next);
-    setPage(0);
-    centerIndex.current = 0;
-    setCentered(0);
   }
 
-  function centerCard(rail, index, behavior = 'instant') {
-    const track = rail.firstElementChild;
-    const card = track.children[index];
-    if (!card) return;
-    const offset = track.offsetLeft + card.offsetLeft + card.offsetWidth / 2 - rail.clientWidth / 2;
-    rail.scrollTo({ left: offset, behavior });
-  }
-
-  function trackCenter(event) {
-    if (!isMobile || phase !== 'home' || scrollFrame.current) return;
-    const rail = event.currentTarget;
-    scrollFrame.current = requestAnimationFrame(() => {
-      scrollFrame.current = 0;
-      if (busy.current || !rail.clientWidth) return;
-      const track = rail.firstElementChild;
-      const [first, second] = track.children;
-      if (!second) return;
-      const origin = track.offsetLeft + first.offsetLeft + first.offsetWidth / 2;
-      const stride = second.offsetLeft - first.offsetLeft;
-      if (stride <= 0) return;
-      const next = Math.max(0, Math.min(track.children.length - 1,
-        Math.round((rail.scrollLeft + rail.clientWidth / 2 - origin) / stride)));
-      if (next !== centerIndex.current) {
-        centerIndex.current = next;
-        setCentered(next);
-      }
-    });
+  function returnToOrbit() {
+    if (selected) setSelected(null);
   }
 
   useEffect(() => {
-    const update = () => setIsMobile(mobileCarousel.matches);
-    mobileCarousel.addEventListener('change', update);
-    return () => {
-      mobileCarousel.removeEventListener('change', update);
-      cancelAnimationFrame(scrollFrame.current);
-    };
-  }, []);
-
-  React.useLayoutEffect(() => {
-    if (!isMobile || (phase !== 'home' && phase !== 'closing')) return;
-    const rail = container.current.querySelector('.material-rail');
-    const align = () => centerCard(rail, centerIndex.current);
-    align();
-    const observer = new ResizeObserver(align);
-    observer.observe(rail);
-    observer.observe(rail.firstElementChild);
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(scrollFrame.current);
-      scrollFrame.current = 0;
-    };
-  }, [isMobile, category, phase]);
-
-  function changePage(direction) {
-    if (isMobile) {
-      const next = Math.max(0, Math.min(filteredItems.length - 1, centered + direction));
-      centerCard(container.current.querySelector('.material-rail'), next, reducedMotion.matches ? 'instant' : 'smooth');
-      return;
+    const element = rail.current;
+    function wheel(event) {
+      if (phase !== 'home' || (items.length < 2 && !selected) || event.ctrlKey) return;
+      event.preventDefault();
+      returnToOrbit();
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1;
+      if (items.length > 1) rotateBy(Math.max(-72, Math.min(72, delta * unit * .24)));
     }
-    resetHover();
-    setFocused(null);
-    setPage((currentPage + direction + pageCount) % pageCount);
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, [phase, category, selected]);
+
+  React.useLayoutEffect(paintRotation, [category, phase]);
+  useEffect(() => stopRotation, []);
+
+  function startDrag(event) {
+    if (event.button !== 0 || !event.isPrimary) return;
+    dragged.current = false;
+    gesture.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY,
+      x: event.clientX, time: event.timeStamp, speed: 0, active: false };
   }
 
-  React.useLayoutEffect(() => {
-    if (phase !== 'home' || isMobile) return;
-    const rail = container.current.querySelector('.material-rail');
-    const track = rail.querySelector('.material-track');
-    const card = track.firstElementChild;
-    function updateCapacity() {
-      if (!rail.clientWidth || !card) return;
-      const style = getComputedStyle(track);
-      const available = rail.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      const slot = card.getBoundingClientRect().width;
-      const next = Math.max(1, Math.min(6, Math.floor((available + .5) / slot)));
-      setCapacity(next);
+  function moveDrag(event) {
+    const drag = gesture.current;
+    if (!drag || drag.id !== event.pointerId || (items.length < 2 && !selected)) return;
+    const fromStart = event.clientX - drag.startX;
+    if (!drag.active) {
+      const vertical = Math.abs(event.clientY - drag.startY);
+      if (Math.abs(fromStart) < 8 || Math.abs(fromStart) < vertical) return;
+      drag.active = true;
+      dragged.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      stopRotation();
+      returnToOrbit();
     }
-    updateCapacity();
-    const observer = new ResizeObserver(updateCapacity);
-    observer.observe(rail);
-    if (card) observer.observe(card);
-    return () => observer.disconnect();
-  }, [phase, category, currentPage, capacity, isMobile]);
+    const delta = (drag.x - event.clientX) * .43;
+    drag.speed = .4 * drag.speed + .6 * delta / Math.max(8, event.timeStamp - drag.time);
+    drag.x = event.clientX;
+    drag.time = event.timeStamp;
+    if (items.length > 1) rotateBy(delta);
+  }
 
-  useEffect(() => () => clearTimeout(hoverTimer.current), []);
-  const shiftByDistance = [.235, .142, .078, .04];
+  function endDrag(event) {
+    const drag = gesture.current;
+    if (!drag || drag.id !== event.pointerId) return;
+    gesture.current = null;
+    if (event.type === 'pointerup' && drag.active && items.length > 1 &&
+        event.timeStamp - drag.time < 90 && !reducedMotion.matches) {
+      rotateBy(Math.max(-62, Math.min(62, drag.speed * 130)));
+    }
+  }
+
+  function activate(event, material) {
+    if (busy.current || (dragged.current && event.detail !== 0)) {
+      event.preventDefault();
+      return;
+    }
+    if (selected !== material.id) {
+      event.preventDefault();
+      stopRotation();
+      const card = event.currentTarget;
+      const from = getComputedStyle(card).transform;
+      flushSync(() => setSelected(material.id));
+      if (!reducedMotion.matches) {
+        card.animate([{ transform: from }, { transform: getComputedStyle(card).transform }], {
+          duration: 480, easing: 'cubic-bezier(.22,.72,.2,1)'
+        });
+      }
+    } else if (!material.href) {
+      for (const animation of event.currentTarget.getAnimations()) animation.finish();
+      open(material);
+    }
+  }
 
   function studioFocus() {
     // Focus the selected scene's tab so keyboard navigation can continue in reading order.
@@ -302,9 +260,7 @@ function Gallery() {
     if (busy.current || phase !== 'home') return;
     busy.current = true;
     const gallery = container.current;
-    const origins = measureCards(gallery);
-    resetHover();
-    setFocused(null);
+    const origin = measureCard(gallery, material);
     const layer = document.createElement('div');
     layer.className = 'material-flight';
     layer.setAttribute('aria-hidden', 'true');
@@ -317,19 +273,15 @@ function Gallery() {
       if (!reducedMotion.matches) {
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         window.materialStudio.pause();
-        const targets = new Map(materials.map(item => [item.id, (item === material ? stage : item.button).getBoundingClientRect()]));
+        const target = stage.getBoundingClientRect();
         document.body.dataset.studioMode = 'transition';
         studio.inert = true;
         flushSync(() => setPhase('opening'));
         document.body.append(layer);
-        const flights = materials.flatMap((item, index) => {
-          const origin = origins.get(item.id);
-          if (!origin || (!origin.visible && item !== material)) return [];
-          return [fly(layer, origin, targets.get(item.id), item.preview, item === material, true, index)];
-        });
+        const flight = origin && fly(layer, origin, target, material.preview, true, true, 0);
         animate(gallery.querySelectorAll('h1,p'), { opacity: [1, 0] }, { duration: .24, ease });
         animate(studio, { opacity: [0, 0, 1] }, { duration, times: [0, .51, 1], ease });
-        await Promise.all(flights);
+        await flight;
       }
     } finally {
       layer.remove();
@@ -347,13 +299,9 @@ function Gallery() {
     if (busy.current || phase !== 'studio') return;
     busy.current = true;
     const material = materials.find(item => item.button.getAttribute('aria-pressed') === 'true') || materials[0];
-    const returnIndex = filteredItems.findIndex(item => item.id === material.id);
     flushSync(() => {
-      if (returnIndex < 0) setCategory('materials');
-      const index = returnIndex < 0 ? materials.indexOf(material) : returnIndex;
-      setPage(Math.floor(index / capacity));
-      centerIndex.current = index;
-      setCentered(index);
+      if (!items.includes(material)) setCategory('materials');
+      setSelected(material.id);
     });
     const layer = document.createElement('div');
     layer.className = 'material-flight';
@@ -361,22 +309,18 @@ function Gallery() {
     const gallery = container.current;
     try {
       if (!reducedMotion.matches) {
-        const targets = new Map(materials.map(item => [item.id, (item === material ? stage : item.button).getBoundingClientRect()]));
+        const target = stage.getBoundingClientRect();
         const liveImage = await window.materialStudio.capture();
         window.materialStudio.pause();
         flushSync(() => setPhase('closing'));
-        const origins = measureCards(gallery);
+        const origin = measureCard(gallery, material);
         document.body.dataset.studioMode = 'transition';
         studio.inert = true;
         document.body.append(layer);
-        const flights = materials.flatMap((item, index) => {
-          const origin = origins.get(item.id);
-          if (!origin || (!origin.visible && item !== material)) return [];
-          return [fly(layer, origin, targets.get(item.id), item.preview, item === material, false, index, item === material ? liveImage : null)];
-        });
+        const flight = origin && fly(layer, origin, target, material.preview, true, false, 0, liveImage);
         animate(studio, { opacity: [1, 0] }, { duration: .25, ease });
         animate(gallery.querySelectorAll('h1,p'), { opacity: [0, 0, 1] }, { duration, times: [0, .38, 1], ease });
-        await Promise.all(flights);
+        await flight;
       }
     } finally {
       layer.remove();
@@ -394,10 +338,10 @@ function Gallery() {
   useEffect(() => {
     homeButton.addEventListener('click', close);
     return () => homeButton.removeEventListener('click', close);
-  }, [phase, category, capacity, isMobile]);
+  }, [phase, category]);
 
   return h('section', {
-    ref: container, className: 'material-home' + (isMobile ? ' is-mobile-carousel' : '') + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
+    ref: container, className: 'material-home' + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
     'aria-labelledby': 'materialHomeTitle', hidden: phase === 'studio',
     inert: phase !== 'home'
   },
@@ -408,21 +352,17 @@ function Gallery() {
         categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
     ),
     h('div', { className: 'studio-gallery' },
-    h('div', { className: 'material-rail', onPointerMove: isMobile ? undefined : followPointer, onPointerLeave: isMobile ? undefined : () => queueHover(null), onPointerCancel: resetHover, onScroll: trackCenter }, h('div', {
-      key: isMobile ? category : category + '-' + currentPage, className: 'material-track', 'data-previewing': featured === null ? undefined : ''
-    }, visibleItems.map((material, index) => {
-      const stackOrder = index + 1;
-      const distance = featured === null ? 0 : stackOrder - featured;
-      const offset = isMobile ? 0 : Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
-      return h(MaterialCard, {
-        key: material.id, material, stackOrder, featured: featured === stackOrder,
-        offset, side: isMobile ? Math.sign(distance) : undefined, hasNext: index < visibleItems.length - 1, onFocus: setFocused, onOpen: open
-      });
-    }))),
-      h('div', { className: 'studio-rail-controls' },
-        (isMobile ? filteredItems.length > 1 : pageCount > 1) && h('button', { type: 'button', 'aria-label': 'Previous experiments', disabled: isMobile && centered === 0, onClick: () => changePage(-1) }, '←'),
-        h('span', { className: 'studio-experiment-count', role: 'status', 'aria-live': 'polite' }, (filteredItems.length === 1 ? '1 experiment' : filteredItems.length + ' experiments') + (isMobile ? '.' : '. Group ' + (currentPage + 1) + ' of ' + pageCount)),
-        (isMobile ? filteredItems.length > 1 : pageCount > 1) && h('button', { type: 'button', 'aria-label': 'Next experiments', disabled: isMobile && centered === filteredItems.length - 1, onClick: () => changePage(1) }, '→'))),
+      h('div', { ref: rail, className: 'material-rail',
+        onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag,
+        onPointerCancel: endDrag, onLostPointerCapture: endDrag,
+        onClick: event => { if (event.target === rail.current && !dragged.current) returnToOrbit(); } },
+        h('div', { className: 'material-track', 'data-previewing': selected ? '' : undefined,
+          'data-single': items.length === 1 ? '' : undefined },
+          items.map(material => h(MaterialCard, { key: material.id, material,
+            featured: selected === material.id, onActivate: activate })))),
+      items.length > 1 && h('div', { className: 'studio-rail-controls' },
+        h('button', { type: 'button', 'aria-label': 'Rotate left', onClick: () => { returnToOrbit(); rotateBy(-360 / items.length); } }, '←'),
+        h('button', { type: 'button', 'aria-label': 'Rotate right', onClick: () => { returnToOrbit(); rotateBy(360 / items.length); } }, '→'))),
     h('div', { className: 'studio-home-footer' },
       h('p', null, 'Choose an experiment. Explore its nature.',
         h('span', { className: 'studio-footer-divider', 'aria-hidden': 'true' }, ' · '),
