@@ -510,6 +510,7 @@ function projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight,
   const centerX = relative.x * width;
   const centerY = relative.y * height;
   let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  const corners = [];
   for (const x of [-photoWidth / 2, photoWidth / 2]) {
     for (const y of [-photoHeight / 2, photoHeight / 2]) {
       const dx = rotation.xx * x + rotation.xy * y;
@@ -517,6 +518,7 @@ function projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight,
       const projection = 1 / (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tiltDepth / lens);
       const px = (centerX + rollCos * dx - rollSin * dy) * projection;
       const py = (centerY + rollSin * dx + rollCos * dy) * projection;
+      corners.push([px, py]);
       left = Math.min(left, px);
       right = Math.max(right, px);
       top = Math.min(top, py);
@@ -525,7 +527,8 @@ function projectedBounds(relative, rotation, tiltDepth, photoWidth, photoHeight,
   }
   return {
     left: clamp(left, -width / 2, width / 2), right: clamp(right, -width / 2, width / 2),
-    top: clamp(top, -height / 2, height / 2), bottom: clamp(bottom, -height / 2, height / 2)
+    top: clamp(top, -height / 2, height / 2), bottom: clamp(bottom, -height / 2, height / 2),
+    quad: [corners[0], corners[2], corners[3], corners[1]]
   };
 }
 
@@ -642,7 +645,7 @@ function render(time) {
   if (counter !== lastCounter) byId("counter").textContent = lastCounter = counter;
   paintCta(playback.length > 1 ? position / (playback.length - 1) : 0);
   const moving = Math.abs(target - displayed) >= .003 || motionBlur > 0;
-  updateLight(position, moving, camera);
+  updateLight(position, moving, camera, dt, photos);
   if (moving) requestRender();
 }
 
@@ -675,7 +678,7 @@ const lensLayers = new WeakMap();
 const lensCache = new Map();
 
 function boxBlurRGBA(data, width, height, radius) {
-  const temp = new Uint8ClampedArray(data.length);
+  const temp = new Float32Array(data.length);
   const divisor = 2 * radius + 1;
   const run = (from, to, length, lines, stride, lineStride) => {
     for (let line = 0; line < lines; line++) {
@@ -697,17 +700,18 @@ function boxBlurRGBA(data, width, height, radius) {
   }
 }
 
+// Ogni livello è un "cerchio di confusione" completo: la sagoma stessa della foto (angoli arrotondati inclusi) è
+// sfocata con alfa premoltiplicato su un'area più ampia, così il bordo si dissolve verso l'esterno e verso l'interno.
+const lensPad = 8;
+
 function attachLens(card, photo, image) {
-  const dim = document.createElement("i");
-  dim.className = "lens-dim";
-  const state = { canvases: [], dim, ready: false, key: "", opacities: [], dimValue: -1 };
-  card.append(dim);
+  const state = { img: photo, canvases: [], ready: false, key: "", opacities: [], sharp: -1, dim: -1 };
   lensLayers.set(card, state);
   const key = () => image.x + "," + image.y + "," + image.ratio;
   const finish = (canvases) => {
-    for (const canvas of canvases) card.insertBefore(canvas, dim);
+    for (const canvas of canvases) card.append(canvas);
     state.canvases = canvases;
-    state.opacities = canvases.map(() => -1);
+    state.opacities = [-1, ...canvases.map(() => -1)];
     state.key = key();
     state.ready = true;
   };
@@ -734,15 +738,45 @@ function attachLens(card, photo, image) {
         return finish(canvases);
       }
       const long = Math.round(2.45 / lensFractions[level]);
+      const cw = viewRatio >= 1 ? long : Math.max(8, Math.round(long * viewRatio));
+      const ch = viewRatio >= 1 ? Math.max(8, Math.round(long / viewRatio)) : long;
       const canvas = document.createElement("canvas");
-      canvas.width = viewRatio >= 1 ? long : Math.max(8, Math.round(long * viewRatio));
-      canvas.height = viewRatio >= 1 ? Math.max(8, Math.round(long / viewRatio)) : long;
+      canvas.width = cw + lensPad * 2;
+      canvas.height = ch + lensPad * 2;
       canvas.className = "lens-level";
+      canvas.style.left = (-lensPad / cw * 100).toFixed(3) + "%";
+      canvas.style.top = (-lensPad / ch * 100).toFixed(3) + "%";
+      canvas.style.width = (canvas.width / cw * 100).toFixed(3) + "%";
+      canvas.style.height = (canvas.height / ch * 100).toFixed(3) + "%";
       const context = canvas.getContext("2d", { willReadFrequently: true });
+      const radius = Math.min(cw, ch) * .045;
+      context.save();
+      context.beginPath();
+      context.moveTo(lensPad + radius, lensPad);
+      context.arcTo(lensPad + cw, lensPad, lensPad + cw, lensPad + ch, radius);
+      context.arcTo(lensPad + cw, lensPad + ch, lensPad, lensPad + ch, radius);
+      context.arcTo(lensPad, lensPad + ch, lensPad, lensPad, radius);
+      context.arcTo(lensPad, lensPad, lensPad + cw, lensPad, radius);
+      context.closePath();
+      context.clip();
       context.imageSmoothingQuality = "high";
-      context.drawImage(photo, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      context.drawImage(photo, sx, sy, sw, sh, lensPad, lensPad, cw, ch);
+      context.restore();
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-      boxBlurRGBA(pixels.data, canvas.width, canvas.height, 2);
+      const bytes = pixels.data;
+      const floats = new Float32Array(bytes.length);
+      for (let i = 0; i < bytes.length; i += 4) {
+        const alpha = bytes[i + 3] / 255;
+        floats[i] = bytes[i] * alpha; floats[i + 1] = bytes[i + 1] * alpha;
+        floats[i + 2] = bytes[i + 2] * alpha; floats[i + 3] = bytes[i + 3];
+      }
+      boxBlurRGBA(floats, canvas.width, canvas.height, 2);
+      for (let i = 0; i < bytes.length; i += 4) {
+        const alpha = floats[i + 3];
+        const gain = alpha > .5 ? 255 / alpha : 0;
+        bytes[i] = floats[i] * gain; bytes[i + 1] = floats[i + 1] * gain;
+        bytes[i + 2] = floats[i + 2] * gain; bytes[i + 3] = alpha;
+      }
       context.putImageData(pixels, 0, 0);
       canvases.push(canvas);
       setTimeout(next, 0);
@@ -753,6 +787,7 @@ function attachLens(card, photo, image) {
   else photo.addEventListener("load", () => state.build(), { once: true });
 }
 
+// Interpolazione lineare tra livelli adiacenti (plus-lighter = somma di alfa e colore premoltiplicati).
 function applyLens(card, image, screenBlur, scale, longSide, dim) {
   const state = lensLayers.get(card);
   if (!state) return false;
@@ -763,26 +798,29 @@ function applyLens(card, image, screenBlur, scale, longSide, dim) {
     state.build();
   }
   if (!state.ready) return false;
-  if (card.style.filter) card.style.filter = "";
   const fraction = screenBlur / Math.max(.25, scale) / longSide;
   const top = lensFractions.length - 1;
   let level = 0;
   while (level < top && fraction >= lensFractions[level + 1]) level++;
-  const mix = level >= top ? 1 : clamp((fraction - lensFractions[level]) / (lensFractions[level + 1] - lensFractions[level]), 0, 1);
-  state.canvases.forEach((canvas, index) => {
-    const layer = index + 1;
-    const value = level >= top ? (layer === top ? 1 : 0)
-      : layer < level ? 0 : layer === level ? 1 : layer === level + 1 ? mix : 0;
+  const mix = level >= top ? 0 : clamp((fraction - lensFractions[level]) / (lensFractions[level + 1] - lensFractions[level]), 0, 1);
+  const layers = [state.img, ...state.canvases];
+  layers.forEach((layer, index) => {
+    const value = index === level ? 1 - mix : index === level + 1 ? mix : 0;
     const rounded = Math.round(value * 100) / 100;
     if (state.opacities[index] !== rounded) {
       state.opacities[index] = rounded;
-      canvas.style.opacity = String(rounded);
+      layer.style.opacity = String(rounded);
     }
   });
-  const dimRounded = Math.round(dim * 200) / 200;
-  if (state.dimValue !== dimRounded) {
-    state.dimValue = dimRounded;
-    state.dim.style.opacity = String(dimRounded);
+  const sharp = Math.round(clamp(1 - fraction / .006, 0, 1) * 20) / 20;
+  if (state.sharp !== sharp) {
+    state.sharp = sharp;
+    card.style.setProperty("--edge-sharp", String(sharp));
+  }
+  const dimRounded = dim > .004 ? Math.round(dim * 200) / 200 : 0;
+  if (state.dim !== dimRounded) {
+    state.dim = dimRounded;
+    card.style.filter = dimRounded ? "brightness(" + (1 - dimRounded).toFixed(3) + ")" : "";
   }
   return true;
 }
@@ -875,7 +913,25 @@ function toneAt(index) {
 
 // Luce ambientale dal colore della foto attiva e flare anamorfico nel fondale. Entrambi stanno
 // dietro tutte le foto: non toccano mai i livelli di profondità e non si sovrappongono alle foto.
-function updateLight(position, moving, camera) {
+// Distanza con segno dal bordo del quadrilatero proiettato (positiva dentro): occlusione esatta, non del solo ingombro.
+function quadDepth(quad, x, y) {
+  let area = 0;
+  for (let i = 0; i < 4; i++) {
+    const [ax, ay] = quad[i], [bx, by] = quad[(i + 1) % 4];
+    area += ax * by - bx * ay;
+  }
+  const sign = area >= 0 ? 1 : -1;
+  let depth = Infinity;
+  for (let i = 0; i < 4; i++) {
+    const [ax, ay] = quad[i], [bx, by] = quad[(i + 1) % 4];
+    const length = Math.hypot(bx - ax, by - ay) || 1;
+    depth = Math.min(depth, sign * ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) / length);
+  }
+  return depth;
+}
+
+let flareLevel = 0;
+function updateLight(position, moving, camera, dt, photos) {
   if (!playback.length) return;
   const base = Math.floor(position);
   const mix = position - base;
@@ -896,9 +952,33 @@ function updateLight(position, moving, camera) {
   const opacity = quality > 1 ? 0 : glow;
   spill.style.opacity = opacity.toFixed(3);
   const energy = reducedMotion.matches || quality > 1 ? 0 : clamp(motionBlur / 3.2, 0, 1);
-  flare.style.opacity = (reducedMotion.matches || quality > 1 ? 0 : .5 + .5 * energy).toFixed(3);
-  flare.style.transform = "translate3d(" + (-camera.x * sceneWidth * .06).toFixed(1) + "px," +
-    (-camera.y * sceneHeight * .06).toFixed(1) + "px,0)";
+  // Il flare vive nel fondale: la sua intensità segue quanto il centro dello sfondo è davvero scoperto.
+  // Si calcola l'occlusione reale nel punto della sorgente (foto con la loro opacità), non un valore fisso.
+  const sourceX = -camera.x * sceneWidth * .06;
+  const sourceY = -camera.y * sceneHeight * .06;
+  // Esposizione: media su un piccolo disco attorno alla sorgente (il "centro dello sfondo"), non su un solo pixel.
+  const reach = Math.min(sceneWidth, sceneHeight) * .13;
+  let exposure = 0, weights = 0;
+  for (let k = -1; k < 8; k++) {
+    const weight = k < 0 ? 3 : 1;
+    const x = sourceX + (k < 0 ? 0 : Math.cos(k * Math.PI / 4) * reach);
+    const y = sourceY + (k < 0 ? 0 : Math.sin(k * Math.PI / 4) * reach);
+    let clear = 1;
+    for (const { bounds, opacity, visibility } of photos) {
+      const alpha = opacity * visibility;
+      if (alpha < .01) continue;
+      clear *= 1 - alpha * clamp(quadDepth(bounds.quad, x, y) / 16 + .5, 0, 1);
+    }
+    exposure += clear * weight;
+    weights += weight;
+  }
+  const clear = clamp((exposure / weights - .12) / .55, 0, 1);
+  const target = reducedMotion.matches || quality > 1 ? 0 : clear * (.42 + .58 * energy);
+  flareLevel += (target - flareLevel) * (1 - Math.exp(-(dt || 16) / (target > flareLevel ? 60 : 110)));
+  if (Math.abs(target - flareLevel) < .004) flareLevel = target;
+  else requestRender();
+  flare.style.opacity = flareLevel.toFixed(3);
+  flare.style.transform = "translate3d(" + sourceX.toFixed(1) + "px," + sourceY.toFixed(1) + "px,0)";
   if (moving) wasMoving = true;
   else if (wasMoving) {
     wasMoving = false;
