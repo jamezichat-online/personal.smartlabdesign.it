@@ -960,13 +960,16 @@ function toggleView() {
   (viewing ? viewport : byId("mode")).focus({ preventScroll: true });
 }
 
-// The controls sit above the scroller, so forward wheel input over the CTA.
-cta.addEventListener("wheel", event => {
+// Reverse wheel input within the gallery, including over the floating controls.
+function scrollGalleryWheel(event) {
+  if (event.ctrlKey || event.metaKey || event.deltaY === 0) return;
   const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 :
     event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? viewport.clientHeight : 1;
-  viewport.scrollBy({ top: event.deltaY * unit, left: event.deltaX * unit, behavior: "instant" });
+  viewport.scrollBy({ top: -event.deltaY * unit, left: event.deltaX * unit, behavior: "instant" });
   event.preventDefault();
-}, { passive: false });
+}
+viewport.addEventListener("wheel", scrollGalleryWheel, { passive: false });
+cta.addEventListener("wheel", scrollGalleryWheel, { passive: false });
 
 viewport.addEventListener("scroll", requestRender, { passive: true });
 new ResizeObserver(() => updateLayout()).observe(viewport);
