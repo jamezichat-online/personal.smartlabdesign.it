@@ -22,7 +22,7 @@
 - Home cards remain uniform and accommodate additional elements. Hover uses stable rail targets; transitions should use transform/opacity rather than animated layout dimensions.
 - Keep rounded clipping throughout opening and returning Home, including temporary flight cards, preview images and captured canvases.
 - Home header, gallery and footer must occupy disjoint layout rows. Keep the rail height constrained to its grid row, size cards against the available rail height, and isolate card stacking from the controls. Verify real pointer clicks on filters and arrows at 2048×1019 as well as tablet/phone sizes; accessibility activation alone does not detect a covered button.
-- Home uses a radial 3D carousel. Wheel, drag and side arrows rotate the stack. The first click brings a card face-on and the second opens it. Keep circular arrow buttons and a fixed page viewport.
+- Home uses a radial 3D carousel. Wheel, drag and side arrows rotate the stack. Radial selection rotates the whole stack while keeping the card on its pivot. Focus moves side cards to the center and opens a card already in focus. Keep circular arrow buttons and a fixed page viewport.
 - Keep UI copy in English.
 - Linked project cards belong in the Home `projects` registry, use native links and compressed static previews, and must not preload their 3D engines. Preserve existing project access settings. Keep categories data-driven and card dimensions uniform.
 - Verify material selection, deformation/release, picking of separable pieces, reset, Home transitions and suspend/resume for the affected paths.

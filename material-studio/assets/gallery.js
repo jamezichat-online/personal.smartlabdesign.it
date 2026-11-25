@@ -101,6 +101,9 @@ function measureCard(gallery, material) {
   return art ? { box: art.getBoundingClientRect(), tilt: 'none' } : null;
 }
 
+const angleStep = count => 360 / count;
+const wrap = (value, period) => value - Math.round(value / period) * period;
+
 function Gallery() {
   const container = useRef(null);
   const rail = useRef(null);
@@ -110,6 +113,9 @@ function Gallery() {
   const dragged = useRef(false);
   const [phase, setPhase] = useState('home');
   const [category, setCategory] = useState('all');
+  const [mode, setMode] = useState('radial');
+  const [front, setFront] = useState(0);
+  const wheelSnap = useRef(0);
   const [selected, setSelected] = useState(null);
   const items = experiments.filter(item => category === 'all' || item.category === category);
 
@@ -117,20 +123,41 @@ function Gallery() {
     const track = rail.current?.firstElementChild;
     if (!track) return;
     const pages = track.children;
+    const step = angleStep(pages.length);
+    if (mode === 'focus') {
+      const position = motion.current.angle / step;
+      const index = ((Math.round(position) % pages.length) + pages.length) % pages.length;
+      setFront(previous => previous === index ? previous : index);
+      for (let i = 0; i < pages.length; i++) {
+        const offset = wrap(i - position, pages.length);
+        const distance = Math.abs(offset);
+        const card = pages[i];
+        card.toggleAttribute('data-outside', distance > 2.64);
+        if (distance > 2.64) continue;
+        card.style.setProperty('--spread', (offset * .67).toFixed(4));
+        card.style.setProperty('--recede', Math.min(3, distance).toFixed(4));
+        card.style.setProperty('--yaw', (offset * -11).toFixed(3) + 'deg');
+        card.style.setProperty('--roll', (offset * 5.6).toFixed(3) + 'deg');
+        card.style.setProperty('--depth-blur', (Math.min(1, distance / 1.85) ** 1.2).toFixed(4));
+        card.style.setProperty('--fade', Math.max(0, Math.min(1, (2.65 - distance) * 3)).toFixed(3));
+      }
+      return;
+    }
     for (let i = 0; i < pages.length; i++) {
-      const angle = motion.current.angle + i * 360 / pages.length;
+      const angle = motion.current.angle + i * step;
       const radians = angle * Math.PI / 180;
-      const light = .23 + .51 * Math.abs(Math.cos(radians + .62));
+      const depth = Math.max(0, Math.sin(radians));
+      const light = .30 + .57 * Math.abs(Math.cos(radians + .64));
       pages[i].style.setProperty('--face-angle', angle + 'deg');
-      pages[i].style.setProperty('--face-shadow', (1 - light).toFixed(3));
-      // Positive sine places the center of this radial panel behind the pivot.
-      const distance = Math.max(0, (Math.sin(radians) - .12) / .88);
-      pages[i].style.setProperty('--depth-blur', (distance ** 1.5).toFixed(3));
+      pages[i].style.setProperty('--face-shadow', Math.min(.98, 1 - light + depth * .5).toFixed(3));
+      pages[i].style.setProperty('--depth-blur', (depth ** .8).toFixed(3));
+      pages[i].style.setProperty('--depth-fade', (1 - depth ** .9 * .83).toFixed(3));
     }
   }
 
   function stopRotation() {
     const state = motion.current;
+    clearTimeout(wheelSnap.current);
     cancelAnimationFrame(state.frame);
     state.frame = 0;
     state.time = 0;
@@ -143,7 +170,7 @@ function Gallery() {
     state.time = time;
     const delta = state.target - state.angle;
     const finished = reducedMotion.matches || Math.abs(delta) < .12;
-    state.angle = finished ? state.target : state.angle + delta * (1 - Math.exp(-elapsed / 85));
+    state.angle = finished ? state.target : state.angle + delta * (1 - Math.exp(-elapsed / (mode === 'focus' ? 105 : 85)));
     paintRotation();
     state.frame = finished ? 0 : requestAnimationFrame(tick);
     if (finished) state.time = 0;
@@ -155,12 +182,44 @@ function Gallery() {
     if (!state.frame) state.frame = requestAnimationFrame(tick);
   }
 
+  function settleFocus() {
+    const step = angleStep(items.length);
+    const target = motion.current.target;
+    rotateBy(Math.round(target / step) * step - target);
+  }
+
+  function resetGallery(nextMode) {
+    stopRotation();
+    motion.current.angle = motion.current.target = nextMode === 'focus' ? 0 : -38;
+    setSelected(null);
+    setFront(0);
+  }
+
   function changeCategory(next) {
     if (next === category) return;
-    stopRotation();
-    motion.current.angle = motion.current.target = -38;
-    setSelected(null);
+    resetGallery(mode);
     setCategory(next);
+  }
+
+  function changeMode(next) {
+    if (mode === next) return;
+    resetGallery(next);
+    setMode(next);
+  }
+
+  function turnStep(direction) {
+    clearTimeout(wheelSnap.current);
+    returnToOrbit();
+    const step = angleStep(items.length);
+    const target = motion.current.target;
+    rotateBy(Math.round(target / step + direction) * step - target);
+  }
+
+  function faceCard(index, count) {
+    const angle = motion.current.angle;
+    const phaseAngle = angle + index * angleStep(count);
+    const facing = Math.cos(phaseAngle * Math.PI / 180) < 0 ? 158 : -22;
+    return mode === 'focus' ? wrap(index * angleStep(count) - angle, 360) : wrap(facing - phaseAngle, 360);
   }
 
   function returnToOrbit() {
@@ -175,13 +234,20 @@ function Gallery() {
       returnToOrbit();
       const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1;
-      if (items.length > 1) rotateBy(Math.max(-72, Math.min(72, delta * unit * .24)));
+      if (items.length > 1) {
+        const scale = mode === 'focus' ? angleStep(items.length) / 200 : .24;
+        rotateBy(Math.max(-72, Math.min(72, delta * unit * scale)));
+        if (mode === 'focus') {
+          clearTimeout(wheelSnap.current);
+          wheelSnap.current = setTimeout(settleFocus, 125);
+        }
+      }
     }
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
-  }, [phase, category, selected]);
+  }, [phase, category, mode, selected]);
 
-  React.useLayoutEffect(paintRotation, [category, phase]);
+  React.useLayoutEffect(paintRotation, [category, mode, phase]);
   useEffect(() => stopRotation, []);
 
   function startDrag(event) {
@@ -204,7 +270,8 @@ function Gallery() {
       stopRotation();
       returnToOrbit();
     }
-    const delta = (drag.x - event.clientX) * .43;
+    const scale = mode === 'focus' ? angleStep(items.length) / Math.min(220, rail.current.clientWidth * .53) : .43;
+    const delta = (drag.x - event.clientX) * scale;
     drag.speed = .4 * drag.speed + .6 * delta / Math.max(8, event.timeStamp - drag.time);
     drag.x = event.clientX;
     drag.time = event.timeStamp;
@@ -217,8 +284,10 @@ function Gallery() {
     gesture.current = null;
     if (event.type === 'pointerup' && drag.active && items.length > 1 &&
         event.timeStamp - drag.time < 90 && !reducedMotion.matches) {
-      rotateBy(Math.max(-62, Math.min(62, drag.speed * 130)));
+      const limit = mode === 'focus' ? angleStep(items.length) * .85 : 62;
+      rotateBy(Math.max(-limit, Math.min(limit, drag.speed * 130)));
     }
+    if (mode === 'focus' && drag.active) settleFocus();
   }
 
   function activate(event, material) {
@@ -226,19 +295,17 @@ function Gallery() {
       event.preventDefault();
       return;
     }
-    if (selected !== material.id) {
+    const index = items.indexOf(material);
+    const step = angleStep(items.length);
+    const distance = Math.abs(wrap(index - motion.current.angle / step, items.length));
+    const needsFocus = mode === 'focus' ? distance > .12 : selected !== material.id;
+    if (needsFocus && items.length > 1) {
       event.preventDefault();
       stopRotation();
-      const card = event.currentTarget;
-      const from = getComputedStyle(card).transform;
-      flushSync(() => setSelected(material.id));
-      if (!reducedMotion.matches) {
-        card.animate([{ transform: from }, { transform: getComputedStyle(card).transform }], {
-          duration: 480, easing: 'cubic-bezier(.22,.72,.2,1)'
-        });
-      }
+      if (mode === 'radial') setSelected(material.id);
+      rotateBy(faceCard(index, items.length));
     } else if (!material.href) {
-      for (const animation of event.currentTarget.getAnimations()) animation.finish();
+      stopRotation();
       open(material);
     }
   }
@@ -299,9 +366,13 @@ function Gallery() {
     if (busy.current || phase !== 'studio') return;
     busy.current = true;
     const material = materials.find(item => item.button.getAttribute('aria-pressed') === 'true') || materials[0];
+    const returnItems = items.includes(material) ? items : materials;
+    stopRotation();
+    const delta = faceCard(returnItems.indexOf(material), returnItems.length);
+    motion.current.target = motion.current.angle += delta;
     flushSync(() => {
       if (!items.includes(material)) setCategory('materials');
-      setSelected(material.id);
+      setSelected(mode === 'radial' ? material.id : null);
     });
     const layer = document.createElement('div');
     layer.className = 'material-flight';
@@ -338,31 +409,42 @@ function Gallery() {
   useEffect(() => {
     homeButton.addEventListener('click', close);
     return () => homeButton.removeEventListener('click', close);
-  }, [phase, category]);
+  }, [phase, category, mode]);
 
+  const radialSelection = mode === 'radial' && items.find(item => item.id === selected);
   return h('section', {
-    ref: container, className: 'material-home' + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
+    ref: container, 'data-carousel': mode, className: 'material-home' + (phase === 'opening' || phase === 'closing' ? ' is-transitioning' : ''),
     'aria-labelledby': 'materialHomeTitle', hidden: phase === 'studio',
     inert: phase !== 'home'
   },
     h('div', { className: 'studio-home-header' },
       h('h1', { id: 'materialHomeTitle' }, 'Studio ', h('em', null, '3d')),
       h('span', { className: 'studio-signature' }, 'by Smartlabdesign'),
-      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
-        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
+      h('div', { className: 'studio-home-controls' },
+        h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
+          categories.map(([id, label]) => h('button', { key: id, type: 'button',
+            'aria-pressed': category === id, onClick: () => changeCategory(id) }, label))),
+        h('div', { className: 'studio-carousel-modes', role: 'group', 'aria-label': 'Carousel layout' },
+          [['radial', 'Radial'], ['focus', 'Focus']].map(([id, label]) =>
+            h('button', { key: id, type: 'button', 'aria-pressed': mode === id,
+              onClick: () => changeMode(id) }, label))))
+
     ),
     h('div', { className: 'studio-gallery' },
       h('div', { ref: rail, className: 'material-rail',
         onPointerDown: startDrag, onPointerMove: moveDrag, onPointerUp: endDrag,
         onPointerCancel: endDrag, onLostPointerCapture: endDrag,
         onClick: event => { if (event.target === rail.current && !dragged.current) returnToOrbit(); } },
-        h('div', { className: 'material-track', 'data-previewing': selected ? '' : undefined,
+        h('div', { key: mode, className: 'material-track', 'data-previewing': selected ? '' : undefined,
           'data-single': items.length === 1 ? '' : undefined },
-          items.map(material => h(MaterialCard, { key: material.id, material,
-            featured: selected === material.id, onActivate: activate })))),
+          items.map((material, index) => h(MaterialCard, { key: material.id, material,
+            featured: mode === 'focus' ? front === index : selected === material.id, onActivate: activate })))),
+      radialSelection && h('p', { className: 'studio-radial-label' },
+        radialSelection.title[0], radialSelection.title[1] && ' ', h('em', null, radialSelection.title[1]),
+        h('span', null, radialSelection.description)),
       items.length > 1 && h('div', { className: 'studio-rail-controls' },
-        h('button', { type: 'button', 'aria-label': 'Rotate left', onClick: () => { returnToOrbit(); rotateBy(-360 / items.length); } }, '←'),
-        h('button', { type: 'button', 'aria-label': 'Rotate right', onClick: () => { returnToOrbit(); rotateBy(360 / items.length); } }, '→'))),
+        h('button', { type: 'button', 'aria-label': 'Rotate left', onClick: () => turnStep(-1) }, '←'),
+        h('button', { type: 'button', 'aria-label': 'Rotate right', onClick: () => turnStep(1) }, '→'))),
     h('div', { className: 'studio-home-footer' },
       h('p', null, 'Choose an experiment. Explore its nature.',
         h('span', { className: 'studio-footer-divider', 'aria-hidden': 'true' }, ' · '),

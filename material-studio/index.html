@@ -15,7 +15,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outlin
 .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:15px 0 10px}.controls button{border-radius:100px;border:1px solid #664333;padding:10px 15px;background:#23150f;color:#ffe8d4;font:600 13px system-ui;cursor:pointer}.controls button[aria-pressed=true]{background:#ffae70;color:#241108;border-color:#ffae70}.controls button:hover{border-color:#ffae70}.controls button:focus-visible{outline:2px solid #fff2d8;outline-offset:3px}.reset{margin-left:auto}.hint{margin:0;color:#d8b59f;font-size:13px;min-height:2em}.error{position:absolute;inset:0;margin:0;place-content:center;text-align:center;padding:24px;background:#231410}.error:not([hidden]){display:grid}
 @media(max-width:480px){.stage{height:clamp(360px,60svh,560px);border-radius:14px}header p{font-size:10px}.controls{gap:6px}.controls button{padding:9px 11px}.reset{margin-left:0}}
 nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px solid #674733;background:transparent;color:#efcdb8;padding:9px 17px;border-radius:30px;cursor:pointer;font-weight:600}nav button[aria-pressed=true]{background:#f3ddc7;color:#28140e}button[hidden],#materialTools[hidden]{display:none}.stage canvas{position:absolute;inset:0;border-radius:inherit}.meta,#trace{z-index:2}body{padding-block:clamp(14px,2.4vh,30px)}header{margin-bottom:16px}.stage canvas.bloom{pointer-events:none;z-index:1;mix-blend-mode:screen;filter:blur(clamp(4px,0.8vw,10px))}.stage canvas.juice{pointer-events:none;position:absolute;inset:0;z-index:1}.controls button[hidden]{display:none}.audio-credits{margin-top:.7rem;color:#d8b59f;font-size:.8125rem}.audio-credits summary{cursor:pointer}.audio-credits a{color:inherit}</style>
-<link rel="stylesheet" href="./assets/gallery.css?v=13">
+<link rel="stylesheet" href="./assets/gallery.css?v=14">
 </head>
 <body data-studio-mode="home">
 <div id="materialHome"></div>
@@ -2566,7 +2566,7 @@ document.addEventListener('visibilitychange',()=>{
 })();
 </script>
 <script type="module">
-import('./assets/gallery.js?v=11').catch(error=>{
+import('./assets/gallery.js?v=12').catch(error=>{
  console.error(error);
  document.body.dataset.studioMode='studio';
  document.querySelector('#materialStudio').inert=false;
