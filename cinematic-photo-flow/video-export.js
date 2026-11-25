@@ -48,7 +48,62 @@
     ctx.restore();
   }
 
-  function drawPhoto(ctx, scratch, source, shot, index, position, camera, frameView, speedBlur) {
+
+  function makeBlurCompositor(ctx) {
+    if ("filter" in ctx) return (source, face, blur, brightness) => {
+      ctx.filter = "blur(" + blur + "px) brightness(" + brightness + ")";
+      ctx.drawImage(source, 0, 0);
+      ctx.filter = "none";
+    };
+
+    // Canvas 2D filters are unavailable on some Safari releases. Composite a
+    // separable Gaussian on a reduced, padded region to keep export work bounded.
+    const horizontal = makeCanvas(width, height).getContext("2d");
+    const vertical = makeCanvas(width, height).getContext("2d");
+    return (source, face, blur, brightness) => {
+      const pad = Math.ceil(blur * 4 + 2);
+      const x = Math.max(0, Math.floor(width / 2 + face.left - pad));
+      const y = Math.max(0, Math.floor(height / 2 + face.top - pad));
+      const w = Math.min(width, Math.ceil(width / 2 + face.right + pad)) - x;
+      const h = Math.min(height, Math.ceil(height / 2 + face.bottom + pad)) - y;
+      if (w <= 0 || h <= 0) return;
+      const reduction = Math.max(1, blur / 1.5);
+      const rw = Math.ceil(w / reduction), rh = Math.ceil(h / reduction);
+      const sigma = blur / reduction;
+      const radius = Math.ceil(3 * sigma);
+      const weights = Array.from({ length: radius * 2 + 1 }, (_, i) =>
+        Math.exp(-((i - radius) ** 2) / (2 * sigma * sigma)));
+      const sum = weights.reduce((total, weight) => total + weight, 0);
+      horizontal.clearRect(0, 0, rw, rh);
+      vertical.clearRect(0, 0, rw, rh);
+      horizontal.globalCompositeOperation = vertical.globalCompositeOperation = "lighter";
+      for (let i = 0; i < weights.length; i++) {
+        // Clip each shifted draw to the active region, keeping the recycled buffers clean.
+        const shift = i - radius;
+        const left = Math.max(0, shift);
+        const span = rw - Math.abs(shift);
+        if (span <= 0) continue;
+        horizontal.globalAlpha = weights[i] / sum;
+        horizontal.drawImage(source, x + Math.max(0, -shift) * w / rw, y, span * w / rw, h,
+          left, 0, span, rh);
+      }
+      for (let i = 0; i < weights.length; i++) {
+        const shift = i - radius;
+        const span = rh - Math.abs(shift);
+        if (span <= 0) continue;
+        vertical.globalAlpha = weights[i] / sum;
+        vertical.drawImage(horizontal.canvas, 0, Math.max(0, -shift), rw, span, 0,
+          Math.max(0, shift), rw, span);
+      }
+      vertical.globalCompositeOperation = "source-atop";
+      vertical.globalAlpha = 1 - brightness;
+      vertical.fillStyle = "#000";
+      vertical.fillRect(0, 0, rw, rh);
+      ctx.drawImage(vertical.canvas, 0, 0, rw, rh, x, y, w, h);
+    };
+  }
+
+  function drawPhoto(ctx, scratch, compositeBlur, source, shot, index, position, camera, frameView, speedBlur) {
     const face = projectedFace(shot, index, position, camera, frameView);
     if (!face) return;
     const offset = index - position;
@@ -82,9 +137,7 @@
       }
     }
     if (target === scratch) {
-      if ("filter" in ctx) ctx.filter = "blur(" + blur + "px) brightness(" + (1 - defocus * .24) + ")";
-      ctx.drawImage(scratch.canvas, 0, 0);
-      ctx.filter = "none";
+      compositeBlur(scratch.canvas, face, blur, 1 - defocus * .24);
     }
   }
 
@@ -121,6 +174,7 @@
 
   function makeRenderer(ctx, shots, textures, grain) {
     const scratch = makeCanvas(width, height).getContext("2d");
+    const compositeBlur = makeBlurCompositor(ctx);
     const tile = makeCanvas(72, 72);
     tile.getContext("2d").drawImage(grain, 0, 0, 72, 72);
     const pattern = ctx.createPattern(tile, "repeat");
@@ -148,7 +202,7 @@
       ctx.drawImage(background, 0, 0);
       for (const layer of layers) {
         if (layer.plane) paintDust(ctx, layer.plane, time, camera);
-        else drawPhoto(ctx, scratch, textures[layer.index], shots[layer.index], layer.index, position, camera, frameView, speedBlur);
+        else drawPhoto(ctx, scratch, compositeBlur, textures[layer.index], shots[layer.index], layer.index, position, camera, frameView, speedBlur);
       }
       ctx.save();
       ctx.globalCompositeOperation = "screen";
@@ -191,8 +245,8 @@
     let output;
     try {
       const shots = buildRoute(gallery, seededRandom(routeSeed ^ 0x5bd1e995), width, height);
-      if (!globalThis.VideoEncoder || !("filter" in makeCanvas(1, 1).getContext("2d"))) {
-        throw new Error("Export video non supportato da questo browser. Prova una versione recente di Chrome o Edge.");
+      if (!globalThis.VideoEncoder || !globalThis.VideoFrame) {
+        throw new Error("Questo browser non espone la codifica video. Aggiorna Safari o prova Chrome o Edge.");
       }
       const { Output, Mp4OutputFormat, WebMOutputFormat, BufferTarget, CanvasSource, canEncodeVideo } =
         await import("https://cdn.jsdelivr.net/npm/mediabunny@1.23.0/+esm");
