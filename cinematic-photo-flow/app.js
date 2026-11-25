@@ -21,11 +21,8 @@ const demo = [
 let images = demo;
 let playback = [];
 let route = [];
-const playbackOrder = byId("playback-order");
-const regenerate = byId("regenerate");
-const routePreferenceKey = "cinematic-photo-flow:route";
-const depthPlanes = [-.27, -.14, 0, .08, .23];
-let routeSeed = 867293;
+const depthPlanes = [-.92, -.46, 0, .45, .90];
+let routeSeed = 0;
 let custom = false;
 let selected = 0;
 let step = 380;
@@ -35,7 +32,7 @@ let previousTime = 0;
 let previousCamera = null;
 let motionBlur = 0;
 let replacementId = null;
-let draggedId = null;
+let replaceGallery = false;
 let busy = false;
 let ready = false;
 let lastCounter = "";
@@ -43,7 +40,6 @@ let saving = Promise.resolve();
 const cards = new Map();
 const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
-const referenceMove = { x: .405, y: .07, z: -.22 };
 const origin = { x: 0, y: 0, z: 0 };
 const grainPlane = { x: 0, y: 0, z: -.78 };
 const dustPlanes = [
@@ -62,17 +58,12 @@ const dustPlanes = [
     frequency: .55 + Math.random() * 1.05
   }))
 }));
-let dustStrength = 0;
 let dustFrame = 0;
 let dustTime = 0;
 let lastDustTime = 0;
 let filmWidth = 0;
 let filmHeight = 0;
 let filmCamera = origin;
-const filmControls = ["grain", "dust"].map(name => ({
-  name, input: byId("film-" + name), value: byId("film-" + name + "-value")
-}));
-
 const database = new Promise((resolve, reject) => {
   const request = indexedDB.open("cinematic-photo-flow", 1);
   request.onupgradeneeded = () => request.result.createObjectStore("project");
@@ -203,15 +194,11 @@ function shuffled(items, random) {
   return result;
 }
 
-function buildDepths(length, referenceIndex, random) {
+function buildDepths(length, random) {
   const depths = [];
   while (depths.length < length) {
-    const firstDeck = !depths.length;
-    const reserve = firstDeck && referenceIndex >= 0;
-    const pins = reserve ? [.08, -.14] : [];
-    const deck = shuffled(depthPlanes.filter(z => !pins.includes(z)), random);
-    if (reserve) deck.splice(referenceIndex, 0, ...pins);
-    if (!firstDeck && deck[0] === depths.at(-1)) deck.push(deck.shift());
+    const deck = shuffled(depthPlanes, random);
+    if (depths.length && deck[0] === depths.at(-1)) deck.push(deck.shift());
     const ascending = deck.slice(1).every((z, i) => z > deck[i]);
     const descending = deck.slice(1).every((z, i) => z < deck[i]);
     if (ascending || descending) [deck[3], deck[4]] = [deck[4], deck[3]];
@@ -220,61 +207,43 @@ function buildDepths(length, referenceIndex, random) {
   return depths.slice(0, length);
 }
 
-function buildRoute(length, referenceIndex, random) {
-  const depths = buildDepths(length, referenceIndex, random);
+function buildRoute(length, random) {
+  const depths = buildDepths(length, random);
   if (!length) return [];
   const shots = [{ x: 0, y: 0, z: depths[0] }];
   let bearing = random() * Math.PI * 2;
   for (let index = 1; index < length; index++) {
     const start = shots[index - 1];
-    const isReference = index - 1 === referenceIndex;
-    if (isReference) {
-      bearing = Math.atan2(referenceMove.y, referenceMove.x);
-    } else {
-      const turn = .87 + random() * 1.54;
-      bearing += (random() < .5 ? -1 : 1) * turn;
-    }
-    const reach = .59 + random() * .22;
-    const x = isReference ? referenceMove.x : Math.cos(bearing) * reach;
-    const y = isReference ? referenceMove.y : Math.sin(bearing) * reach;
-    const bend = (random() < .5 ? -1 : 1) * (.10 + random() * .14);
+    const turn = .88 + random() * 1.46;
+    bearing += (random() < .5 ? -1 : 1) * turn;
+    const x = Math.cos(bearing) * (.27 + random() * .12);
+    const y = Math.sin(bearing) * (.29 + random() * .16);
+    const bend = (random() < .5 ? -1 : 1) * (.10 + random() * .17);
     shots.push({
-      x: start.x + x, y: start.y + y, z: depths[index], bend, reference: isReference,
+      x: start.x + x, y: start.y + y, z: depths[index], bend,
+      push: .055 + random() * .20,
       hold: .055 + random() * .095,
-      roll: (random() - .5) * 10
+      roll: (random() - .5) * 12
     });
   }
   return shots;
 }
 
+function refreshRouteSeed() {
+  const next = crypto.getRandomValues(new Uint32Array(1))[0];
+  routeSeed = next === routeSeed ? (next + 1) >>> 0 : next;
+}
+
 function rebuildPlayback() {
   const random = seededRandom(routeSeed);
-  const isShuffle = playbackOrder.value === "shuffle";
-  playback = isShuffle ? shuffled(images, random) : images.slice();
-  if (isShuffle && playback.length > 1 && playback.every((image, index) => image === images[index])) {
+  playback = shuffled(images, random);
+  if (playback.length > 1 && playback.every((image, index) => image === images[index])) {
     playback.push(playback.shift());
   }
-  const referenceIndex = isShuffle ? -1 : custom ? 0 : 1;
-  route = buildRoute(playback.length, referenceIndex, random);
+  route = buildRoute(playback.length, random);
   for (let index = 0; index < route.length; index++) {
     route[index].attitude = frameAttitude(playback[index].id);
   }
-  regenerate.disabled = playback.length < 2;
-  playbackOrder.disabled = playback.length < 2;
-}
-
-function restoreRoutePreferences() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(routePreferenceKey));
-    if (Number.isInteger(saved?.seed)) routeSeed = saved.seed >>> 0;
-    playbackOrder.value = saved?.order === "shuffle" ? "shuffle" : "manual";
-  } catch {}
-}
-
-function saveRoutePreferences() {
-  try {
-    localStorage.setItem(routePreferenceKey, JSON.stringify({ seed: routeSeed, order: playbackOrder.value }));
-  } catch {}
 }
 
 function cameraAt(position, aspect = 1) {
@@ -284,20 +253,6 @@ function cameraAt(position, aspect = 1) {
   const move = { x: next.x - start.x, y: next.y - start.y, z: next.z - start.z };
   const phase = position - index;
 
-  if (next.reference) {
-    const glide = ease((phase - .12) / .76);
-    const crossing = Math.sin(Math.PI * glide) ** 2;
-    const rack = ease((phase - .25) / .55);
-    return {
-      x: start.x + move.x * glide + .045 * crossing,
-      y: start.y + move.y * glide - .078 * crossing,
-      z: start.z + move.z * glide - .205 * crossing,
-      roll: -5.2 * crossing,
-      focusZ: start.z + move.z * rack,
-      crossing, aspect
-    };
-  }
-
   const hold = next.hold ?? .065;
   const glide = ease((phase - hold) / (1 - 2 * hold));
   const arc = Math.sin(Math.PI * glide) ** 2;
@@ -305,15 +260,17 @@ function cameraAt(position, aspect = 1) {
   return {
     x: start.x + move.x * glide - move.y * bend,
     y: start.y + move.y * glide + move.x * bend,
-    z: start.z + move.z * glide + .065 * arc,
+    z: start.z + move.z * glide - (next.push || 0) * arc,
     roll: (next.roll || 0) * arc,
     focusZ: start.z + move.z * ease((phase - .16) / .68),
-    crossing: 0, aspect
+    crossing: (next.push || 0) * 3.5 * arc, aspect
   };
 }
 
 function viewFromCamera(point, camera) {
-  const z = Math.min(.58, point.z - camera.z);
+  const depth = point.z - camera.z;
+  // Compress only the near side of the lens to keep large foreground passes below the camera plane.
+  const z = depth > 0 ? .70 * (1 - Math.exp(-depth / .70)) : depth;
   const x = point.x - camera.x;
   const y = point.y - camera.y;
   const angle = (camera.roll || 0) * Math.PI / 180;
@@ -321,7 +278,7 @@ function viewFromCamera(point, camera) {
   const sin = Math.sin(angle);
   const cos = Math.cos(angle);
   return { x: x * cos - y * sin / aspect, y: x * sin * aspect + y * cos,
-    z, scale: 1 / (1 - z) };
+    depth, z, scale: 1 / (1 - z) };
 }
 
 function updateMotionBlur(camera, width, height, lens, dt) {
@@ -337,7 +294,7 @@ function updateMotionBlur(camera, width, height, lens, dt) {
 }
 
 function layerAtDepth(z) {
-  return 38 + Math.round(z * 36);
+  return 39 + Math.round(28 * Math.tanh(z * .95));
 }
 
 function renderFilm(camera, width, height) {
@@ -357,7 +314,7 @@ function renderFilm(camera, width, height) {
   filmSurface.style.backgroundPosition = textureX.toFixed(2) + "px " + textureY.toFixed(2) + "px";
 
   for (const { canvas, z } of dustPlanes) canvas.style.zIndex = String(layerAtDepth(z - camera.z));
-  if (reducedMotion.matches && dustStrength) drawDust();
+  if (reducedMotion.matches) drawDust();
 }
 
 function wrapNear(value, center, span) {
@@ -367,7 +324,7 @@ function wrapNear(value, center, span) {
 
 function sampleDust(particle, planeZ, elapsed, camera) {
   const wave = elapsed * particle.frequency + particle.phase;
-  const span = 1.42 * (1.31 - planeZ);
+  const span = 1.50 * (1.94 - planeZ);
   const point = {
     x: wrapNear((particle.x - .5) * span + particle.speedX * elapsed + .023 * Math.sin(wave), camera.x, span),
     y: wrapNear((particle.y - .5) * span - particle.speedY * elapsed + .018 * Math.cos(wave * .82), camera.y, span),
@@ -388,7 +345,6 @@ function drawDust() {
   const density = Math.min(window.devicePixelRatio || 1, 1.5);
   const pixelWidth = Math.round(filmWidth * density);
   const pixelHeight = Math.round(filmHeight * density);
-  const strength = Math.pow(dustStrength, .68);
   for (const { canvas, context, particles, z } of dustPlanes) {
     if (!context) continue;
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
@@ -407,12 +363,12 @@ function drawDust() {
       if (light > .34) {
         const reach = radius * (2.4 + Math.min(1.4, scale));
         const glow = context.createRadialGradient(px, py, 0, px, py, reach);
-        glow.addColorStop(0, "rgba(" + tone + "," + (.47 * light * strength) + ")");
+        glow.addColorStop(0, "rgba(" + tone + "," + (.47 * light) + ")");
         glow.addColorStop(1, "rgba(" + tone + ",0)");
         context.fillStyle = glow;
         context.fillRect(px - reach, py - reach, reach * 2, reach * 2);
       }
-      const alpha = strength * (.05 + .82 * light) * Math.min(1, .62 + .27 * scale);
+      const alpha = (.05 + .82 * light) * Math.min(1, .62 + .27 * scale);
       context.fillStyle = "rgba(" + tone + "," + alpha + ")";
       context.beginPath();
       context.arc(px, py, radius * (1 + .18 * light), 0, Math.PI * 2);
@@ -423,7 +379,7 @@ function drawDust() {
 
 function animateDust(time) {
   dustFrame = 0;
-  if (!dustStrength || document.hidden || reducedMotion.matches) return;
+  if (document.hidden || reducedMotion.matches) return;
   const elapsed = lastDustTime ? time - lastDustTime : 34;
   if (elapsed >= 30) {
     dustTime += Math.min(elapsed, 60) / 1000;
@@ -434,8 +390,7 @@ function animateDust(time) {
 }
 
 function refreshDust() {
-  for (const { canvas } of dustPlanes) canvas.hidden = !dustStrength;
-  const moving = dustStrength && !document.hidden && !reducedMotion.matches;
+  const moving = !document.hidden && !reducedMotion.matches;
   if (moving && !dustFrame) {
     lastDustTime = 0;
     dustFrame = requestAnimationFrame(animateDust);
@@ -443,34 +398,20 @@ function refreshDust() {
     cancelAnimationFrame(dustFrame);
     dustFrame = 0;
   }
-  if (!moving && dustStrength && !document.hidden) drawDust();
+  if (!moving && !document.hidden) drawDust();
 }
 
-function applyFilmControl({ name, input, value }) {
-  const strength = Number(input.value) / 100;
-  if (name === "grain") {
-    stage.style.setProperty("--film-grain", String(strength));
-  } else {
-    dustStrength = strength;
-    refreshDust();
-  }
-  value.value = input.value + "%";
-}
-
-function initializeFilmControls() {
-  for (const control of filmControls) {
-    const { name, input } = control;
-    const key = "cinematic-photo-flow:film:" + name;
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved !== null) input.value = saved;
-    } catch {}
-    applyFilmControl(control);
-    input.addEventListener("input", () => applyFilmControl(control));
-    input.addEventListener("change", () => {
-      try { localStorage.setItem(key, input.value); } catch {}
-    });
-  }
+function composePhoto(relative, distance, compact) {
+  const behind = ease((-relative.depth - .08) / .65) * ease((distance - .18) / .51);
+  const revealX = behind * (compact ? .13 : .19) * Math.tanh(relative.x / .16);
+  const revealY = behind * .15 * Math.tanh(relative.y / .16);
+  const ahead = ease((relative.depth - .25) / 1.17) * ease((distance - .13) / .47);
+  // Move oversized foreground cards out toward their own edge, leaving a view of the scene behind.
+  return {
+    x: relative.x + (revealX + ahead * .20 * Math.tanh(relative.x / .12)) / relative.scale,
+    y: relative.y + (revealY + ahead * .17 * Math.tanh(relative.y / .12)) / relative.scale,
+    opacity: (1 - ease((distance - 1.30) / 1.69)) * (1 - ahead * .78)
+  };
 }
 
 function render(time) {
@@ -503,11 +444,14 @@ function render(time) {
     const shot = route[index];
     const relative = viewFromCamera(shot, camera);
     const tilt = ease((distance - .09) / .74);
+    const composition = composePhoto(relative, distance, compact);
     const rotation = frameRotation(shot.attitude, offset);
-    const depthDefocus = Math.abs(shot.z - camera.focusZ) * 4.6;
+    const depthDefocus = Math.abs(shot.z - camera.focusZ) * 1.75;
     const separation = .33 * ease((distance - .12) / .94);
     const defocus = clamp(depthDefocus + separation, 0, 1);
-    const blur = defocus * (compact ? 10 : 16) + motionBlur * (.45 + .55 * tilt);
+    const rear = relative.depth < -.08;
+    const blur = defocus * (rear ? (compact ? 4 : 7) : (compact ? 13 : 21)) +
+      motionBlur * (rear ? .22 : .45 + .55 * tilt);
     const viewRatio = clamp(image.ratio, .58, 2.1);
     const heightLimit = compact ? .84 : viewRatio < 1 ? .95 : .83;
     const photoHeight = Math.min(height * heightLimit, width * (compact ? .83 : .68) / viewRatio);
@@ -517,15 +461,15 @@ function render(time) {
 
     card.style.width = photoWidth + "px";
     card.style.height = photoHeight + "px";
-    card.style.transform = "translate3d(calc(-50% + " + (relative.x * width).toFixed(2) +
-      "px),calc(-50% + " + (relative.y * height).toFixed(2) + "px)," +
+    card.style.transform = "translate3d(calc(-50% + " + (composition.x * width).toFixed(2) +
+      "px),calc(-50% + " + (composition.y * height).toFixed(2) + "px)," +
       (relative.z * lens).toFixed(2) + "px) rotateZ(" + camera.roll.toFixed(2) +
       "deg) " + rotation;
-    card.style.zIndex = String(layerAtDepth(relative.z));
+    card.style.zIndex = String(layerAtDepth(relative.depth));
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
       "px) brightness(" + (1 - defocus * .24).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
-    card.style.opacity = String(1 - ease((distance - 1.15) / 1.57));
+    card.style.opacity = String(composition.opacity);
     photo.style.objectPosition = image.x + "% " + image.y + "%";
     visible.add(image.id);
   }
@@ -551,15 +495,15 @@ function goTo(index, immediate = false) {
 }
 
 function updateSelection() {
-  for (const [index, thumbnail] of Array.from(strip.querySelectorAll(".thumb")).entries()) {
-    if (index === selected) thumbnail.setAttribute("aria-current", "true");
+  for (const thumbnail of strip.querySelectorAll(".thumb")) {
+    if (thumbnail.dataset.id === images[selected]?.id) thumbnail.setAttribute("aria-current", "true");
     else thumbnail.removeAttribute("aria-current");
   }
   const image = images[selected];
   byId("image-actions").hidden = !custom || !image;
   byId("selected-name").textContent = image?.name || "";
-  byId("earlier").disabled = busy || selected === 0;
-  byId("later").disabled = busy || selected >= images.length - 1;
+  byId("new-gallery").hidden = !custom || !images.length;
+  byId("new-gallery").disabled = busy || !ready;
   for (const id of ["replace", "remove", "focal"]) byId(id).disabled = busy;
 }
 
@@ -567,13 +511,13 @@ function renderEditor(reset = true, fromStart = false) {
   if (reset) rebuildPlayback();
   if (fromStart) selected = Math.max(0, images.indexOf(playback[0]));
   strip.replaceChildren();
-  images.forEach((image, index) => {
+  playback.forEach((image, index) => {
     const item = document.createElement("li");
     item.dataset.id = image.id;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "thumb";
-    button.draggable = custom;
+    button.dataset.id = image.id;
     button.setAttribute("aria-label", (index + 1) + ". " + image.name);
     const photo = new Image();
     photo.alt = "";
@@ -584,9 +528,9 @@ function renderEditor(reset = true, fromStart = false) {
     number.textContent = String(index + 1).padStart(2, "0");
     button.append(photo, number);
     button.addEventListener("click", () => {
-      selected = index;
+      selected = images.indexOf(image);
       updateSelection();
-      goTo(playback.indexOf(image));
+      goTo(index);
     });
     item.append(button);
     strip.append(item);
@@ -597,7 +541,7 @@ function renderEditor(reset = true, fromStart = false) {
   byId("instruction").textContent = images.length > 1 ? "Scorri per esplorare" : "";
   byId("instruction").parentElement.hidden = images.length < 2;
   byId("edit-help").textContent = custom
-    ? "Trascina le miniature per cambiare l’ordine."
+    ? "Seleziona una miniatura per raggiungere la foto."
     : "Carica le tue immagini per iniziare.";
   if (reset) {
     for (const card of cards.values()) card.remove();
@@ -634,7 +578,7 @@ async function decodeImage(file) {
   }
 }
 
-async function importFiles(files, replaceId = null) {
+async function importFiles(files, replaceId = null, resetGallery = false) {
   if (!ready || busy || !files.length) return;
   busy = true;
   byId("upload").disabled = true;
@@ -648,7 +592,10 @@ async function importFiles(files, replaceId = null) {
   }
 
   if (imported.length) {
-    if (!custom) {
+    if (resetGallery && custom) {
+      for (const image of images) URL.revokeObjectURL(image.src);
+    }
+    if (!custom || resetGallery) {
       custom = true;
       images = [];
     }
@@ -672,7 +619,8 @@ async function importFiles(files, replaceId = null) {
   const notice = failed ? failed + (failed === 1 ? " immagine non leggibile." : " immagini non leggibili.") : "";
   byId("live").textContent = notice;
   if (imported.length) {
-    renderEditor();
+    refreshRouteSeed();
+    renderEditor(true, true);
     keepProject();
     if (notice) saving.then(() => { byId("save-state").textContent += " · " + notice; });
   } else {
@@ -681,22 +629,12 @@ async function importFiles(files, replaceId = null) {
   }
 }
 
-function chooseFiles(id = null) {
+function chooseFiles(id = null, resetGallery = false) {
   if (!ready || busy) return;
   replacementId = id;
+  replaceGallery = resetGallery;
   fileInput.multiple = !id;
   fileInput.click();
-}
-
-function moveImage(from, to) {
-  if (!custom || busy || from < 0 || to < 0 || to >= images.length || from === to) return;
-  const [image] = images.splice(from, 1);
-  images.splice(to, 0, image);
-  selected = to;
-  renderEditor();
-  strip.querySelectorAll(".thumb")[selected]?.focus({ preventScroll: true });
-  byId("live").textContent = image.name + " in posizione " + (to + 1);
-  keepProject();
 }
 
 function toggleView() {
@@ -731,26 +669,19 @@ document.addEventListener("keydown", event => {
 });
 byId("upload").addEventListener("click", () => chooseFiles());
 byId("empty-upload").addEventListener("click", () => chooseFiles());
-playbackOrder.addEventListener("change", () => {
-  saveRoutePreferences();
-  renderEditor(true, true);
-});
-regenerate.addEventListener("click", () => {
-  routeSeed = (routeSeed + 0x9E3779B9) >>> 0;
-  saveRoutePreferences();
-  renderEditor(true, true);
-  byId("live").textContent = "Nuovo percorso pronto.";
+byId("new-gallery").addEventListener("click", () => {
+  if (window.confirm("Vuoi sostituire la galleria salvata con una nuova?")) chooseFiles(null, true);
 });
 byId("replace").addEventListener("click", () => chooseFiles(images[selected]?.id));
 fileInput.addEventListener("change", () => {
   const files = Array.from(fileInput.files);
   const id = replacementId;
+  const resetGallery = replaceGallery;
   fileInput.value = "";
   replacementId = null;
-  importFiles(files, id);
+  replaceGallery = false;
+  importFiles(files, id, resetGallery);
 });
-byId("earlier").addEventListener("click", () => moveImage(selected, selected - 1));
-byId("later").addEventListener("click", () => moveImage(selected, selected + 1));
 byId("remove").addEventListener("click", () => {
   if (!custom || busy || !images[selected]) return;
   const [removed] = images.splice(selected, 1);
@@ -760,40 +691,18 @@ byId("remove").addEventListener("click", () => {
   keepProject();
 });
 
-strip.addEventListener("dragstart", event => {
-  const item = event.target.closest("li");
-  if (!item || !custom || busy) { event.preventDefault(); return; }
-  draggedId = item.dataset.id;
-  event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setData("text/plain", draggedId);
-});
-
-function clearDrop() {
-  dropArea.classList.remove("dragover");
-  strip.querySelector("[data-drop]")?.removeAttribute("data-drop");
-}
-strip.addEventListener("dragend", () => { draggedId = null; clearDrop(); });
 dropArea.addEventListener("dragleave", event => {
-  if (!dropArea.contains(event.relatedTarget)) clearDrop();
+  if (!dropArea.contains(event.relatedTarget)) dropArea.classList.remove("dragover");
 });
 dropArea.addEventListener("dragover", event => {
-  if (!draggedId && !event.dataTransfer.types.includes("Files")) return;
+  if (!event.dataTransfer.types.includes("Files")) return;
   event.preventDefault();
-  clearDrop();
-  if (draggedId) event.target.closest("li")?.setAttribute("data-drop", "");
-  else dropArea.classList.add("dragover");
+  dropArea.classList.add("dragover");
 });
 dropArea.addEventListener("drop", event => {
   event.preventDefault();
-  clearDrop();
-  if (event.dataTransfer.files.length) {
-    importFiles(Array.from(event.dataTransfer.files));
-  } else if (draggedId) {
-    const target = event.target.closest("li")?.dataset.id;
-    const to = target ? images.findIndex(image => image.id === target) : images.length - 1;
-    moveImage(images.findIndex(image => image.id === draggedId), to);
-  }
-  draggedId = null;
+  dropArea.classList.remove("dragover");
+  if (event.dataTransfer.files.length) importFiles(Array.from(event.dataTransfer.files));
 });
 
 const focalX = byId("focal-x");
@@ -840,7 +749,7 @@ focalDialog.addEventListener("close", () => {
 
 async function initialize() {
   byId("upload").disabled = true;
-  restoreRoutePreferences();
+  refreshRouteSeed();
   renderEditor(true, true);
   try {
     const saved = await projectTransaction("readonly", store => store.get("sequence"));
@@ -855,7 +764,8 @@ async function initialize() {
   }
   ready = true;
   byId("upload").disabled = false;
+  updateSelection();
 }
 
-initializeFilmControls();
+refreshDust();
 initialize();

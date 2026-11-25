@@ -33,37 +33,16 @@
   </section>
   <section class="editor" id="editor" aria-labelledby="editor-title">
     <div class="editor-head">
-      <div><h2 id="editor-title">Sequenza</h2><p id="edit-help">Trascina le miniature per cambiare l’ordine.</p></div>
-      <div class="editor-actions"><span id="save-state" role="status"></span><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button></div>
+      <div><h2 id="editor-title">Sequenza</h2><p id="edit-help">Seleziona una miniatura per raggiungere la foto.</p></div>
+      <div class="editor-actions"><span id="save-state" role="status"></span><button class="button outline" id="new-gallery" hidden>Nuova galleria</button><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button></div>
     </div>
     <div class="upload-area" id="upload-area" aria-label="Miniature della sequenza"><ol id="strip"></ol></div>
     <div id="image-actions" class="image-actions" hidden>
       <span id="selected-name"></span>
-      <button class="button quiet" id="earlier">Sposta prima</button>
-      <button class="button quiet" id="later">Sposta dopo</button>
       <button class="button quiet" id="replace">Sostituisci</button>
       <button class="button quiet" id="focal">Punto focale</button>
       <button class="button quiet remove" id="remove">Rimuovi</button>
     </div>
-    <div class="scene-controls">
-      <label for="playback-order">Ordine di visione</label>
-      <select id="playback-order">
-        <option value="manual">Manuale</option>
-        <option value="shuffle">Casuale</option>
-      </select>
-      <button class="button outline" id="regenerate">Nuovo percorso</button>
-    </div>
-    <fieldset class="film-controls">
-      <legend>Effetti pellicola</legend>
-      <label for="film-grain">Grana
-        <input id="film-grain" type="range" min="0" max="100" value="42">
-        <output id="film-grain-value" for="film-grain">42%</output>
-      </label>
-      <label for="film-dust">Polvere
-        <input id="film-dust" type="range" min="0" max="100" value="32">
-        <output id="film-dust-value" for="film-dust">32%</output>
-      </label>
-    </fieldset>
   </section>
 </main>
 <dialog id="focal-dialog">
