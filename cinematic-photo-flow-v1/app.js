@@ -46,7 +46,6 @@ let saving = Promise.resolve();
 const cards = new Map();
 const preparedPhotos = new Map();
 const photoMetrics = new WeakMap();
-const highlightLayer = 69;
 const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
 const origin = { x: 0, y: 0, z: 0 };
@@ -500,6 +499,7 @@ function render(time) {
   const center = clamp(Math.round(displayed), 0, Math.max(0, playback.length - 1));
   const position = reducedMotion.matches ? center : displayed;
   const visible = new Set();
+  const stack = [];
   const width = sceneWidth;
   const height = sceneHeight;
   const lens = sceneLens;
@@ -543,14 +543,22 @@ function render(time) {
       "px),calc(-50% + " + (composition.y * height).toFixed(2) + "px)," +
       (relative.z * lens).toFixed(2) + "px) rotateZ(" + camera.roll.toFixed(2) +
       "deg) " + rotation;
-    // The active image occupies a dedicated layer above every other photo.
-    card.style.zIndex = String(index === center ? highlightLayer : layerAtDepth(relative.depth));
+    stack.push({ card, z: layerAtDepth(relative.depth), level: shot.z, index });
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
       "px) brightness(" + (1 - defocus * .14).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
     const clearView = 1 - ease((distance - .50) / .25);
     card.style.opacity = String(composition.opacity + (1 - composition.opacity) * clearView);
     visible.add(image.id);
+  }
+
+  // Regola fissa: ogni foto resta sul proprio livello di profondità. Il livello più vicino sta
+  // sempre sopra quello più lontano, nessuna foto "attraversa" le altre e nessuna viene promossa.
+  stack.sort((a, b) => a.level - b.level || a.index - b.index);
+  let floor = -1;
+  for (const item of stack) {
+    floor = Math.max(item.z, floor + 1);
+    item.card.style.zIndex = String(floor);
   }
 
   for (const [id, card] of cards) {
@@ -565,7 +573,7 @@ function render(time) {
   if (counter !== lastCounter) byId("counter").textContent = lastCounter = counter;
   paintCta(playback.length > 1 ? position / (playback.length - 1) : 0);
   const moving = Math.abs(target - displayed) >= .003 || motionBlur > 0;
-  updateLight(position, moving);
+  updateLight(position, moving, camera);
   if (moving) requestRender();
 }
 
@@ -586,7 +594,7 @@ cta.addEventListener("click", () => {
 
 // ───────────── V1 ─────────────
 const spill = byId("spill");
-const streak = byId("streak");
+const flare = byId("flare");
 const qualityBlur = [1, .6, .3];
 const qualityMotion = [.4, .2, 0];
 const qualityOverride = new URLSearchParams(location.search).get("quality");
@@ -678,7 +686,7 @@ function toneAt(index) {
 }
 
 // La foto attiva illumina il palco; la velocità della camera accende il flare; all'arrivo c'è un picco di luce.
-function updateLight(position, moving) {
+function updateLight(position, moving, camera) {
   if (!playback.length) return;
   const base = Math.floor(position);
   const mix = position - base;
@@ -691,13 +699,19 @@ function updateLight(position, moving) {
   if (tone !== lastTone) {
     lastTone = tone;
     spill.style.setProperty("--tone", tone);
-    streak.style.setProperty("--streak", rgb.map(value => Math.round(value + (255 - value) * .45)).join(","));
+    // Il flare anamorfico è freddo (azzurro) come nelle ottiche reali, appena scaldato dal tono della foto.
+    const cool = [132, 190, 255];
+    const mixed = cool.map((value, i) => Math.round(value * .8 + rgb[i] * .2));
+    flare.style.setProperty("--flare-rgb", mixed.join(","));
+    flare.style.setProperty("--flare-core", mixed.map(value => Math.round(value + (255 - value) * .62)).join(","));
   }
   const opacity = quality > 1 ? 0 : glow;
   spill.style.opacity = opacity.toFixed(3);
   const energy = reducedMotion.matches || quality > 1 ? 0 : clamp(motionBlur / 3.2, 0, 1);
-  streak.style.opacity = (energy * .6).toFixed(3);
-  streak.style.transform = "scaleX(" + (.35 + .65 * energy).toFixed(3) + ")";
+  // Il flare vive nel fondale, dietro tutte le foto: si vede solo dove il centro dello sfondo è scoperto.
+  flare.style.opacity = (reducedMotion.matches || quality > 1 ? 0 : .5 + .5 * energy).toFixed(3);
+  flare.style.transform = "translate3d(" + (-camera.x * sceneWidth * .06).toFixed(1) + "px," +
+    (-camera.y * sceneHeight * .06).toFixed(1) + "px,0)";
   if (moving) wasMoving = true;
   else if (wasMoving) {
     wasMoving = false;
@@ -709,11 +723,6 @@ function pulseLight(base) {
   if (reducedMotion.matches || quality > 1 || !spill.animate) return;
   const timing = { duration: 1100, easing: "cubic-bezier(.22,1,.36,1)" };
   spill.animate([{ opacity: base }, { opacity: Math.min(1, base * 1.9 + .06), offset: .22 }, { opacity: base }], timing);
-  streak.animate([
-    { opacity: 0, transform: "scaleX(.25)" },
-    { opacity: .85, transform: "scaleX(.9)", offset: .3 },
-    { opacity: 0, transform: "scaleX(1.12)" }
-  ], timing);
 }
 
 // Snap morbido: a scroll fermo la sequenza si assesta su una foto. Anche un piccolo gesto avanza di una foto.
@@ -731,6 +740,7 @@ function snapToPhoto() {
 
 function scheduleSnap() {
   clearTimeout(snapTimer);
+  if (location.search.includes("snap=0")) return;
   snapTimer = setTimeout(snapToPhoto, 190);
 }
 
