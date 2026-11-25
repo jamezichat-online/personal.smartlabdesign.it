@@ -1,7 +1,8 @@
 
 (() => {
-  const width = 1920, height = 1080, fps = 60;
-  const view = { width, height, lens: height * 1.4, aspect: width / height };
+  const fps = 60;
+  const format = byId("video-format");
+  if (matchMedia("(max-width: 650px) and (orientation: portrait)").matches) format.value = "9:16";
   const button = byId("export-video");
   const progress = byId("video-progress");
   const status = byId("video-status");
@@ -56,6 +57,8 @@
       ctx.filter = "none";
     };
 
+    const { width, height } = ctx.canvas;
+
     // Canvas 2D filters are unavailable on some Safari releases. Composite a
     // separable Gaussian on a reduced, padded region to keep export work bounded.
     const horizontal = makeCanvas(width, height).getContext("2d");
@@ -104,19 +107,20 @@
   }
 
   function drawPhoto(ctx, scratch, compositeBlur, source, shot, index, position, camera, frameView, speedBlur) {
+    const { width, height, lens } = frameView;
     const face = projectedFace(shot, index, position, camera, frameView);
     if (!face) return;
     const offset = index - position;
     const rotation = frameRotation(shot.attitude, offset);
     const relative = viewFromCamera(shot, camera);
-    const tilt = confinedTilt(relative.depth, rotation, shot.size.width, shot.size.height, view.lens);
+    const tilt = confinedTilt(relative.depth, rotation, shot.size.width, shot.size.height, lens);
     const grid = 5;
     const sw = source.width / grid, sh = source.height / grid;
     const points = Array.from({ length: grid + 1 }, (_, row) =>
       Array.from({ length: grid + 1 }, (_, col) => {
         const u = col / grid, v = row / grid;
         const x = (u - .5) * shot.size.width, y = (v - .5) * shot.size.height;
-        const d = (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tilt / view.lens);
+        const d = (1 - relative.z - (rotation.zx * x + rotation.zy * y) * tilt / lens);
         const dx = rotation.xx * x + rotation.xy * y;
         const dy = rotation.yx * x + rotation.yy * y;
         const px = relative.x * width + frameView.rollCos * dx - frameView.rollSin * dy;
@@ -142,6 +146,7 @@
   }
 
   function paintDust(ctx, plane, time, camera) {
+    const { width, height } = ctx.canvas;
     for (const particle of plane.particles) {
       const { x, y, scale, light, warm } = sampleDust(particle, plane.z, time, camera);
       if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
@@ -162,6 +167,7 @@
   }
 
   function ellipse(ctx, x, y, rx, ry, stops) {
+    const { width, height } = ctx.canvas;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(rx, ry);
@@ -173,6 +179,8 @@
   }
 
   function makeRenderer(ctx, shots, textures, grain) {
+    const { width, height } = ctx.canvas;
+    const view = { width, height, lens: height * 1.4, aspect: width / height };
     const scratch = makeCanvas(width, height).getContext("2d");
     const compositeBlur = makeBlurCompositor(ctx);
     const tile = makeCanvas(72, 72);
@@ -234,9 +242,12 @@
       status.textContent = "Aggiungi almeno una foto per esportare il video.";
       return;
     }
+    const portrait = format.value === "9:16";
+    const width = portrait ? 1080 : 1920;
+    const height = portrait ? 1920 : 1080;
     job = new AbortController();
     const { signal } = job;
-    button.disabled = true;
+    button.disabled = format.disabled = true;
     cancel.hidden = false;
     progress.hidden = false;
     progress.value = 0;
@@ -303,7 +314,7 @@
       downloadUrl = URL.createObjectURL(new Blob([target.buffer], { type: mp4 ? "video/mp4" : "video/webm" }));
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = "cinematic-photo-flow-1080p60." + (mp4 ? "mp4" : "webm");
+      link.download = "cinematic-photo-flow-" + width + "x" + height + "-60fps." + (mp4 ? "mp4" : "webm");
       link.textContent = "Scarica di nuovo";
       progress.value = 100;
       status.replaceChildren("Video pronto · 100% ", link);
@@ -317,7 +328,7 @@
         error.message || "Impossibile esportare il video.";
     } finally {
       job = null;
-      button.disabled = false;
+      button.disabled = format.disabled = false;
       cancel.hidden = true;
     }
   });

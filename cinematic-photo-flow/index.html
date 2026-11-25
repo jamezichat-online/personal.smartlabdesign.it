@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Disponi le tue foto e attraversa la sequenza con lo scroll.">
 <title>Cinematic Photo Flow</title>
-<link rel="stylesheet" href="style.css?v=1c071fc8eeb5">
+<link rel="stylesheet" href="style.css?v=b74b1068dedc">
 <script src="app.js?v=ba2c8eba46e7" defer></script>
-<script src="video-export.js?v=81962c86c040" defer></script>
+<script src="video-export.js?v=8caa09fba4a5" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -36,7 +36,11 @@
   <section class="editor" id="editor" aria-labelledby="editor-title">
     <div class="editor-head">
       <div><h2 id="editor-title">Sequenza</h2><p id="edit-help">Seleziona una miniatura per raggiungere la foto.</p></div>
-      <div class="editor-actions"><span id="save-state" role="status"></span><button class="button outline" id="new-gallery" hidden>Nuova galleria</button><div class="gallery-file-actions"><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button><button class="button outline" id="export-video" type="button">Esporta video</button></div></div>
+      <div class="editor-actions"><span id="save-state" role="status"></span><button class="button outline" id="new-gallery" hidden>Nuova galleria</button><div class="gallery-file-actions"><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button><button class="button outline" id="export-video" type="button">Esporta video</button>
+        <select id="video-format" class="button outline" aria-label="Formato video">
+          <option value="16:9" title="Orizzontale 1920 × 1080">16:9</option>
+          <option value="9:16" title="Verticale 1080 × 1920">9:16</option>
+        </select></div></div>
     </div>
     <div class="video-export">
       <progress id="video-progress" aria-label="Avanzamento rendering" max="100" value="0" hidden></progress>

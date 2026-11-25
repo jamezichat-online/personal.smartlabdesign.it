@@ -113,3 +113,6 @@ dialog input{width:62%;accent-color:var(--accent)}
 .gallery-file-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .video-export:has(progress[hidden]):has(#video-status:empty){display:none}
 @media(max-width:650px){.editor-head{flex-direction:column}.editor-actions{width:100%;flex-direction:row;justify-content:flex-start;align-items:center;gap:8px}.gallery-file-actions{max-width:100%}}
+
+#video-format{display:block;font-family:inherit;padding-inline:8px;min-width:0}
+@media(max-width:360px){.gallery-file-actions{gap:5px}.gallery-file-actions .button{padding-inline:6px}}
