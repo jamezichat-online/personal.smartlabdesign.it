@@ -486,9 +486,24 @@ function render(time) {
   const counter = String(playback.length ? center + 1 : 0).padStart(2, "0") + " / " +
     String(playback.length).padStart(2, "0");
   if (counter !== lastCounter) byId("counter").textContent = lastCounter = counter;
-  byId("progress").style.width = playback.length > 1 ? (position / (playback.length - 1) * 100) + "%" : "0%";
+  paintCta(playback.length > 1 ? position / (playback.length - 1) : 0);
   if (Math.abs(target - displayed) >= .003 || motionBlur) requestRender();
 }
+
+// Scroll CTA: il fill giallo segue `position` (già smussata da render) con clip-path
+const cta = byId("cta");
+const ctaFill = cta.querySelector(".scroll-cta__fill");
+function paintCta(p) {
+  p = clamp(p, 0, 1);
+  ctaFill.style.clipPath = "inset(0 " + ((1 - p) * 100).toFixed(2) + "% 0 0 round 999px)";
+  cta.setAttribute("aria-valuenow", Math.round(p * 100));
+  cta.classList.toggle("is-scrolling", p > .004);
+  cta.classList.toggle("is-done", p > .995);
+}
+cta.addEventListener("click", () => {
+  if (cta.classList.contains("is-done")) goTo(0);
+  else goTo(Math.round(viewport.scrollTop / step) + 1);
+});
 
 function goTo(index, immediate = false) {
   const target = clamp(index, 0, Math.max(0, playback.length - 1));
@@ -540,8 +555,7 @@ function renderEditor(reset = true, fromStart = false) {
 
   byId("empty").hidden = images.length > 0;
   byId("source-label").textContent = custom ? "La tua sequenza" : "Galleria demo";
-  byId("instruction").textContent = images.length > 1 ? "Scorri per esplorare" : "";
-  byId("instruction").parentElement.hidden = images.length < 2;
+  byId("cta").parentElement.hidden = images.length < 2;
   byId("edit-help").textContent = custom
     ? "Seleziona una miniatura per raggiungere la foto."
     : "Carica le tue immagini per iniziare.";

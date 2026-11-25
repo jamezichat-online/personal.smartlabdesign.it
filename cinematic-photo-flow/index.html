@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Disponi le tue foto e attraversa la sequenza con lo scroll.">
 <title>Cinematic Photo Flow</title>
-<link rel="stylesheet" href="style.css?v=7ba6a1e6cddb">
-<script src="app.js?v=327317a2a448" defer></script>
+<link rel="stylesheet" href="style.css?v=15143e7b8eec">
+<script src="app.js?v=f3e528ee8eb0" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -26,7 +26,7 @@
         </div>
         <div class="vignette" aria-hidden="true"></div>
         <div class="stage-top"><span id="source-label">Galleria demo</span><span id="counter"></span></div>
-        <div class="stage-bottom"><p><span class="wheel-icon" aria-hidden="true"></span><span id="instruction">Scorri per esplorare</span></p><div class="progress" aria-hidden="true"><i id="progress"></i></div></div>
+        <div class="stage-bottom"><button class="scroll-cta" id="cta" type="button" role="progressbar" aria-label="Avanzamento della sequenza" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="scroll-cta__layer scroll-cta__base"><i class="scroll-cta__icon"></i><span class="scroll-cta__labels"><span class="l-idle">Scorri per esplorare</span><span class="l-done">Torna all'inizio ↑</span></span></span><span class="scroll-cta__layer scroll-cta__fill" aria-hidden="true"><i class="scroll-cta__icon"></i><span class="scroll-cta__labels"><span class="l-idle">Scorri per esplorare</span><span class="l-done">Torna all'inizio ↑</span></span></span></button></div>
         <div class="empty" id="empty" hidden><p>La tua sequenza inizia con una foto.</p><button class="button accent" id="empty-upload">Carica immagini</button></div>
       </div>
     </div>
