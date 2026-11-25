@@ -28,6 +28,12 @@ let selected = 0;
 let step = 380;
 let displayed = 0;
 let frame = 0;
+let sceneDirty = false;
+let sceneInView = true;
+let sceneWidth = 0;
+let sceneHeight = 0;
+let sceneLens = 510;
+let lastPrefetch = -1;
 let previousTime = 0;
 let previousCamera = null;
 let motionBlur = 0;
@@ -38,6 +44,9 @@ let ready = false;
 let lastCounter = "";
 let saving = Promise.resolve();
 const cards = new Map();
+const preparedPhotos = new Map();
+const photoMetrics = new WeakMap();
+const highlightLayer = 69;
 const filmSurface = byId("film-surface");
 const opticalGlow = byId("optical-glow");
 const origin = { x: 0, y: 0, z: 0 };
@@ -49,6 +58,7 @@ const dustPlanes = [
 ].map(plane => ({
   ...plane,
   context: plane.canvas.getContext("2d"),
+  dirtyRects: [],
   particles: Array.from({ length: plane.count }, () => ({
     x: Math.random(), y: Math.random(), z: (Math.random() - .5) * .07,
     speedX: (Math.random() - .38) * .034,
@@ -58,7 +68,7 @@ const dustPlanes = [
     frequency: .55 + Math.random() * 1.05
   }))
 }));
-let dustFrame = 0;
+const dustGlowSprites = new Map();
 let dustTime = 0;
 let lastDustTime = 0;
 let filmWidth = 0;
@@ -100,6 +110,10 @@ function updateLayout(reset = false) {
   const currentPosition = reset ? Math.max(0, playback.indexOf(images[selected]))
     : viewport.scrollTop / step;
   step = Math.max(240, Math.round(viewport.clientHeight * .72));
+  sceneWidth = stage.clientWidth;
+  sceneHeight = stage.clientHeight;
+  sceneLens = Math.max(510, sceneHeight * 1.4);
+  scene.style.setProperty("--scene-lens", sceneLens + "px");
   track.style.setProperty("--travel", Math.max(0, playback.length - 1) * step + "px");
   viewport.scrollTop = currentPosition * step;
   if (reset) {
@@ -110,8 +124,46 @@ function updateLayout(reset = false) {
   requestRender();
 }
 
+function queueFrame() {
+  if (!frame && !document.hidden && sceneInView) frame = requestAnimationFrame(tick);
+}
+
 function requestRender() {
-  if (!frame) frame = requestAnimationFrame(render);
+  sceneDirty = true;
+  queueFrame();
+}
+
+function tick(time) {
+  frame = 0;
+  if (document.hidden || !sceneInView) return;
+  const repaintScene = sceneDirty;
+  if (repaintScene) {
+    sceneDirty = false;
+    render(time);
+  }
+
+  if (reducedMotion.matches) {
+    if (repaintScene) drawDust();
+    return;
+  }
+  // Camera and dust use the same pose on scroll. At rest only the dust needs painting.
+  const elapsed = lastDustTime ? time - lastDustTime : 33;
+  if (repaintScene || elapsed >= 32) {
+    dustTime += Math.min(elapsed, 80) / 1000;
+    lastDustTime = time;
+    drawDust();
+  }
+  queueFrame();
+}
+
+function syncVisibility() {
+  previousTime = 0;
+  lastDustTime = 0;
+  if ((document.hidden || !sceneInView) && frame) {
+    cancelAnimationFrame(frame);
+    frame = 0;
+  }
+  requestRender();
 }
 
 function clamp(value, min, max) {
@@ -123,13 +175,34 @@ function ease(value) {
   return t * t * (3 - 2 * t);
 }
 
+function makeStagePhoto(image) {
+  const photo = new Image();
+  photo.alt = "";
+  photo.decoding = "async";
+  photo.src = image.src;
+  return photo;
+}
+
+function prepareNearbyPhotos(center) {
+  if (center === lastPrefetch) return;
+  lastPrefetch = center;
+  const nearby = new Set();
+  for (let index = Math.max(0, center - 3); index <= center + 3 && playback[index]; index++) {
+    const image = playback[index];
+    nearby.add(image.id);
+    if (cards.has(image.id) || preparedPhotos.has(image.id)) continue;
+    const photo = makeStagePhoto(image);
+    preparedPhotos.set(image.id, photo);
+    photo.decode?.().catch(() => {});
+  }
+  for (const id of preparedPhotos.keys()) if (!nearby.has(id)) preparedPhotos.delete(id);
+}
+
 function mountCard(image) {
   const card = document.createElement("figure");
   card.className = "photo";
-  const photo = new Image();
-  photo.alt = "";
-  photo.src = image.src;
-  photo.decoding = "async";
+  const photo = preparedPhotos.get(image.id) || makeStagePhoto(image);
+  preparedPhotos.delete(image.id);
   card.append(photo);
   scene.append(card);
   cards.set(image.id, card);
@@ -304,18 +377,16 @@ function renderFilm(camera, width, height) {
   filmCamera = camera;
 
   const grainView = viewFromCamera(grainPlane, { ...camera, roll: 0 });
-  const tile = 144 * (1 - grainPlane.z) * grainView.scale;
-  const textureX = (width * (.62 + grainView.x * grainView.scale)) % tile;
-  const textureY = (height * (.62 + grainView.y * grainView.scale)) % tile;
-  const tileSize = tile.toFixed(2) + "px";
-  filmSurface.style.transform = "rotate(" + (camera.roll || 0).toFixed(2) + "deg)";
+  const scale = 2 * (1 - grainPlane.z) * grainView.scale;
+  const tile = 72 * scale;
+  const textureX = (width * grainView.x * grainView.scale) % tile;
+  const textureY = (height * grainView.y * grainView.scale) % tile;
+  filmSurface.style.transform = "rotate(" + (camera.roll || 0).toFixed(2) + "deg) translate3d(" +
+    textureX.toFixed(2) + "px," + textureY.toFixed(2) + "px,0) scale(" + scale.toFixed(4) + ")";
   opticalGlow.style.opacity = String(.035 + (camera.crossing || 0) * .16);
   opticalGlow.style.transform = "translateX(" + ((camera.crossing || 0) * -9) + "%)";
-  filmSurface.style.backgroundSize = tileSize + " " + tileSize;
-  filmSurface.style.backgroundPosition = textureX.toFixed(2) + "px " + textureY.toFixed(2) + "px";
 
   for (const { canvas, z } of dustPlanes) canvas.style.zIndex = String(layerAtDepth(z - camera.z));
-  if (reducedMotion.matches) drawDust();
 }
 
 function wrapNear(value, center, span) {
@@ -341,19 +412,35 @@ function sampleDust(particle, planeZ, elapsed, camera) {
     warm: warmBeam >= coolBeam };
 }
 
+function dustGlow(tone) {
+  if (dustGlowSprites.has(tone)) return dustGlowSprites.get(tone);
+  const sprite = document.createElement("canvas");
+  sprite.width = sprite.height = 96;
+  const context = sprite.getContext("2d");
+  const light = context.createRadialGradient(48, 48, 0, 48, 48, 48);
+  light.addColorStop(0, "rgba(" + tone + ",.47)");
+  light.addColorStop(1, "rgba(" + tone + ",0)");
+  context.fillStyle = light;
+  context.fillRect(0, 0, 96, 96);
+  dustGlowSprites.set(tone, sprite);
+  return sprite;
+}
+
 function drawDust() {
   if (!filmWidth || !filmHeight) return;
   const density = Math.min(window.devicePixelRatio || 1, 1.5);
   const pixelWidth = Math.round(filmWidth * density);
   const pixelHeight = Math.round(filmHeight * density);
-  for (const { canvas, context, particles, z } of dustPlanes) {
+  for (const { canvas, context, particles, z, dirtyRects } of dustPlanes) {
     if (!context) continue;
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
       canvas.width = pixelWidth;
       canvas.height = pixelHeight;
+      context.setTransform(density, 0, 0, density, 0, 0);
+      dirtyRects.length = 0;
     }
-    context.setTransform(density, 0, 0, density, 0, 0);
-    context.clearRect(0, 0, filmWidth, filmHeight);
+    for (const rect of dirtyRects) context.clearRect(rect.x, rect.y, rect.size, rect.size);
+    dirtyRects.length = 0;
     for (const particle of particles) {
       const { x, y, scale, light, warm } = sampleDust(particle, z, dustTime, filmCamera);
       if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
@@ -361,14 +448,15 @@ function drawDust() {
       const py = y * filmHeight;
       const radius = particle.radius * (.45 + .58 * scale);
       const tone = warm ? "255,228,189" : "213,234,255";
+      let extent = radius * (1 + .18 * light);
       if (light > .34) {
-        const reach = radius * (2.4 + Math.min(1.4, scale));
-        const glow = context.createRadialGradient(px, py, 0, px, py, reach);
-        glow.addColorStop(0, "rgba(" + tone + "," + (.47 * light) + ")");
-        glow.addColorStop(1, "rgba(" + tone + ",0)");
-        context.fillStyle = glow;
-        context.fillRect(px - reach, py - reach, reach * 2, reach * 2);
+        extent = radius * (2.4 + Math.min(1.4, scale));
+        context.globalAlpha = light;
+        context.drawImage(dustGlow(tone), px - extent, py - extent, extent * 2, extent * 2);
+        context.globalAlpha = 1;
       }
+      const clear = Math.ceil(extent) + 2;
+      dirtyRects.push({ x: Math.floor(px) - clear, y: Math.floor(py) - clear, size: clear * 2 + 2 });
       const alpha = (.05 + .82 * light) * Math.min(1, .62 + .27 * scale);
       context.fillStyle = "rgba(" + tone + "," + alpha + ")";
       context.beginPath();
@@ -378,28 +466,9 @@ function drawDust() {
   }
 }
 
-function animateDust(time) {
-  dustFrame = 0;
-  if (document.hidden || reducedMotion.matches) return;
-  const elapsed = lastDustTime ? time - lastDustTime : 34;
-  if (elapsed >= 30) {
-    dustTime += Math.min(elapsed, 60) / 1000;
-    lastDustTime = time;
-    drawDust();
-  }
-  dustFrame = requestAnimationFrame(animateDust);
-}
-
-function refreshDust() {
-  const moving = !document.hidden && !reducedMotion.matches;
-  if (moving && !dustFrame) {
-    lastDustTime = 0;
-    dustFrame = requestAnimationFrame(animateDust);
-  } else if (!moving && dustFrame) {
-    cancelAnimationFrame(dustFrame);
-    dustFrame = 0;
-  }
-  if (!moving && !document.hidden) drawDust();
+function opticalBlur(shotZ, focusZ) {
+  const depth = Math.max(0, focusZ - shotZ);
+  return 1 - Math.exp(-depth / 1.05);
 }
 
 function composePhoto(relative, distance, compact) {
@@ -417,10 +486,9 @@ function composePhoto(relative, distance, compact) {
 }
 
 function render(time) {
-  frame = 0;
   const target = clamp(viewport.scrollTop / step, 0, Math.max(0, playback.length - 1));
   const delta = target - displayed;
-  const dt = clamp(time - previousTime, 8, 32);
+  const dt = previousTime ? clamp(time - previousTime, 1, 110) : 1000 / 60;
   previousTime = time;
   displayed = reducedMotion.matches || Math.abs(delta) < .003
     ? target : displayed + delta * (1 - Math.exp(-dt / 68));
@@ -428,12 +496,12 @@ function render(time) {
   const center = clamp(Math.round(displayed), 0, Math.max(0, playback.length - 1));
   const position = reducedMotion.matches ? center : displayed;
   const visible = new Set();
-  const width = stage.clientWidth;
-  const height = stage.clientHeight;
-  const lens = Math.max(510, height * 1.4);
+  const width = sceneWidth;
+  const height = sceneHeight;
+  const lens = sceneLens;
   const camera = cameraAt(position, width / Math.max(1, height));
   updateMotionBlur(camera, width, height, lens, dt);
-  scene.style.setProperty("--scene-lens", lens + "px");
+  prepareNearbyPhotos(center);
   renderFilm(reducedMotion.matches ? origin : camera, width, height);
   const compact = width < 650;
   const first = reducedMotion.matches ? center : Math.max(0, Math.floor(position) - 2);
@@ -448,12 +516,8 @@ function render(time) {
     const tilt = ease((distance - .09) / .74);
     const composition = composePhoto(relative, distance, compact);
     const rotation = frameRotation(shot.attitude, offset);
-    const depthDefocus = Math.abs(shot.z - camera.focusZ) * 1.75;
-    const separation = .33 * ease((distance - .12) / .94);
-    const defocus = clamp(depthDefocus + separation, 0, 1);
-    const rear = relative.depth < -.08;
-    const blur = defocus * (rear ? (compact ? 4 : 7) : (compact ? 13 : 21)) +
-      motionBlur * (rear ? .22 : .45 + .55 * tilt);
+    const defocus = opticalBlur(shot.z, camera.focusZ);
+    const blur = defocus * (compact ? 8 : 12) + motionBlur * .4;
     const viewRatio = clamp(image.ratio, .58, 2.1);
     const heightLimit = compact ? .84 : viewRatio < 1 ? .95 : .83;
     const photoHeight = Math.min(height * heightLimit, width * (compact ? .83 : .68) / viewRatio);
@@ -461,18 +525,27 @@ function render(time) {
     const card = cards.get(image.id) || mountCard(image);
     const photo = card.firstElementChild;
 
-    card.style.width = photoWidth + "px";
-    card.style.height = photoHeight + "px";
+    const metrics = photoMetrics.get(card);
+    const focalPoint = image.x + "% " + image.y + "%";
+    if (!metrics || metrics.width !== photoWidth || metrics.height !== photoHeight) {
+      card.style.width = photoWidth + "px";
+      card.style.height = photoHeight + "px";
+    }
+    if (!metrics || metrics.focalPoint !== focalPoint) photo.style.objectPosition = focalPoint;
+    if (!metrics || metrics.width !== photoWidth || metrics.height !== photoHeight || metrics.focalPoint !== focalPoint) {
+      photoMetrics.set(card, { width: photoWidth, height: photoHeight, focalPoint });
+    }
     card.style.transform = "translate3d(calc(-50% + " + (composition.x * width).toFixed(2) +
       "px),calc(-50% + " + (composition.y * height).toFixed(2) + "px)," +
       (relative.z * lens).toFixed(2) + "px) rotateZ(" + camera.roll.toFixed(2) +
       "deg) " + rotation;
-    card.style.zIndex = String(layerAtDepth(relative.depth));
+    // The active image occupies a dedicated layer above every other photo.
+    card.style.zIndex = String(index === center ? highlightLayer : layerAtDepth(relative.depth));
     card.style.filter = blur > .05 ? "blur(" + blur.toFixed(2) +
-      "px) brightness(" + (1 - defocus * .24).toFixed(3) + ")" : "none";
+      "px) brightness(" + (1 - defocus * .14).toFixed(3) + ")" : "none";
     card.style.setProperty("--edge-light", (.10 + .12 * camera.crossing + .06 * tilt).toFixed(2));
-    card.style.opacity = String(composition.opacity);
-    photo.style.objectPosition = image.x + "% " + image.y + "%";
+    const clearView = 1 - ease((distance - .50) / .25);
+    card.style.opacity = String(composition.opacity + (1 - composition.opacity) * clearView);
     visible.add(image.id);
   }
 
@@ -562,6 +635,8 @@ function renderEditor(reset = true, fromStart = false) {
   if (reset) {
     for (const card of cards.values()) card.remove();
     cards.clear();
+    preparedPhotos.clear();
+    lastPrefetch = -1;
   }
   updateSelection();
   updateLayout(reset);
@@ -663,11 +738,14 @@ function toggleView() {
 
 viewport.addEventListener("scroll", requestRender, { passive: true });
 new ResizeObserver(() => updateLayout()).observe(viewport);
-reducedMotion.addEventListener("change", () => {
-  requestRender();
-  refreshDust();
-});
-document.addEventListener("visibilitychange", refreshDust);
+reducedMotion.addEventListener("change", syncVisibility);
+document.addEventListener("visibilitychange", syncVisibility);
+if (typeof IntersectionObserver === "function") {
+  new IntersectionObserver(([entry]) => {
+    sceneInView = entry.isIntersecting;
+    syncVisibility();
+  }).observe(viewport);
+}
 
 viewport.addEventListener("keydown", event => {
   if (event.target !== viewport) return;
@@ -783,5 +861,4 @@ async function initialize() {
   updateSelection();
 }
 
-refreshDust();
 initialize();
