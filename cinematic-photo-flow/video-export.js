@@ -2,7 +2,7 @@
 (() => {
   const fps = 60;
   const format = byId("video-format");
-  if (matchMedia("(max-width: 650px) and (orientation: portrait)").matches) format.value = "9:16";
+  if (matchMedia("(max-width: 650px) and (orientation: portrait)").matches) format.querySelector('input[value="9:16"]').checked = true;
   const button = byId("export-video");
   const progress = byId("video-progress");
   const status = byId("video-status");
@@ -242,7 +242,7 @@
       status.textContent = "Aggiungi almeno una foto per esportare il video.";
       return;
     }
-    const portrait = format.value === "9:16";
+    const portrait = format.querySelector("input:checked").value === "9:16";
     const width = portrait ? 1080 : 1920;
     const height = portrait ? 1920 : 1080;
     job = new AbortController();

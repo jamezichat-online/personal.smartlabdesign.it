@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Disponi le tue foto e attraversa la sequenza con lo scroll.">
 <title>Cinematic Photo Flow</title>
-<link rel="stylesheet" href="style.css?v=b74b1068dedc">
+<link rel="stylesheet" href="style.css?v=319b5d8402a5">
 <script src="app.js?v=ba2c8eba46e7" defer></script>
-<script src="video-export.js?v=8caa09fba4a5" defer></script>
+<script src="video-export.js?v=05f1acb5efd9" defer></script>
 </head>
 <body>
 <header class="bar">
@@ -37,10 +37,16 @@
     <div class="editor-head">
       <div><h2 id="editor-title">Sequenza</h2><p id="edit-help">Seleziona una miniatura per raggiungere la foto.</p></div>
       <div class="editor-actions"><span id="save-state" role="status"></span><button class="button outline" id="new-gallery" hidden>Nuova galleria</button><div class="gallery-file-actions"><button class="button accent" id="upload"><span aria-hidden="true">＋</span> Carica immagini</button><button class="button outline" id="export-video" type="button">Esporta video</button>
-        <select id="video-format" class="button outline" aria-label="Formato video">
-          <option value="16:9" title="Orizzontale 1920 × 1080">16:9</option>
-          <option value="9:16" title="Verticale 1080 × 1920">9:16</option>
-        </select></div></div>
+        <fieldset id="video-format" class="video-format" aria-label="Formato video">
+          <label class="video-format-option">
+            <input type="radio" name="video-format" value="16:9" aria-label="Orizzontale 16:9" checked>
+            <span class="video-format-icon" aria-hidden="true"></span>
+          </label>
+          <label class="video-format-option">
+            <input type="radio" name="video-format" value="9:16" aria-label="Verticale 9:16">
+            <span class="video-format-icon" aria-hidden="true"></span>
+          </label>
+        </fieldset></div></div>
     </div>
     <div class="video-export">
       <progress id="video-progress" aria-label="Avanzamento rendering" max="100" value="0" hidden></progress>
