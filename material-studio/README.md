@@ -1,6 +1,10 @@
-# Material Studio 3D
+# Studio 3d · by Smartlabdesign
 
 Interactive material studio with the approved GPU renderer as the default desktop and touch implementation.
+
+Home now collects 11 experiments, with optional All experiments, Materials, Worlds & Dioramas and Product Design filters. Six materials open inside the existing studio. Water Trails, Venice Court, The Villa, Aurelia Bay and Fold 3D open their existing dedicated project pages in a new tab. Linked scenes load no iframe, scene code or WebGL context in Home; previews are compressed static captures of the real projects.
+
+To add a linked experiment, append its title, category, description, URL and preview to `projects` in `assets/gallery.js`. Cards share one size and aspect ratio, stable hover targets, reduced-motion behavior and native horizontal scrolling. Add a new material through the existing scene API and performance contract.
 
 - Main tool: https://sites.smartlabdesign.it/material-studio/
 - Former desktop v1 URL redirects to the main tool.

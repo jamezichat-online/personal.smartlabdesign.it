@@ -18,26 +18,40 @@ const materials = [...studio.querySelectorAll('[data-subject]')].map(button => (
   title: window.materialStudio.title(button.dataset.subject) || [button.textContent],
   description: interactions[button.dataset.subject],
   preview: './assets/previews/' + button.dataset.subject + '.webp',
+  category: 'materials',
   button
 }));
+// Linked experiments stay dormant: only their static preview is loaded by Home.
+const projects = [
+  { id: 'offroad', title: ['Water', 'Trails'], category: 'worlds', description: 'Drive the off-roader and explore the tropical diorama.', href: 'https://water-trails-diorama-jamez.jamez-ichat.chatgpt.site' },
+  { id: 'basket', title: ['Venice', 'Court'], category: 'worlds', description: 'Explore the court, choose your position and take a shot.', href: '../venice-beach-court/' },
+  { id: 'villa', title: ['The', 'Villa'], category: 'worlds', description: 'Explore the property, walk through its spaces and shape the architecture.', href: '../appartamento-3d/' },
+  { id: 'aurelia', title: ['Aurelia', 'Bay'], category: 'worlds', description: 'Explore the waterfront city and discover its miniature world.', href: '../aurelia-bay/' },
+  { id: 'fold', title: ['Fold', '3D'], category: 'product', description: 'Fold, rotate and explore the device’s internal components.', href: '../fold-3d-study-03/' }
+].map(project => ({ ...project, preview: './assets/previews/' + project.id + '.webp' }));
+const experiments = [...materials, ...projects];
+const categories = [['all', 'All experiments'], ['materials', 'Materials'], ['worlds', 'Worlds & Dioramas'], ['product', 'Product Design']];
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const hoverAvailable = matchMedia('(hover: hover) and (pointer: fine)');
 const ease = [.3, .72, .12, 1];
 const duration = .82;
 
-function MaterialCard({ material, stackOrder, featured, offset, onFocus, onOpen }) {
+function MaterialCard({ material, stackOrder, featured, offset, hasNext, onFocus, onOpen }) {
   const descriptionId = 'material-description-' + material.id;
 
-  return h('button', {
-    className: 'material-card', type: 'button', 'aria-label': material.title.join(' '),
+  return h(material.href ? 'a' : 'button', {
+    className: 'material-card', type: material.href ? undefined : 'button',
+    href: material.href, target: material.href ? '_blank' : undefined,
+    rel: material.href ? 'noopener noreferrer' : undefined,
+    'aria-label': material.title.join(' ') + (material.href ? ' — opens in a new tab' : ''),
     'aria-describedby': material.description ? descriptionId : undefined,
     'data-card': material.id, 'data-featured': featured ? '' : undefined,
-    style: { '--stack-order': stackOrder, '--neighbor-offset': offset, '--overlap-shadow': !featured && stackOrder < materials.length ? 1 : 0 },
+    style: { '--stack-order': stackOrder, '--neighbor-offset': offset, '--overlap-shadow': !featured && hasNext ? 1 : 0 },
     onFocus: event => {
       if (event.currentTarget.matches(':focus-visible')) onFocus(stackOrder);
     },
     onBlur: () => onFocus(current => current === stackOrder ? null : current),
-    onClick: () => onOpen(material)
+    onClick: material.href ? undefined : () => onOpen(material)
   },
     h('span', { className: 'material-card-art', 'aria-hidden': 'true' },
       h('img', { src: material.preview, alt: '', draggable: false })),
@@ -105,6 +119,8 @@ function Gallery() {
   const container = useRef(null);
   const busy = useRef(false);
   const [phase, setPhase] = useState('home');
+  const [category, setCategory] = useState('all');
+  const visibleItems = experiments.filter(item => category === 'all' || item.category === category);
   const [hovered, setHovered] = useState(null);
   const [focused, setFocused] = useState(null);
   const featured = hovered ?? focused;
@@ -144,6 +160,19 @@ function Gallery() {
     pendingHover.current = null;
     hoveredRef.current = null;
     setHovered(null);
+  }
+
+  function changeCategory(next) {
+    resetHover();
+    setFocused(null);
+    setCategory(next);
+    container.current.querySelector('.material-rail').scrollLeft = 0;
+  }
+
+  function scrollRail(direction) {
+    resetHover();
+    const rail = container.current.querySelector('.material-rail');
+    rail.scrollBy({ left: direction * rail.clientWidth * .65, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
   }
 
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
@@ -188,7 +217,7 @@ function Gallery() {
         document.body.append(layer);
         const flights = materials.flatMap((item, index) => {
           const origin = origins.get(item.id);
-          if (!origin.visible && item !== material) return [];
+          if (!origin || (!origin.visible && item !== material)) return [];
           return [fly(layer, origin, targets.get(item.id), item.preview, item === material, true, index)];
         });
         animate(gallery.querySelectorAll('h1,p'), { opacity: [1, 0] }, { duration: .24, ease });
@@ -234,7 +263,7 @@ function Gallery() {
         document.body.append(layer);
         const flights = materials.flatMap((item, index) => {
           const origin = origins.get(item.id);
-          if (!origin.visible && item !== material) return [];
+          if (!origin || (!origin.visible && item !== material)) return [];
           return [fly(layer, origin, targets.get(item.id), item.preview, item === material, false, index, item === material ? liveImage : null)];
         });
         animate(studio, { opacity: [1, 0] }, { duration: .25, ease });
@@ -264,20 +293,31 @@ function Gallery() {
     'aria-labelledby': 'materialHomeTitle', hidden: phase === 'studio',
     inert: phase !== 'home'
   },
-    h('h1', { id: 'materialHomeTitle' }, 'Material Studio ', h('em', null, '3D')),
+    h('div', { className: 'studio-home-header' },
+      h('h1', { id: 'materialHomeTitle' }, 'Studio ', h('em', null, '3d')),
+      h('span', { className: 'studio-signature' }, 'by Smartlabdesign'),
+      h('div', { className: 'studio-categories', role: 'group', 'aria-label': 'Experiment categories' },
+        categories.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': category === id, onClick: () => changeCategory(id) }, label)))
+    ),
     h('div', { className: 'material-rail', onPointerMove: followPointer, onPointerLeave: () => queueHover(null) }, h('div', {
       className: 'material-track', 'data-previewing': featured === null ? undefined : ''
-    }, materials.map((material, index) => {
+    }, visibleItems.map((material, index) => {
       const stackOrder = index + 1;
       const distance = featured === null ? 0 : stackOrder - featured;
       const offset = Math.sign(distance) * (shiftByDistance[Math.abs(distance) - 1] ?? 0);
       return h(MaterialCard, {
         key: material.id, material, stackOrder, featured: featured === stackOrder,
-        offset, onFocus: setFocused, onOpen: open
+        offset, hasNext: index < visibleItems.length - 1, onFocus: setFocused, onOpen: open
       });
     }))),
-    h('p', null, 'Choose a material. Explore its nature.')
+    h('div', { className: 'studio-home-footer' },
+      h('div', { className: 'studio-rail-controls' },
+        visibleItems.length > 1 && h('button', { type: 'button', 'aria-label': 'Previous experiments', onClick: () => scrollRail(-1) }, '←'),
+        h('span', { role: 'status', 'aria-live': 'polite' }, visibleItems.length === 1 ? '1 experiment' : visibleItems.length + ' experiments · scroll to explore'),
+        visibleItems.length > 1 && h('button', { type: 'button', 'aria-label': 'Next experiments', onClick: () => scrollRail(1) }, '→')),
+      h('p', null, 'Choose an experiment. Explore its nature.'))
   );
 }
 
 createRoot(homeRoot).render(h(Gallery));
+

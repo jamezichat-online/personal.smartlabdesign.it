@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Material Studio 3D</title>
+<title>Studio 3d</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#100b09;color:#f9ecdf;--accent:#ffac66}
 *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:clamp(14px,4vw,50px)}
@@ -15,12 +15,12 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outlin
 .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:15px 0 10px}.controls button{border-radius:100px;border:1px solid #664333;padding:10px 15px;background:#23150f;color:#ffe8d4;font:600 13px system-ui;cursor:pointer}.controls button[aria-pressed=true]{background:#ffae70;color:#241108;border-color:#ffae70}.controls button:hover{border-color:#ffae70}.controls button:focus-visible{outline:2px solid #fff2d8;outline-offset:3px}.reset{margin-left:auto}.hint{margin:0;color:#d8b59f;font-size:13px;min-height:2em}.error{position:absolute;inset:0;margin:0;place-content:center;text-align:center;padding:24px;background:#231410}.error:not([hidden]){display:grid}
 @media(max-width:480px){.stage{height:clamp(360px,60svh,560px);border-radius:14px}header p{font-size:10px}.controls{gap:6px}.controls button{padding:9px 11px}.reset{margin-left:0}}
 nav{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1rem}nav button{border:1px solid #674733;background:transparent;color:#efcdb8;padding:9px 17px;border-radius:30px;cursor:pointer;font-weight:600}nav button[aria-pressed=true]{background:#f3ddc7;color:#28140e}button[hidden],#materialTools[hidden]{display:none}.stage canvas{position:absolute;inset:0;border-radius:inherit}.meta,#trace{z-index:2}body{padding-block:clamp(14px,2.4vh,30px)}header{margin-bottom:16px}.stage canvas.bloom{pointer-events:none;z-index:1;mix-blend-mode:screen;filter:blur(clamp(4px,0.8vw,10px))}.stage canvas.juice{pointer-events:none;position:absolute;inset:0;z-index:1}.controls button[hidden]{display:none}.audio-credits{margin-top:.7rem;color:#d8b59f;font-size:.8125rem}.audio-credits summary{cursor:pointer}.audio-credits a{color:inherit}</style>
-<link rel="stylesheet" href="./assets/gallery.css?v=7">
+<link rel="stylesheet" href="./assets/gallery.css?v=8">
 </head>
 <body data-studio-mode="home">
 <div id="materialHome"></div>
 <main id="materialStudio" inert>
-<header><h1><span id="materialTitleName">Citrus</span> <em id="materialTitleAccent">Gel</em></h1><p>Material Studio<br>Interactive 3D Slice</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button><button id="materialHomeButton" type="button" aria-controls="materialHome" aria-expanded="true">Home</button></nav>
+<header><h1><span id="materialTitleName">Citrus</span> <em id="materialTitleAccent">Gel</em></h1><p>Studio 3d<br>by Smartlabdesign</p></header><nav aria-label="3D Object"><button data-subject="sushi">Salmon Nigiri</button><button data-subject="orange">Orange Gel</button><button data-subject="bear">Gummy Bear</button><button data-subject="pudding">Amber Jelly</button><button data-subject="burger">Beef Patty</button><button data-subject="cloud">Cloud</button><button id="sound" type="button" aria-pressed="false">Sound off</button><button id="materialHomeButton" type="button" aria-controls="materialHome" aria-expanded="true">Home</button></nav>
 <div class="stage">
 <canvas id="view" aria-label="3D gelatinous orange slice" tabindex="0"></canvas>
 <div class="meta"><span>Orange</span><span id="count" aria-live="polite">1 piece</span></div>
@@ -2465,7 +2465,7 @@ function choose(k){
   view.style.display=gpu.style.display=controls.style.display='none';sheet.hidden=false;
   sheet.querySelectorAll('[data-for]').forEach(button=>button.hidden=button.dataset.for!==k);
   setMaterialTitle(k);
-  document.querySelector('header p').textContent='Material Studio 3D';
+  document.querySelector('header p').textContent='Studio 3d';
   document.querySelector('.meta span').textContent='Vapour';
   counter.textContent=cloudReady?'':'WebGL 2 required';
   document.querySelectorAll('[data-subject]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.subject===k));
@@ -2476,7 +2476,7 @@ function choose(k){
  juice.hide();updateBloom.clear();kind=k;if(k==='burger'&&!patty)patty=makePatty();if(k==='pudding'&&!pudding)pudding=makePudding();if(k==='bear'&&!bear)bear=makeBear();drag=null;press=0;pressV=0;pressGoal=0;pull=[0,0];pv=[0,0];pullGoal=[0,0];if(k!=='bear')orbitState[k]=defaultOrbits()[k];zoom=framing[k].zoom;frameSize=null;
  document.querySelectorAll('[data-subject]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.subject===k));
  setMaterialTitle(k);
- document.querySelector('header p').textContent='Material Studio 3D';document.querySelector('.meta span').textContent=k==='burger'?'Seared beef':k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
+ document.querySelector('header p').textContent='Studio 3d';document.querySelector('.meta span').textContent=k==='burger'?'Seared beef':k==='pudding'?'Amber Jelly':k==='bear'?'Red Jelly':k==='sushi'?'Salmon and Rice':'Orange';
  let native=k==='orange'&&hasGPU;
  gpu.style.display=native?'block':'none';view.hidden=native;view.style.display=native?'none':'block';sheet.hidden=native;controls.style.display=native?'flex':'none';
  document.querySelector('#error').style.display='none';
@@ -2566,7 +2566,7 @@ document.addEventListener('visibilitychange',()=>{
 })();
 </script>
 <script type="module">
-import('./assets/gallery.js?v=5').catch(error=>{
+import('./assets/gallery.js?v=6').catch(error=>{
  console.error(error);
  document.body.dataset.studioMode='studio';
  document.querySelector('#materialStudio').inert=false;

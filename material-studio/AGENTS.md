@@ -1,4 +1,4 @@
-# Material Studio 3D — project instructions
+# Studio 3d — project instructions
 
 ## Active version and sources
 - The canonical tool is `/material-studio/`. The GPU implementation was approved as definitive on 2026-11-25.
@@ -22,5 +22,6 @@
 - Home cards remain uniform and accommodate additional elements. Hover uses stable rail targets; transitions should use transform/opacity rather than animated layout dimensions.
 - Keep rounded clipping throughout opening and returning Home, including temporary flight cards, preview images and captured canvases.
 - Keep UI copy in English.
+- Linked project cards belong in the Home `projects` registry, use native links and compressed static previews, and must not preload their 3D engines. Preserve existing project access settings. Keep categories data-driven and card dimensions uniform.
 - Verify material selection, deformation/release, picking of separable pieces, reset, Home transitions and suspend/resume for the affected paths.
 
