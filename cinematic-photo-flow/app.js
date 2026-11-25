@@ -72,7 +72,10 @@ const dustPlanes = [-1.55, -1.10, -.36, .36, 1.08, 1.52].map((z, index) => {
       angle: Math.random() * Math.PI,
       period: 3 + Math.random() * 5,
       phase: Math.random() * 8,
-      flashDuration: .16 + Math.random() * .24
+      flashDuration: .16 + Math.random() * .24,
+      fadePeriod: 4 + Math.random() * 4,
+      fadePhase: Math.random() * 8,
+      fadeSeed: Math.floor(Math.random() * 4294967296)
     }))
   };
 });
@@ -467,6 +470,21 @@ function wrapNear(value, center, span) {
   return center + ((offset % span + span) % span) - span / 2;
 }
 
+function dustVisibility(particle, elapsed) {
+  const time = elapsed + particle.fadePhase;
+  const cycle = Math.floor(time / particle.fadePeriod);
+  const age = time % particle.fadePeriod;
+  const fadeOut = .52, hidden = .72, fadeIn = .60;
+  if (age >= fadeOut + hidden + fadeIn) return 1;
+
+  // Vary which motes fade each cycle, with the same result at any playback frame.
+  let roll = Math.imul(particle.fadeSeed ^ cycle, 0x45d9f3b);
+  roll = Math.imul(roll ^ (roll >>> 16), 0x45d9f3b);
+  if (((roll ^ (roll >>> 16)) >>> 0) / 4294967296 > .46) return 1;
+
+  return 1 - ease(age / fadeOut) + ease((age - fadeOut - hidden) / fadeIn);
+}
+
 function sampleDust(particle, plane, elapsed, camera) {
   // Keep the front motes close to the lens as the camera travels through the scene.
   const span = plane.foreground ? .74 : 1.50 * (1.04 + depthPlanes.at(-1) - plane.z);
@@ -485,7 +503,7 @@ function sampleDust(particle, plane, elapsed, camera) {
   // A mote catches the beam only briefly as its surface turns in the air.
   const age = (elapsed + particle.phase) % particle.period;
   const glint = age < particle.flashDuration ? Math.sin(Math.PI * age / particle.flashDuration) ** 2 : 0;
-  const alpha = (plane.foreground ? .23 : .15) + light * (.20 + .44 * glint);
+  const alpha = ((plane.foreground ? .23 : .15) + light * (.20 + .44 * glint)) * dustVisibility(particle, elapsed);
   return { x, y, scale: relative.scale, alpha, warm: warm >= cool };
 }
 
@@ -493,7 +511,7 @@ function paintDustPlane(context, plane, elapsed, camera, width, height, dirtyRec
   const imageScale = clamp(Math.min(width, height) / 680, .8, 1.55);
   for (const particle of plane.particles) {
     const { x, y, scale, alpha, warm } = sampleDust(particle, plane, elapsed, camera);
-    if (x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
+    if (alpha === 0 || x < -.015 || x > 1.015 || y < -.015 || y > 1.015) continue;
     const px = x * width, py = y * height;
     const radius = Math.min(1.95, particle.radius * (.79 + .34 * scale)) * imageScale;
     const tone = warm ? "223,209,187" : "202,210,215";
