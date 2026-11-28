@@ -26,15 +26,15 @@ html,body{height:100%;overflow:hidden;background:#071c26;overscroll-behavior:non
 body{display:flex;flex-direction:column;height:100dvh;font:500 11px/1 'DM Mono',ui-monospace,monospace;color:var(--cream);text-transform:uppercase;letter-spacing:.1em;user-select:none;-webkit-user-select:none}
 #stage{flex:1;position:relative;min-height:0}
 canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
-#hud{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));display:flex;align-items:flex-start;gap:14px;pointer-events:none}
-#hud span[hidden]{display:none}
-#hud #best{position:absolute;left:0;top:40px}
-#snd{margin:-5px 0 0 auto;min-height:44px;min-width:44px;padding:0 12px;pointer-events:auto;cursor:pointer;touch-action:manipulation;background:var(--ink);color:var(--cream);border:2px solid var(--cream);box-shadow:4px 4px 0 var(--pink);font:inherit;font-size:12px;letter-spacing:inherit;text-transform:inherit;white-space:nowrap}
-#snd[data-state=tap]{background:var(--sun);color:var(--ink);border-color:var(--ink)}
+#hud{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;pointer-events:none}
+#hud>*{display:flex;align-items:center;justify-content:center;height:32px;background:var(--ink);color:var(--cream);border:2px solid var(--cream);box-shadow:4px 4px 0 var(--pink);font:inherit;font-size:min(12px,3.1vw);letter-spacing:inherit;text-transform:inherit;white-space:nowrap}
+#snd{position:relative;pointer-events:auto;cursor:pointer;touch-action:manipulation}
+#hud>#snd{background:var(--sun);color:var(--ink);border-color:var(--ink)}
+#hud>#snd[data-state=off]{background:var(--coral)}
+#snd::before{content:"";position:absolute;inset:-9px -4px}
 #snd:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--pink)}
 #snd:focus-visible{outline:3px solid var(--sun);outline-offset:4px}
-#hud span{background:var(--ink);border:2px solid var(--cream);padding:7px 10px;box-shadow:4px 4px 0 var(--pink);font-size:12px}
-#toast{position:absolute;left:50%;top:calc(88px + env(safe-area-inset-top));transform:translateX(-50%);width:max-content;max-width:92vw;text-align:center;line-height:1.35;background:var(--sun);color:var(--ink);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--pink);padding:8px 12px;font-size:12px;opacity:0;pointer-events:none}
+#toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));transform:translateX(-50%);width:max-content;max-width:92vw;text-align:center;line-height:1.35;background:var(--sun);color:var(--ink);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--pink);padding:8px 12px;font-size:12px;opacity:0;pointer-events:none}
 #toast.go{animation:pop 1.5s cubic-bezier(.2,1.5,.4,1) forwards}
 @keyframes pop{0%{opacity:0;transform:translateX(-50%) scale(.6)}14%,80%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-14px)}}
 @media(prefers-reduced-motion:reduce){#toast.go{animation-timing-function:linear}}
@@ -45,7 +45,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor
 <body>
 <div id="stage">
   <canvas id="c" aria-label="Drag down and release to launch the character"></canvas>
-  <div id="hud" aria-live="polite"><span id="score">Score 0</span><span id="best" hidden></span><button id="snd" type="button" data-state="tap" aria-pressed="false">&#9834; Tap for sound</button></div>
+  <div id="hud" aria-live="polite"><span id="score">Score 0</span><span id="best">Best 0</span><button id="snd" type="button" data-state="tap" aria-pressed="false">&#9834; Sound</button></div>
   <div id="toast" aria-live="polite"></div>
   <div id="err">WebGL2 is not available on this browser.</div>
 </div>
@@ -310,7 +310,7 @@ const CHOREO={
 const show={on:false,def:null,t:0,keys:null,frame:'D2',prev:'D2',pop:0,rot:0,scored:false,released:false,name:''};
 const ball={on:false,x:0,y:0,rot:0,segs:null,t:0,vx:0,vy:0,life:0,net:0,netV:0};
 let score=0,best=0,played=false;try{best=+localStorage.getItem('rq-best')||0}catch(e){}
-function showBest(){const b=$('best');b.hidden=!best;b.textContent='Best '+best}
+function showBest(){const b=$('best');b.textContent='Best '+best}
 showBest();
 function pickTrick(level,aim){
  if(trickSel==='flip')return'flip';
@@ -615,7 +615,9 @@ function roundRect(x0,y0,x1,y1,r,c){use(white);const pts=[];
 let performanceT=0;const trail=[];
 /* the whole stack at rest; while airborne the camera leans into the live screen and rides along */
 const HOME={x:480,y:766},cam={z:1,x:480,y:766,vz:0,vx:0,vy:0};
-const baseScale=()=>Math.min(cv.width/900,cv.height/1640);
+/* the cabinet art spans y 64..1490: it is framed below the HUD row (hudPad, device px) so the chips never cover it */
+let hudPad=0;
+const baseScale=()=>Math.min(cv.width/900,cv.height/1640,(cv.height-hudPad)/1446);
 function camStep(dt){
  let z=1,x=HOME.x,y=HOME.y,w=5.5;
  if(!reduced){const zin=clamp(Math.min(cv.width/668,cv.height/860)/baseScale(),1,1.46);
@@ -699,7 +701,7 @@ function render(){
  if(!RT||RT.w!==cv.width||RT.h!==cv.height)makeTargets();
  gl.useProgram(prog);gl.bindFramebuffer(gl.FRAMEBUFFER,RT.ms);gl.viewport(0,0,cv.width,cv.height);gl.clearColor(.027,.11,.149,1);gl.clearStencil(0);gl.clear(gl.COLOR_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
  const base=baseScale(),sc=base*cam.z,shk=Math.sin(performanceT*85)*shakeT*shakeT*9*sc;
- const vw=cv.width/sc,cx=vw>=W?cam.x:clamp(cam.x,vw/2,W-vw/2),ox=cv.width/2-cx*sc+shk*.5,oy=cv.height/2-cam.y*sc+shk;
+ const vw=cv.width/sc,cx=vw>=W?cam.x:clamp(cam.x,vw/2,W-vw/2),ox=cv.width/2-cx*sc+shk*.5,oy=cv.height/2-cam.y*sc+shk+Math.max(0,hudPad-(cv.height/2-(HOME.y-64)*base));
  view={sc,ox,oy};
  gl.uniform4f(uView,2*sc/cv.width,-2*sc/cv.height,2*ox/cv.width-1,1-2*oy/cv.height);
  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.STENCIL_TEST);
@@ -817,7 +819,7 @@ function mediaChannel(){
 }
 function soundLabel(){
  const b=$('snd'),live=ac&&ac.state==='running',s=muted?'off':sndArmed&&live?'on':'tap';
- b.dataset.state=s;b.setAttribute('aria-pressed',s==='on');b.textContent='\u266a '+({off:'Sound off',on:'Sound on',tap:'Tap for sound'})[s];
+ b.dataset.state=s;b.setAttribute('aria-pressed',s==='on');b.setAttribute('aria-label',{off:'Sound off, tap to turn on',on:'Sound on, tap to mute',tap:'Turn sound on'}[s]);b.textContent='\u266a '+({off:'Off',on:'On',tap:'Sound'})[s];
 }
 function setMuted(m){muted=m;if(mx)mx.out.gain.setTargetAtTime(m?0:.84,ac.currentTime,.02)}
 /* the button: first tap (or a stalled context) forces activation, later taps toggle */
@@ -890,7 +892,7 @@ function autoLaunch(p,a=0){if(!canGrab())return;state.mode='drag';state.t=0;stat
 addEventListener('keydown',e=>{if(e.target.id==='snd')return;if(e.code==='Space'){e.preventDefault();autoLaunch(1)}if(['1','2','3'].includes(e.key))autoLaunch([.3,.62,1][e.key-1])});
 /* ---------- loop ---------- */
 let dprCap=2;
-function resize(){const d=Math.min(devicePixelRatio||1,dprCap),r=cv.getBoundingClientRect();cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d)}
+function resize(){const d=Math.min(devicePixelRatio||1,dprCap),r=cv.getBoundingClientRect();cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);hudPad=Math.max(0,$('hud').getBoundingClientRect().bottom+8-r.top)*d}
 new ResizeObserver(resize).observe(cv);
 const DT=1/120;let acc=0,last=0,fr=0,ft=0,manual=false;
 function tick(dt){performanceT+=dt;
@@ -908,7 +910,7 @@ function loop(now){
 let __rqFps=0;
 Promise.all(Object.entries(ASSETS).map(([k,src])=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>{IMG[k]=i;TEX[k]=mkTex(i);res()};i.onerror=rej;i.src=src}))).then(()=>{
  resize();requestAnimationFrame(loop);
- window.__rq={tv:TV,audLog,audio:()=>({ac,mx,BUF,LIVE}),cam,fx,sim(s){for(let i=0;i<Math.round(s/DT);i++)tick(DT)},force(c){forced=c},fps:()=>__rqFps,show_:show,ball,score:()=>score,sel(n){trickSel=n},go(p,a){autoLaunch(p,a)},show(n,r,ex){manual=true;state.pose={...POSE[n]};state.mode='air';state.vy=0;state.rot=r||0;state.x=485;state.y=772;state.expr=ex||'excite';xray=true;trail.length=0;state.hoodA=0;state.headA=0;render();const c=cv.getBoundingClientRect(),k=c.width/cv.width;return{x:c.x+(view.ox+512*view.sc)*k,y:c.y+(view.oy+772*view.sc)*k,s:view.sc*k}},state,ready:true,manual(v){manual=v},run(s){for(let i=0;i<Math.round(s/DT);i++)tick(DT);render()},launch:autoLaunch,trick(v){trickSel=v},xray(v){xray=v},render};
+ window.__rq={tv:TV,view:()=>view,audLog,audio:()=>({ac,mx,BUF,LIVE}),cam,fx,sim(s){for(let i=0;i<Math.round(s/DT);i++)tick(DT)},force(c){forced=c},fps:()=>__rqFps,show_:show,ball,score:()=>score,sel(n){trickSel=n},go(p,a){autoLaunch(p,a)},show(n,r,ex){manual=true;state.pose={...POSE[n]};state.mode='air';state.vy=0;state.rot=r||0;state.x=485;state.y=772;state.expr=ex||'excite';xray=true;trail.length=0;state.hoodA=0;state.headA=0;render();const c=cv.getBoundingClientRect(),k=c.width/cv.width;return{x:c.x+(view.ox+512*view.sc)*k,y:c.y+(view.oy+772*view.sc)*k,s:view.sc*k}},state,ready:true,manual(v){manual=v},run(s){for(let i=0;i<Math.round(s/DT);i++)tick(DT);render()},launch:autoLaunch,trick(v){trickSel=v},xray(v){xray=v},render};
 });
 </script>
 <script src="/assets/consent.js" defer></script>
